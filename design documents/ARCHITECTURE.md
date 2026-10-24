@@ -3,7 +3,7 @@
 **Main architecture document** for the ephemeral-agents project.
 Source: `AI Enterprise Team - Page 12.pdf` (single architecture diagram page).
 
-**Provenance.** Every item below is transcribed from the diagram and was re-verified against the source PDF at high resolution. Where an item is a sequence reading of the arrows (not a labeled box), it is marked as such. The verbatim notes preserve the source's own wording. Items I could not resolve unambiguously from the rendering are flagged **[confirm]**.
+**Provenance.** Every item below is transcribed from the diagram and was re-verified against the source PDF at high resolution. Where an item is a sequence reading of the arrows (not a labeled box), it is marked as such. The verbatim notes preserve the source's own wording. Items I could not resolve unambiguously from the rendering were flagged **[confirm]**; all four were resolved by the diagram owner on 2026-10-24 (see "Items confirmed" at the end of this document).
 
 ## Overview (read from the diagram)
 
@@ -62,22 +62,22 @@ Key structural point: **"Proxmox 9.x Server" is a parent box that contains both 
 | From | To | Label | Style |
 |---|---|---|---|
 | Software Engineer (Hermes Desktop) | Hermes Agent Gateway | — | solid |
-| Manager Agent | RabbitMQ (Topic) | — | green dashed **[confirm: one reading shows it double-headed]** |
+| Manager Agent | RabbitMQ (Topic) | — (two-way: response returned when needed) | green dashed, bidirectional ↔ |
 | RabbitMQ (Topic) | Temporal Server Container | — | solid |
 | Temporal Worker Container | Temporal Server Container | "Polls Task Queue" | solid |
 | Temporal Worker Container | "Executes Activity" diamond | — | solid |
 | "Executes Activity" diamond | Hermes Agent (Ephemeral) | — | solid |
 | "Executes Activity" diamond | Claude Code Agent (N+1) | — | solid |
 
-**Knowledge / memory flows (blue dashed) — routing flagged where the rendering is ambiguous:**
+**Knowledge / memory flows (blue dashed) — sources confirmed by owner (2026-10-24):**
 
-| Label | Most plausible source → target | Confidence |
+| Label | Source → Target | Basis |
 |---|---|---|
-| "Read Agent Skills for Ephemeral Agent Spin-up" | LLM-Wiki (VM-2) → Hermes Agent (Ephemeral) | **[confirm]** |
-| "Read Design Standards, Tools, and Skills From LLM-Wiki" | LLM-Wiki (VM-2) → the ephemeral agents | **[confirm]** |
-| "Load Agent Skill" | Available Agent List (GitHub) → Hermes Agent (Ephemeral) | **[confirm: could originate at LLM-Wiki]** |
-| "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ the ephemeral agents | high |
-| "Write Source Code to Repo" | Claude Code Agent (N+1) → Project Repo (GitHub) | high |
+| "Read Agent Skills for Ephemeral Agent Spin-up" | Available Agent List (Github Repo) → Hermes Agent (Ephemeral) | owner-confirmed: agent-load content lives in the Git repo |
+| "Read Design Standards, Tools, and Skills From LLM-Wiki" | LLM-Wiki (VM-2) → the ephemeral agents | owner-confirmed: design standards & dev/business best practices live in the LLM-Wiki |
+| "Load Agent Skill" | Available Agent List (Github Repo) → Hermes Agent (Ephemeral) | owner-confirmed: agent-load content lives in the Git repo |
+| "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ the ephemeral agents | owner-confirmed: long-term memory = Hindsight |
+| "Write Source Code to Repo" | Claude Code Agent (N+1) → Project Repo (Github) | as drawn |
 
 Line conventions: solid = task/control flow; green dashed = Manager Agent's publish; blue dashed = knowledge reads and memory R/W; red-dashed box around the ephemeral row = the disposable units.
 
@@ -88,7 +88,7 @@ Line conventions: solid = task/control flow; green dashed = Manager Agent's publ
 3. RabbitMQ (Topic) → Temporal Server (enqueues into the task queue).
 4. Temporal Worker ↔ Temporal Server ("Polls Task Queue").
 5. Temporal Worker → "Executes Activity" → both ephemeral containers start.
-6. Context loading: LLM-Wiki → agents ("Read Agent Skills for Ephemeral Agent Spin-up", "Read Design Standards, Tools, and Skills From LLM-Wiki"); Available Agent List → Hermes ephemeral ("Load Agent Skill"); Hindsight ↔ agents ("R/W Memory").
+6. Context loading: Available Agent List (Git) → Hermes ephemeral ("Read Agent Skills for Ephemeral Agent Spin-up"; "Load Agent Skill"); LLM-Wiki → agents ("Read Design Standards, Tools, and Skills From LLM-Wiki"); Hindsight ↔ agents ("R/W Memory").
 7. Claude Code Agent (N+1) → Project Repo ("Write Source Code to Repo").
 8. Per Note 2: the ephemeral agents and their containers are destroyed.
 
@@ -100,10 +100,16 @@ Line conventions: solid = task/control flow; green dashed = Manager Agent's publ
 
 Source rendering notes: "agent.f" (Note 1) is an anomalous token as drawn — likely intended to read "agent.yaml" or "agent file". The "Github" box label is lowercase-b in the source. "RabbitMQ (Topic" appears to be missing its closing parenthesis in the drawing.
 
-## Items to confirm
+## Items confirmed (owner clarification, 2026-10-24)
 
-These were ambiguous in the source rendering and are marked **[confirm]** above:
-1. Whether the Manager Agent → RabbitMQ (Topic) arrow is one-way or double-headed.
-2. The exact source→target of "Read Agent Skills for Ephemeral Agent Spin-up".
-3. The exact target of "Read Design Standards, Tools, and Skills From LLM-Wiki" (Hermes ephemeral, Claude Code, or both).
-4. Whether "Load Agent Skill" originates at the Available Agent List repo or at the LLM-Wiki.
+The four **[confirm]** items above were resolved by the diagram owner:
+
+1. **Manager Agent ↔ RabbitMQ (Topic)** is two-way (double-headed) — the green dashed line returns a response to the manager when one is needed.
+2. **"Read Agent Skills for Ephemeral Agent Spin-up"** originates at the **Available Agent List (Git repo)**, not the LLM-Wiki.
+3. **"Read Design Standards, Tools, and Skills From LLM-Wiki"** originates at the **LLM-Wiki** and serves the ephemeral agents.
+4. **"Load Agent Skill"** originates at the **Available Agent List (Git repo)**, not the LLM-Wiki.
+
+**Underlying store-content model (owner-confirmed):**
+- **Hindsight (VM-3)** = Long-Term Memory (R/W).
+- **LLM-Wiki (VM-2)** = Design Standards and anything that guides development and business best practices.
+- **Git repo (Available Agent List)** = anything the agents load (agent skills / personas).

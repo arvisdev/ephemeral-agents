@@ -9,7 +9,7 @@
 
 **Provenance statement.** This document records, in detail, everything the source diagram contains: its zones and nesting, every component, every connection with its label, the two note boxes verbatim, and the flow as read from the arrows. It deliberately contains **no** content beyond the diagram — no goals, principles, lifecycle models, payload schemas, or technology rationales of its own. It is the stable baseline from which design improvement iterations begin; anything added in later iterations should be new, clearly-marked content, not silently mixed into this record.
 
-**Verification.** All items below were re-checked against the source PDF rendered at 400 DPI. Items the rendering does not settle unambiguously are flagged **[confirm]** and collected in Section 8 rather than asserted.
+**Verification.** All items below were re-checked against the source PDF rendered at 400 DPI. Items the rendering did not settle unambiguously were flagged **[confirm]** and collected in Section 8; all four were resolved by the diagram owner on 2026-10-24 (see Section 8).
 
 ---
 
@@ -85,25 +85,25 @@ The red-dashed box inside VM-Xb encloses the two ephemeral agent containers — 
 | # | From | To | Label on the arrow | Line style |
 |---|---|---|---|---|
 | 1 | Software Engineer (Hermes Desktop) | Hermes Agent Gateway | — | solid |
-| 2 | Manager Agent | RabbitMQ (Topic) | — | green dashed **[confirm: one reading shows it double-headed]** |
+| 2 | Manager Agent | RabbitMQ (Topic) | — (two-way: response returned when needed) | green dashed, bidirectional ↔ |
 | 3 | RabbitMQ (Topic) | Temporal Server Container | — | solid |
 | 4 | Temporal Worker Container | Temporal Server Container | "Polls Task Queue" | solid |
 | 5 | Temporal Worker Container | "Executes Activity" diamond | — | solid |
 | 6 | "Executes Activity" diamond | Hermes Agent (Ephemeral) | — | solid |
 | 7 | "Executes Activity" diamond | Claude Code Agent (N+1) | — | solid |
 
-**Knowledge / memory flows (blue dashed) — routing flagged where the rendering is ambiguous:**
+**Knowledge / memory flows (blue dashed) — sources confirmed by owner (2026-10-24):**
 
-| # | Label | Most plausible source → target | Confidence |
+| # | Label | Source → Target | Basis |
 |---|---|---|---|
-| 8 | "Read Agent Skills for Ephemeral Agent Spin-up" | LLM-Wiki (VM-2) → Hermes Agent (Ephemeral) | **[confirm]** |
-| 9 | "Read Design Standards, Tools, and Skills From LLM-Wiki" | LLM-Wiki (VM-2) → the ephemeral agents | **[confirm]** |
-| 10 | "Load Agent Skill" | Available Agent List (GitHub) → Hermes Agent (Ephemeral) | **[confirm: could originate at LLM-Wiki]** |
-| 11 | "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ Hermes Agent (Ephemeral) | high |
-| 12 | "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ Claude Code Agent (N+1) | high |
-| 13 | (unlabeled) | LLM-Wiki (VM-2) → Long-Term Memory (VM-3) | medium |
-| 14 | (unlabeled) | LLM-Wiki (VM-2) → GitHub repos | medium |
-| 15 | "Write Source Code to Repo" | Claude Code Agent (N+1) → Project Repo (GitHub) | high |
+| 8 | "Read Agent Skills for Ephemeral Agent Spin-up" | Available Agent List (Github Repo) → Hermes Agent (Ephemeral) | owner-confirmed: agent-load content lives in the Git repo |
+| 9 | "Read Design Standards, Tools, and Skills From LLM-Wiki" | LLM-Wiki (VM-2) → the ephemeral agents | owner-confirmed: design standards & dev/business best practices live in the LLM-Wiki |
+| 10 | "Load Agent Skill" | Available Agent List (Github Repo) → Hermes Agent (Ephemeral) | owner-confirmed: agent-load content lives in the Git repo |
+| 11 | "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ Hermes Agent (Ephemeral) | owner-confirmed: long-term memory = Hindsight |
+| 12 | "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ Claude Code Agent (N+1) | owner-confirmed: long-term memory = Hindsight |
+| 13 | (unlabeled) | LLM-Wiki (VM-2) → Long-Term Memory (VM-3) | as drawn |
+| 14 | (unlabeled) | LLM-Wiki (VM-2) → Github repos | as drawn |
+| 15 | "Write Source Code to Repo" | Claude Code Agent (N+1) → Project Repo (Github) | as drawn |
 
 **Line/color semantics as drawn:** solid black lines carry the task/control flow; the green dashed line is the Manager Agent's publish into the topic; blue dashed lines are knowledge reads and memory R/W; the **red-dashed box** around the two ephemeral containers marks them as temporary units; the orange divider separates On-Prem from Cloud.
 
@@ -125,7 +125,7 @@ The red-dashed box inside VM-Xb encloses the two ephemeral agent containers — 
 2. **Publish:** Manager Agent → RabbitMQ (Topic) (arrow 2, green dashed).
 3. **Enqueue:** RabbitMQ (Topic) → Temporal Server (arrow 3); the Temporal Worker polls the server's task queue (arrow 4, "Polls Task Queue").
 4. **Spawn:** Temporal Worker → "Executes Activity" diamond → both ephemeral containers start (arrows 5–7).
-5. **Hydrate:** LLM-Wiki → agents ("Read Agent Skills for Ephemeral Agent Spin-up", arrow 8; "Read Design Standards, Tools, and Skills From LLM-Wiki", arrow 9); Available Agent List → Hermes ephemeral ("Load Agent Skill", arrow 10); Hindsight ↔ both agents ("R/W Memory", arrows 11–12).
+5. **Hydrate:** Available Agent List (Git) → Hermes ephemeral ("Read Agent Skills for Ephemeral Agent Spin-up", arrow 8; "Load Agent Skill", arrow 10); LLM-Wiki → agents ("Read Design Standards, Tools, and Skills From LLM-Wiki", arrow 9); Hindsight ↔ agents ("R/W Memory", arrows 11–12).
 6. **Work:** the Claude Code Agent (N+1) performs the development task.
 7. **Deliver:** Claude Code Agent (N+1) → Project Repo ("Write Source Code to Repo", arrow 15).
 8. **Teardown:** per Note 2, the agents and their containers are destroyed.
@@ -153,11 +153,16 @@ The red-dashed box inside VM-Xb encloses the two ephemeral agent containers — 
 
 These open items are deliberately listed *only* — resolving them is the starting work for improving the design, and their resolutions belong in new, clearly-marked content rather than in this baseline record.
 
-## 8. Items to confirm (ambiguous in the source rendering)
+## 8. Items confirmed (owner clarification, 2026-10-24)
 
-Marked **[confirm]** in Sections 3–4:
+The four **[confirm]** items in Sections 3–4 were resolved by the diagram owner:
 
-1. **Arrow 2** — is the Manager Agent → RabbitMQ (Topic) arrow one-way, or double-headed (bidirectional)?
-2. **Arrow 8** — "Read Agent Skills for Ephemeral Agent Spin-up": confirm source (LLM-Wiki?) and target (Hermes ephemeral?).
-3. **Arrow 9** — "Read Design Standards, Tools, and Skills From LLM-Wiki": confirm the target (Hermes ephemeral, Claude Code, or both?).
-4. **Arrow 10** — "Load Agent Skill": confirm whether it originates at the Available Agent List repo or at the LLM-Wiki.
+1. **Arrow 2** — Manager Agent ↔ RabbitMQ (Topic) is **two-way** (double-headed); the green dashed line returns a response to the manager when one is needed.
+2. **Arrow 8** — "Read Agent Skills for Ephemeral Agent Spin-up" originates at the **Available Agent List (Git repo)**, target the Hermes ephemeral agent.
+3. **Arrow 9** — "Read Design Standards, Tools, and Skills From LLM-Wiki" originates at the **LLM-Wiki** and serves the ephemeral agents.
+4. **Arrow 10** — "Load Agent Skill" originates at the **Available Agent List (Git repo)**, target the Hermes ephemeral agent.
+
+**Underlying store-content model (owner-confirmed):**
+- **Hindsight (VM-3)** = Long-Term Memory (R/W).
+- **LLM-Wiki (VM-2)** = Design Standards and anything that guides development and business best practices.
+- **Git repo (Available Agent List)** = anything the agents load (agent skills / personas).
