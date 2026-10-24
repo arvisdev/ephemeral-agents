@@ -28,14 +28,14 @@ The POC demonstrates **one flow** end-to-end: one request → one coordinated ag
 ## 2. Goals (POC)
 
 - G1: End-to-end single flow, human-initiated through to code commit and container destruction.
-- G2: Validate durable orchestration via RabbitMQ topic + Temporal server/worker as the POC stand-in for the production spooler chain.
+- G2: Validate durable orchestration via RabbitMQ topic + Temporal server/worker as the POC's task-queue and execution path.
 - G3: Validate the **pull-based agent identity model** (profiles, tools, behavioral specs pulled from the Available Agent List repo at spin-up; `agent.yaml` generated at load-up).
 - G4: Validate shared knowledge (LLM-Wiki) and experiential memory (Hindsight) read/write patterns for ephemeral agents.
 - G5: Confirm container lifecycle safety: every task's containers are destroyed on completion *and* on failure.
 
 ## 3. Non-goals (explicitly out of POC scope)
 
-- Multi-flow concurrency, 22-channel fan-out (n8n → Redpanda → Airflow production chain).
+- Multi-flow concurrency and channel-based fan-out.
 - High availability, multi-tenant isolation, load management.
 - Cost optimization, agent pooling/warm-start, checkpoint/restore of agent state.
 - Human approval gates mid-task (the POC has HITL only at initiation).
@@ -48,7 +48,7 @@ The POC demonstrates **one flow** end-to-end: one request → one coordinated ag
 3. **Identity is data, not code.** An agent's persona, skills, tools, and behavioral specs are versioned markdown in git. Spinning up an agent = pulling its identity folder + generating its runtime manifest. This makes agent types reusable across projects and auditable (identity diffs show in git history).
 4. **Executors are disposable.** No state lives in an agent container except the task result. Durable state belongs to Temporal (workflow state), the repos (artifacts + identity), LLM-Wiki (knowledge), and Hindsight (experience).
 5. **Orchestration is durable.** Temporal provides retry, timeout, and replay semantics for the "Executes Activity" step — container failures re-run rather than silently drop.
-6. **Topics decouple producer from consumers.** The manager publishes to a RabbitMQ topic; anything (Temporal today, the production spooler later) can consume it. The manager never knows who executes.
+6. **Topics decouple producer from consumers.** The manager publishes to a RabbitMQ topic; any consumer (Temporal in the POC, a heavier multi-flow queue layer later) can pick it up. The manager never knows who executes.
 7. **Knowledge plane vs. experience plane.** LLM-Wiki holds *stable* knowledge (design standards, tool docs, skills); Hindsight holds *learned* knowledge (what worked, what failed, per agent type). Agents read both at spin-up; only sanctioned writes go back.
 8. **Data stays on-prem; source control is in the cloud.** All components inside the On-Prem Company Boundary; the only external system is GitHub (identity + project repos).
 
@@ -173,12 +173,12 @@ Reusability constraint inherited from the agent-standard work: profile markdowns
 | 16 | Temporal Worker | teardown | Destroy both containers (guaranteed) | — |
 | 17 | Manager Agent → Engineer | Hermes Desktop | Result report (branch, summary, memory notes) | — |
 
-[D-6] Steps 5→6: in the POC, RabbitMQ feeds the Temporal queue directly. Confirm the exact wiring (consumer that calls `workflow.start` vs. a shared-queue pattern) — this is where the POC diverges most from the production n8n→Redpanda→Airflow spooler.
+[D-6] Steps 5→6: in the POC, RabbitMQ feeds the Temporal queue directly. Confirm the exact wiring (consumer that calls `workflow.start` vs. a shared-queue pattern) — this is the POC's key wiring decision to finalize before generalizing beyond the single flow.
 
 ## 10. Knowledge plane and memory plane
 
 **LLM-Wiki (VM-2)** — *stable knowledge*, shared read-mostly:
-- Content: design standards, tool documentation, reusable skills/how-tos, the agent-channel skill material [A-5].
+- Content: design standards, tool documentation, reusable skills/how-tos, and shared agent skill material [A-5].
 - Read: every spin-up (both agent types) and during execution (design standards for the coder).
 - Write: owned by the human/manager side, not by workers [D-7: who curates LLM-Wiki, and how do POC learnings promote from Hindsight into it?].
 
@@ -202,8 +202,8 @@ The two planes are deliberately distinct: standards never get *learned* (they ar
 
 | Choice | Role | Why | Risk / alternative |
 |---|---|---|---|
-| **Temporal** (server + worker containers) | Durable orchestration + activity execution | Retry, timeout, replay, and visibility out of the box; container-failure re-run without re-dispatch | Production target is the **Airflow spooler** in the confirmed design; the POC validates the *semantics* (durable, poll-based, activity-executed) that both share |
-| **RabbitMQ (Topic)** | Manager → queue handoff, fan-out ready | Simple pub/sub; one topic per flow for the POC | Production: **Redpanda** (Kafka stand-in) with 22 channels ↔ 22 topics; message shape must be kept Redpanda-compatible from day one [D-10] |
+| **Temporal** (server + worker containers) | Durable orchestration + activity execution | Retry, timeout, replay, and visibility out of the box; container-failure re-run without re-dispatch | The POC validates durable-orchestration semantics (durable, poll-based, activity-executed) that any future multi-flow pipeline should preserve |
+| **RabbitMQ (Topic)** | Manager → queue handoff, fan-out ready | Simple pub/sub; one topic per flow for the POC | A later multi-channel scheme (one topic per flow) must be able to adopt the same message shape without a rewrite [D-10] |
 | **Docker containers** | Agent isolation | Disposable units, image = agent runtime, no kernel sprawl on POC | Full VMs per task later if hard isolation is required (D-9) |
 | **Hindsight / Vectify + PG/pgvector** | Per-agent-type experiential memory | Existing confirmed choice; vector recall with bank scoping | — |
 | **Proxmox 9.x** | On-prem VM layer | Established estate | — |
@@ -211,7 +211,7 @@ The two planes are deliberately distinct: standards never get *learned* (they ar
 
 ## 13. Interface contracts (sketches — to be hardened in Phase 1)
 
-**Task topic message** (RabbitMQ; keep Redpanda-compatible):
+**Task topic message** (RabbitMQ; keep the schema transport-neutral):
 
 ```json
 {
@@ -258,7 +258,7 @@ StartEphemeralTask(taskMsg) → { status, containerRefs[], resultBranch }
 | D-7 | LLM-Wiki curation ownership + Hindsight→LLM-Wiki promotion path | Human-curation vs. semi-automated | Open |
 | D-8 | VM numbering | POC page (Hindsight=VM-3, LLM-Wiki=VM-2) vs. confirmed design -4 (VM-5/VM-3) | **Blocking — reconcile** |
 | D-9 | Ephemeral isolation level | Co-located containers (POC) vs. per-task VMs (later) | POC = co-located |
-| D-10 | Message-shape compatibility with Redpanda | Keep topic schema Kafka-compatible now | Open |
+| D-10 | Message-shape neutrality | Keep the topic schema transport-neutral so a multi-channel queue layer can adopt it later | Open |
 | D-11 | `agent.yaml` provenance | Codegen at load-up vs. checked-in per-type manifest | Open |
 | A-1 | One instance each of VM-Xa/VM-Xb in POC | Assumption | POC-held |
 | A-2 | Available Agent List folder layout (`agents/<type>/{SOUL,PERSONA,USER,SKILLS,TOOLS,behavioral-spec}.md`) | Assumption, consistent with the agent-standard work | POC-held |
@@ -272,9 +272,9 @@ StartEphemeralTask(taskMsg) → { status, containerRefs[], resultBranch }
 
 **Phase 0 — this POC.** Implement the single flow as Section 9; harden the teardown guarantee (G5); instrument the activity with visibility; resolve D-8 (VM numbering) before any code or infra names VMs.
 
-**Phase 1 — multi-flow generalization.** Replace the single RabbitMQ topic with the channel model: n8n channels ↔ Redpanda topics (22↔22 in the production design), Airflow spooler in place of the POC's direct Temporal feed; per-type Hindsight banks; LLM-Wiki curation process (D-7); profile validation at publish (D-5).
+**Phase 1 — multi-flow generalization.** Replace the single RabbitMQ topic with a channel model (one topic per flow) and a durable pipeline feed in place of the POC's direct Temporal feed; per-type Hindsight banks; LLM-Wiki curation process (D-7); profile validation at publish (D-5).
 
-**Phase 2 — reconcile to the confirmed architecture.** Migrate POC message shapes to Redpanda-compatible (D-10); swap spooler semantics to n8n→Redpanda→Airflow; decide per-task VM isolation (D-9); define N+1 scaling policy and resource ceilings.
+**Phase 2 — multi-flow pipeline.** Adopt the transport-neutral message schema (D-10); generalize orchestration from single-flow to the multi-channel pipeline; decide per-task VM isolation (D-9); define N+1 scaling policy and resource ceilings.
 
 **Phase 3 — scale and hardening.** Agent pooling/warm-start, mid-task HITL gates, cost observability, memory curation automation, drift detection between LLM-Wiki standards and what agents actually produce.
 
@@ -293,7 +293,7 @@ StartEphemeralTask(taskMsg) → { status, containerRefs[], resultBranch }
 
 ## Appendix B — glossary
 
-- **HITL** — human-in-the-loop. **POC** — proof of concept. **Spooler** — the production component that feeds the ephemeral-agent pipeline (Airflow in the confirmed design). **Bank** — an agent-type-scoped slice of Hindsight. **Episode record** — one write-back: task, decisions, outcome, pitfalls. **Behavioral spec** — the hard-constraints markdown an agent must obey at task time. **agent.yaml** — the runtime manifest generated at load-up from the profile folder.
+- **HITL** — human-in-the-loop. **POC** — proof of concept. **Bank** — an agent-type-scoped slice of Hindsight. **Episode record** — one write-back: task, decisions, outcome, pitfalls. **Behavioral spec** — the hard-constraints markdown an agent must obey at task time. **agent.yaml** — the runtime manifest generated at load-up from the profile folder.
 
 ## Appendix C — sources and transcription notes
 
