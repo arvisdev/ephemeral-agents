@@ -61,5 +61,5 @@ A single-flow proof of concept for an AI Dev Agent system. A human Software Engi
 
 ## Open questions (to reconcile before the POC is frozen)
 
-1. **VM numbering** — this POC page assigns Hindsight = VM-3 and LLM-Wiki = VM-2; the confirmed main design (diagram -4) assigns Hindsight = VM-5 and LLM-Wiki = VM-3. Which numbering is authoritative?
+1. **VM numbering** — this POC page assigns Hindsight = VM-3 and LLM-Wiki = VM-2. Lock in this project's numbering scheme before VMs are named in the infrastructure (keep the page's assignment or renumber) — D-8 in the foundation doc is blocking on it.
 2. **Task-queue path** — this POC uses RabbitMQ topics + Temporal server/worker as its queue and orchestration layer. Confirm whether this is the intended long-term path for this project, or a POC simplification that a heavier multi-flow queue layer will replace later.

@@ -94,7 +94,7 @@ Actors: **Software Engineer** (human, outside the boundary), **Manager Agent** (
 | **Available Agent List** (GitHub) | Cloud | Git repo | Agent index (catalog) + per-agent-type folders: persona/profile markdowns, tool lists, behavioral specifications | Task data, project code |
 | **Project Repo** (GitHub) | Cloud | Git repo | System of record for the development artifact (source code) | Agent identity |
 
-> **VM-Xa / VM-Xb are templates**, not singletons: in the full design, VM-Xa is the *manager-agent VM template* and VM-Xb the *ephemeral-agent VM template* [A-1: POC instantiates one of each].
+> **VM-Xa / VM-Xb are templates**, not singletons: VM-Xa carries the manager-agent role and VM-Xb the ephemeral-agent role; the POC instantiates one of each [A-1].
 
 ## 7. Agent identity model (pull-based profiles)
 
@@ -195,7 +195,7 @@ The two planes are deliberately distinct: standards never get *learned* (they ar
 - Hypervisor: **Proxmox 9.x**. VMs: **VM-Xa** (gateway + manager container), **VM-Xb** (Temporal server + worker + RabbitMQ + ephemeral containers), **VM-2** (LLM-Wiki), **VM-3** (Hindsight).
 - Networking [A-7]: VM-Xa and VM-Xb share a L2 segment (topic feed is low-latency, no public exposure); VM-2/VM-3 reachable on internal service ports; the *only* egress from the boundary is GitHub (443) and the LLM provider.
 - Container host: ephemeral agent containers run on VM-Xb's Docker daemon inside the worker's reach. N+1 semantics: one Claude Code container per task by default; the "(N+1)" label means the pattern scales to N additional coder containers for parallel subtasks [A-8].
-- [D-8: the POC page numbers memory VMs as Hindsight=VM-3, LLM-Wiki=VM-2; the confirmed design (-4) uses Hindsight=VM-5, LLM-Wiki=VM-3. Reconcile before the POC hardcodes anything.]
+- [D-8: the POC page numbers the memory VMs as Hindsight=VM-3, LLM-Wiki=VM-2. Lock in this project's VM numbering scheme before the POC hardcodes it in infrastructure.]
 - [D-9: co-location of ephemeral containers on VM-Xb (cheap, POC-simple) vs. one VM per task (hard isolation). POC chooses co-location; the template-based VM-Xb design supports the latter later.]
 
 ## 12. Technology choices and rationale
@@ -256,7 +256,7 @@ StartEphemeralTask(taskMsg) → { status, containerRefs[], resultBranch }
 | D-5 | Profile validation | Validate folder/schema at publish time (fail fast) vs. at load-up | Open |
 | D-6 | RabbitMQ→Temporal wiring | Consumer-starts-workflow vs. shared queue | Open |
 | D-7 | LLM-Wiki curation ownership + Hindsight→LLM-Wiki promotion path | Human-curation vs. semi-automated | Open |
-| D-8 | VM numbering | POC page (Hindsight=VM-3, LLM-Wiki=VM-2) vs. confirmed design -4 (VM-5/VM-3) | **Blocking — reconcile** |
+| D-8 | VM numbering | Lock the scheme: keep the POC page's numbering (Hindsight=VM-3, LLM-Wiki=VM-2) or renumber | **Blocking — decide** |
 | D-9 | Ephemeral isolation level | Co-located containers (POC) vs. per-task VMs (later) | POC = co-located |
 | D-10 | Message-shape neutrality | Keep the topic schema transport-neutral so a multi-channel queue layer can adopt it later | Open |
 | D-11 | `agent.yaml` provenance | Codegen at load-up vs. checked-in per-type manifest | Open |
@@ -282,14 +282,14 @@ StartEphemeralTask(taskMsg) → { status, containerRefs[], resultBranch }
 
 ## Appendix A — component → VM map
 
-| Component | VM (POC page) | VM (design -4) |
-|---|---|---|
-| Hermes Agent (gateway + manager) | VM-Xa | VM-Xa (template) |
-| RabbitMQ topic, Temporal server/worker, ephemeral containers | VM-Xb | VM-Xb (template) |
-| LLM-Wiki | VM-2 ⚠ | VM-3 |
-| Hindsight | VM-3 ⚠ | VM-5 |
+| Component | VM |
+|---|---|
+| Hermes Agent (gateway + manager) | VM-Xa |
+| RabbitMQ topic, Temporal server/worker, ephemeral containers | VM-Xb |
+| LLM-Wiki | VM-2 ⚠ |
+| Hindsight | VM-3 ⚠ |
 
-⚠ = conflict to reconcile (D-8).
+⚠ = numbering for this project not yet locked (D-8, blocking).
 
 ## Appendix B — glossary
 
