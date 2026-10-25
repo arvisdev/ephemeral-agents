@@ -9,8 +9,8 @@
 #   must PASS before the M5 installation may begin)
 #
 # Steps:
-#   §1  Hindsight on vm-3 (pgvector + Go API) — NEVER shares a Postgres instance
-#   §2  LLM-Wiki on vm-2 (content repo + retrieval/ingest Go API)
+#   §1  Hindsight on vm-hindsight (pgvector + Go API) — NEVER shares a Postgres instance
+#   §2  LLM-Wiki on vm-llm-wiki (content repo + retrieval/ingest Go API)
 #   §3  Wire hydration into the M2 lifecycle + executor env (connective work)
 #   §4  Verification G1..G6 -> deploy/m4/evidence/
 #
@@ -18,12 +18,12 @@
 #   ASSUME_YES=1  — skip interactive confirms
 #
 # Configuration (env, or deploy/m0/hosts.env — auto-loaded; deploy/m4/.env optional):
-#   VM_2 / VM_3 / VM_XB — ssh aliases (defaults vm-2 / vm-3 / vm-xb)
+#   VM_2 / VM_3 / VM_XB — ssh aliases (defaults vm-llm-wiki / vm-hindsight / vm-xb)
 #   M3_DONE=1   — skip prereq probes
 #   EMBEDDING_PROVIDER — embedding provider name (record the choice + rate-limit note)
 #   CONTENT_REPO — llmwiki-content repo (git URL or local dir; owner-curated, R7)
 #   LLMWIKI_READ_TOKEN — read token for the content repo (ingest job)
-#   APPLY_HOSTS=1 — add /etc/hosts lines for vm-2/vm-3 on vm-xa/vm-xb from HOSTS_IP_*
+#   APPLY_HOSTS=1 — add /etc/hosts lines for vm-llm-wiki/vm-hindsight on vm-xa/vm-xb from HOSTS_IP_*
 #
 # Assets required in the repo (produced by the M4 delivery plan; checked first):
 #   deploy/m4/hindsight/compose.yaml   deploy/m4/hindsight/initdb.sql
@@ -39,8 +39,8 @@
 #   1. M3 gate signed. Set CONTENT_REPO + LLMWIKI_READ_TOKEN (or export them):
 #      the content repo is owner-curated (R7) — the script will not invent it.
 #   2. `bash deploy/m4/install.sh --check-only`   # preview: no changes
-#   3. `bash deploy/m4/install.sh`                # hindsight on vm-3 +
-#      llmwiki on vm-2 + M2 wiring + gate tests G1..G6.
+#   3. `bash deploy/m4/install.sh`                # hindsight on vm-hindsight +
+#      llmwiki on vm-llm-wiki + M2 wiring + gate tests G1..G6.
 #   4. G2 (cross-task read-back) is the property that proves "long-term
 #      memory" — if it fails, check the scope rule first (doc §6).
 #   5. All G PASS -> run TP-M4 before starting M5.
@@ -68,7 +68,7 @@ done
 
 [ -f "$REPO_ROOT/deploy/m0/hosts.env" ] && { set -a; . "$REPO_ROOT/deploy/m0/hosts.env"; set +a; }
 [ -f "$M4/.env" ] && { set -a; . "$M4/.env"; set +a; }
-VM_2="${VM_2:-vm-2}"; VM_3="${VM_3:-vm-3}"; VM_XB="${VM_XB:-vm-xb}"; VM_XA="${VM_XA:-vm-xa}"
+VM_2="${VM_2:-vm-llm-wiki}"; VM_3="${VM_3:-vm-hindsight}"; VM_XB="${VM_XB:-vm-xb}"; VM_XA="${VM_XA:-vm-xa}"
 IMAGE_TAG="${IMAGE_TAG:-1.0.0}"
 EMBEDDING_PROVIDER="${EMBEDDING_PROVIDER:-}"
 HINTSIGHT_URL="http://$VM_3:8081"
@@ -206,7 +206,7 @@ deploy_llmwiki() {
 wire_hydration() {
   log "§3 — wire hydration into the M2 lifecycle + executor env (connective work)"
   [ "$CHECK_ONLY" = "1" ] && return 0
-  # names: ensure vm-2/vm-3 resolve on the hosts that spawn/consume
+  # names: ensure vm-llm-wiki/vm-hindsight resolve on the hosts that spawn/consume
   if [ "${APPLY_HOSTS:-0}" = "1" ] && [ -n "${HOSTS_IP_2:-}" ] && [ -n "${HOSTS_IP_3:-}" ]; then
     for h in "$VM_XA" "$VM_XB"; do
       ssh "$h" "sudo bash -c 'grep -q \" $VM_2 \" /etc/hosts || echo \"$HOSTS_IP_2 $VM_2\" >> /etc/hosts; grep -q \" $VM_3 \" /etc/hosts || echo \"$HOSTS_IP_3 $VM_3\" >> /etc/hosts'"
@@ -299,7 +299,7 @@ gate_tests() {
     local v3v v2v
     v3v="$(ssh "$VM_3" "docker volume ls --format '{{.Name}}' | grep -E 'hindsight' | head -1 || true")"
     v2v="$(ssh "$VM_2" "docker volume ls --format '{{.Name}}' | grep -E 'llmwiki' | head -1 || true")"
-    echo "G6 isolation: vm-3 volume='${v3v:-none}' vm-2 volume='${v2v:-none}' : $([ -n "$v3v" ] && [ -n "$v2v" ] && [ "$v3v" != "$v2v" ] && echo PASS || echo FAIL)"
+    echo "G6 isolation: vm-hindsight volume='${v3v:-none}' vm-llm-wiki volume='${v2v:-none}' : $([ -n "$v3v" ] && [ -n "$v2v" ] && [ "$v3v" != "$v2v" ] && echo PASS || echo FAIL)"
   } | tee "$out"
   if grep -q ": FAIL" "$out"; then
     warn "M4 gate tests: FAILURES above — remediate per M4 §6, re-run from the failed test."

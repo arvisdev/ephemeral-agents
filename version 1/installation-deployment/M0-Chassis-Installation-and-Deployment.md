@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Installs on** | PVE host + 4 KVM VMs (vm-xa, vm-xb, vm-2, vm-3) |
+| **Installs on** | PVE host + 4 KVM VMs (vm-xa, vm-xb, vm-llm-wiki, vm-hindsight) |
 | **Prereqs** | Proxmox 9.x host with PVE shell access; a DHCP/static IP pool; outbound Internet on the Proxmox LAN |
 | **Hosts touched** | PVE host (VM creation), all 4 VMs (OS + Docker + services) |
 | **Language (mandatory)** | All Temporal SDK code — workflows, workers, activities, adapters, CLI samples — **must be Go** (owner instruction: speed + size). No other language for Temporal code in this POC. |
@@ -14,7 +14,7 @@
 *Why:* pinning these up front is what makes the chassis **reproducible from the repo** — a rebuild is a scripted re-run, not tribal knowledge. Secrets live in gitignored per-VM `.env` files so they never enter compose files or git, and image pins in `image-tags.env` make every deployment byte-for-byte repeatable.
 
 - VMs run **Ubuntu 26.04 LTS** (matches the running Proxmox estate; use 24.04 if 26.04 images are unavailable).
-- Hostnames: `vm-xa`, `vm-xb`, `vm-2`, `vm-3`; SSH key auth with user `poc`.
+- Hostnames: `vm-xa`, `vm-xb`, `vm-llm-wiki`, `vm-hindsight`; SSH key auth with user `poc`.
 - All compose files, scripts, and generated `.env` (secrets) live in the POC repo under `deploy/m0/` — the chassis must be **reproducible from the repo**, not hand-built.
 - Secrets (RabbitMQ/Postgres passwords) go in per-VM `.env` files, **gitignored** — never in compose files.
 - Pin every image tag at deploy time and record the pins in `deploy/m0/image-tags.env`.
@@ -28,8 +28,8 @@
 qm list
 qm create 900 --name vm-xa --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 qm create 901 --name vm-xb --ostype l26 --memory 8192 --cores 4 --virtio-local 40 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 902 --name vm-2  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 903 --name vm-3  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 for i in 900 901 902 903; do qm start $i; done
 ```
 
@@ -91,7 +91,7 @@ Cross-VM publish test: from **vm-xa**, `rabbitmqadmin publish -x agent.tasks -r 
 
 ## 4. Temporal on vm-xb — `deploy/m0/temporal/compose.yaml`
 
-*Why:* Temporal is what makes "ephemeral" safe — its retry/timeout/crash-recovery semantics are exactly what the M2 lifecycle leans on (a lost activity still gets reaped; a restarted engine never loses a started workflow). Its Postgres is **Temporal-only by rule**: M4's Hindsight gets its own instance on vm-3 so one database failure can never take down the other store.
+*Why:* Temporal is what makes "ephemeral" safe — its retry/timeout/crash-recovery semantics are exactly what the M2 lifecycle leans on (a lost activity still gets reaped; a restarted engine never loses a started workflow). Its Postgres is **Temporal-only by rule**: M4's Hindsight gets its own instance on vm-hindsight so one database failure can never take down the other store.
 
 ```yaml
 services:
@@ -155,20 +155,20 @@ Run from each VM; record results in `deploy/m0/evidence/network-matrix.txt`:
 
 ```bash
 # pairwise L3 reachability (VM-2/VM-3 have no services yet — probe ssh 22):
-for h in vm-xa vm-xb vm-2 vm-3; do ssh -o ConnectTimeout=5 $h true && echo "$h OK"; done
+for h in vm-xa vm-xb vm-llm-wiki vm-hindsight; do ssh -o ConnectTimeout=5 $h true && echo "$h OK"; done
 # outbound Internet (needed for GitHub in later milestones):
 for h in vm-xa vm-xb; do ssh $h 'curl -sI https://github.com | head -1'; done
 # service ports on vm-xb:
 ssh vm-xb 'nc -vz temporal 7233; nc -vz rabbitmq 5672'
 ```
 
-For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-2/vm-3 (the POC-internal choice; record which in the decision log).
+For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-llm-wiki/vm-hindsight (the POC-internal choice; record which in the decision log).
 
 ## 6. Record the VM naming decision (D-8) + lock language + repo layout
 
 *Why:* the language decision is the open item that, left open, gets re-litigated at every later milestone — locking it now costs ten minutes; locking it at M5 costs a re-hardening pass. VM naming (D-8) was resolved by the owner 2026-10-25 (labels are POC discussion devices, not commitments); this section just *records* that plus the POC's concrete hostnames. The repo layout is fixed here so the chassis is proven scriptable — `deploy.sh` exists to make "wipe and re-run" the recovery path.
 
-- Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames + which hostname maps to which label; (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
+- Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames, mapped to their labels: `vm-xa`→VM-Xa, `vm-xb`→VM-Xb, `vm-llm-wiki`→VM-2 (LLM-Wiki), `vm-hindsight`→VM-3 (Hindsight); (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
 
 ```

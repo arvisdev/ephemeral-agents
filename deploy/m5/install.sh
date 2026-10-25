@@ -25,7 +25,7 @@
 #   ASSUME_YES=1  — skip interactive confirms
 #
 # Configuration (env, or deploy/m0/hosts.env — auto-loaded; deploy/m5/.env optional):
-#   VM_XA / VM_XB / VM_2 / VM_3 — ssh aliases (defaults vm-xa/vm-xb/vm-2/vm-3)
+#   VM_XA / VM_XB / VM_2 / VM_3 — ssh aliases (defaults vm-xa/vm-xb/vm-llm-wiki/vm-hindsight)
 #   GATEWAY_URL — default "http://<vm-xa-ip-or-name>:8080" (set to the reachable form)
 #   E2E_BRIEF — the task_brief for the acceptance request (default: "add a health endpoint to the POC project")
 #   E2E_TIMEOUT_S — default 600
@@ -222,10 +222,10 @@ failure_injections() {
     echo "# M5 failure injections — $(date -u)"
     local f
     # F1: LLM-Wiki down
-    log "F1 — pause llmwiki-api on vm-2 during a task"
-    ssh vm-2 "docker pause llmwiki-api" || true
+    log "F1 — pause llmwiki-api on $VM_2 during a task"
+    ssh "$VM_2" "docker pause llmwiki-api" || true
     f="$(run_one_task)"
-    ssh vm-2 "docker unpause llmwiki-api"
+    ssh "$VM_2" "docker unpause llmwiki-api"
     assert_clean_reap "F1" "$f"
     # F2: agent catalog unreachable
     log "F2 — block vm-xb -> GitHub 443 (nftables)"

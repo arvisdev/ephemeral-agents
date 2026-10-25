@@ -43,7 +43,7 @@
 2. RabbitMQ: cross-VM publish/consume works; topic + queue names documented.
 3. Temporal: trivial workflow completes via CLI or SDK against the Postgres backend.
 4. Network matrix passes 100% (failures recorded with remediation).
-5. VM numbering/naming locked in the decision log; docs updated.
+5. VM naming decision (D-8) recorded in the decision log (labels as-drawn are POC discussion devices; POC hostnames mapped to labels); docs updated.
 
 ## Exit gate
 

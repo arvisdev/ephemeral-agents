@@ -65,7 +65,7 @@ S1 chassis     : M0 deploy.sh (idempotent re-run)
 S2 adapter     : M1 compose up + consumer-healthy check
 S3 lifecycle   : M2 compose up + deploy gate (pinned images present) + worker registered check
 S4 executors   : M3 images load-verified on vm-xb; token issuance dry-run (issue + verify + revoke)
-S5 memory/wiki : M4 compose up on vm-3/vm-2 + /healthz checks
+S5 memory/wiki : M4 compose up on vm-hindsight/vm-llm-wiki + /healthz checks
 S6 front-house : M5 compose up on vm-xa + gateway /healthz
 S7 smoke       : one M2-level task with the stub executor (proves S2–S3 before real agents)
 ```
@@ -96,7 +96,7 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 
 | # | Injection | Command | Expected |
 |---|---|---|---|
-| F1 | LLM-Wiki down | `ssh vm-2 'docker pause llmwiki-api'` (run task) → `docker unpause` | hydrate reports missing source; task errors or degrades per policy (record the chosen policy); container reaped; report = failure + reason |
+| F1 | LLM-Wiki down | `ssh vm-llm-wiki 'docker pause llmwiki-api'` (run task) → `docker unpause` | hydrate reports missing source; task errors or degrades per policy (record the chosen policy); container reaped; report = failure + reason |
 | F2 | agent catalog unreachable | block vm-xb→GitHub 443 for the read token (nftables) | manager/spawn fails fast; no container leak |
 | F3 | agent crash | `docker exec <agent-cid> pkill -9 <agent pid>` | timeout → force-reap; report = failure |
 | F4 | TTL exceeded | task with `TTL_S` smaller than work time | reaper path (M2 V3, now with real agents) |

@@ -9,7 +9,7 @@
 #   before the M1 installation may begin)
 #
 # What this script does (idempotent — safe to re-run; re-run = rebuild):
-#   §1  Provision 4 VMs on the PVE host (vm-xa, vm-xb, vm-2, vm-3) + base OS
+#   §1  Provision 4 VMs on the PVE host (vm-xa, vm-xb, vm-llm-wiki, vm-hindsight) + base OS
 #   §2  Docker on every VM
 #   §3  RabbitMQ (topic) on vm-xb + topic topology + cross-VM publish test
 #   §4  Temporal on vm-xb +  §4b  Go SDK smoke (the language-decision check)
@@ -134,15 +134,15 @@ vm_display_name() {
   case "$1" in
     "$VM_XA") echo vm-xa ;;
     "$VM_XB") echo vm-xb ;;
-    "$VM_2")  echo vm-2 ;;
-    "$VM_3")  echo vm-3 ;;
+    "$VM_2")  echo vm-llm-wiki ;;
+    "$VM_3")  echo vm-hindsight ;;
     *)        echo "$1" ;;
   esac
 }
 
 provision_vms() {
   log "§1 — PVE: check VM block $VMID_XA-$VMID_3 (qm list first; pick a free block)"
-  local specs=("vm-xa:$VMID_XA" "vm-xb:$VMID_XB" "vm-2:$VMID_2" "vm-3:$VMID_3")
+  local specs=("vm-xa:$VMID_XA" "vm-xb:$VMID_XB" "vm-llm-wiki:$VMID_2" "vm-hindsight:$VMID_3")
   local mem=(4096 8192 4096 4096) cores=(2 4 2 2) disk=(20 40 20 20)
   local i name id
   for i in 0 1 2 3; do
@@ -272,7 +272,7 @@ deploy_rabbitmq() {
 
 # ---------------------------------------------------------------- §4 temporal
 deploy_temporal() {
-  log "§4 — Temporal on $VM_XB (its Postgres is Temporal-only; vm-3 gets its own in M4)"
+  log "§4 — Temporal on $VM_XB (its Postgres is Temporal-only; vm-hindsight gets its own in M4)"
   local envf="$M0/temporal/.env"
   if ! grep -q '^TEMPORAL_DB_PASS=' "$envf" 2>/dev/null; then
     confirm "generate TEMPORAL_DB_PASS into $envf (gitignored)"
@@ -364,7 +364,7 @@ write_decision_log() {
   {
     echo ""
     echo "## M0 install run — $(date +%F)"
-    echo "- VM numbering: LOCKED AS DRAWN (vm-xa/vm-xb/vm-2/vm-3) unless the owner renumbers (open item D-8 in ARCHITECTURE.md)"
+    echo "- VM naming: D-8 RESOLVED by owner 2026-10-25 (labels are POC discussion devices, not commitments); POC hostnames: vm-xa/vm-xb/vm-llm-wiki/vm-hindsight -> diagram labels VM-Xa/VM-Xb/VM-2/VM-3"
     echo "- Language decision: Go for ALL Temporal code (owner instruction: speed + size)"
     echo "- Name-resolution mechanism used: (PVE DNS or /etc/hosts — record which)"
   } >> "$M0/decision-log.md"
