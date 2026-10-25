@@ -1,7 +1,7 @@
 # Single Flow POC — AI Dev Agent Flow
 
 **Main architecture document** for the ephemeral-agents project.
-Source: `AI Enterprise Team - Page 12.pdf` (single architecture diagram page).
+Source: `AI Enterprise Team - ephemeral-agents.pdf` (single architecture diagram page).
 
 **Provenance.** Every item below is transcribed from the diagram and was re-verified against the source PDF at high resolution. Where an item is a sequence reading of the arrows (not a labeled box), it is marked as such. The verbatim notes preserve the source's own wording. Items I could not resolve unambiguously from the rendering were flagged **[confirm]**; all four were resolved by the diagram owner on 2026-10-24 (see "Items confirmed" at the end of this document).
 

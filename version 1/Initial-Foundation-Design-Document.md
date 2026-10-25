@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Initial Foundation — POC baseline |
 | **Date** | 2026-10-24 |
-| **Source** | `AI Enterprise Team - Page 12.pdf`, diagram page titled "Single Flow POC - AI Dev Agent Flow" |
+| **Source** | `AI Enterprise Team - ephemeral-agents.pdf`, diagram page titled "Single Flow POC - Ai Dev Agent Flow" |
 | **Companion** | `ARCHITECTURE.md` (quick-reference map of the same diagram) |
 
 **Provenance statement.** This document records, in detail, everything the source diagram contains: its zones and nesting, every component, every connection with its label, the two note boxes verbatim, and the flow as read from the arrows. It deliberately contains **no** content beyond the diagram — no goals, principles, lifecycle models, payload schemas, or technology rationales of its own. It is the stable baseline from which design improvement iterations begin; anything added in later iterations should be new, clearly-marked content, not silently mixed into this record.
