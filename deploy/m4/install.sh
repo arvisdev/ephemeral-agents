@@ -34,6 +34,17 @@
 # No new Temporal code in this milestone — the M2 Go worker still drives
 # everything; the API services follow the POC Go convention.
 # Rollback (doc §5): down per-VM compose; volumes only on a true re-do.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. M3 gate signed. Set CONTENT_REPO + LLMWIKI_READ_TOKEN (or export them):
+#      the content repo is owner-curated (R7) — the script will not invent it.
+#   2. `bash deploy/m4/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m4/install.sh`                # hindsight on vm-3 +
+#      llmwiki on vm-2 + M2 wiring + gate tests G1..G6.
+#   4. G2 (cross-task read-back) is the property that proves "long-term
+#      memory" — if it fails, check the scope rule first (doc §6).
+#   5. All G PASS -> run TP-M4 before starting M5.
+#
 # =============================================================================
 set -euo pipefail
 

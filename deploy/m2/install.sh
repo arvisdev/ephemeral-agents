@@ -33,6 +33,18 @@
 # Abort condition (M2 exit gate): if V4 crash-recovery cannot be made to pass
 # after remediation, STOP the POC sequence — R1 is load-bearing.
 # Rollback (doc §5): docker compose down + manual reap of stray containers.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. M0 + M1 gates signed. Set M0_DONE=1 M1_DONE=1 to skip the live probes
+#      when you know they're green.
+#   2. `bash deploy/m2/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m2/install.sh`                # build 3 images -> deploy ->
+#      gate tests V1..V5. V4 (crash recovery) is the POC's load-bearing test.
+#   4. If V4 FAILs: fix per M2 install doc §6, re-run V4 then V5. If it
+#      still cannot pass: STOP — that is the POC abort condition (owner
+#      decision). Do not paper over it.
+#   5. All V PASS -> run TP-M2 before starting M3.
+#
 # =============================================================================
 set -euo pipefail
 

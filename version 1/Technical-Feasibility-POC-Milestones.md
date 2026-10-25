@@ -114,6 +114,8 @@ Each milestone also has a formal **test procedure** in `test procedures/` — th
 
 Each installation/deployment instruction set has a matching **complete installation bash script** in `deploy/` (repo root), one per milestone. Each script implements its install doc end-to-end: asset check → build → deploy → gate tests → evidence. They are idempotent and safe to re-run.
 
+**Operator entry point:** `deploy/README.md` — the front door for whoever runs the installs: the step-by-step sequence, the gate rule, first-time setup, and "where do I look when a step fails." Every `install.sh` also carries a short *FOR THE OPERATOR* block in its header.
+
 | Milestone | Install script |
 |---|---|
 | M0 — Chassis | [../deploy/m0/install.sh](../deploy/m0/install.sh) |
@@ -129,7 +131,7 @@ Each installation/deployment instruction set has a matching **complete installat
 - `--check-only` — preconditions + asset check only, no changes
 - `--no-gate` — run the install, but don't fail the script on gate-test failures
 - `ASSUME_YES=1` — non-interactive (CI / re-runs)
-- Hosts come from `deploy/m0/hosts.env` (auto-loaded); secrets are generated into gitignored `.env` files, never committed
+- Hosts come from `deploy/m0/hosts.env` (auto-loaded; start from the committed `deploy/m0/hosts.env.example` — `hosts.env` itself is gitignored); secrets are generated into gitignored `.env` files, never committed
 - A script exits 0 only when its gate checks pass (unless `--no-gate`) — the gate result is what the matching test procedure signs off on
 - The install docs are the source of truth; the scripts implement them. Keep them in sync — a script/proc drift is a docs bug.
 

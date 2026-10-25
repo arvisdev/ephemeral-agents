@@ -13,6 +13,8 @@ M5 adds **no new infrastructure** — it composes what M0–M4 installed and loc
 
 ## 1. Front-of-house on vm-xa — `deploy/m5/compose.yaml`
 
+*Why:* the gateway + manager are the diagram's "tall narrow bar" made concrete, and Note 1's manager behavior (catalog search → agent artifact → task message → consume response) gets its concrete spec here for the first time. The manager container is **persistent by design** — it's the human-facing state that survives across tasks, the one deliberately non-ephemeral component.
+
 ```yaml
 services:
   gateway:
@@ -47,10 +49,14 @@ services:
 
 ## 2. Engineer's desktop (external actor)
 
+*Why:* the engineer's desktop talks **only to the gateway** — that is the diagram's human-initiated, human-reported scope, and writing the report contract down (`report-contract.md`) makes the human path testable instead of hand-waved. It's the closing half of the two-way Manager ↔ RabbitMQ path the owner confirmed.
+
 - Configure Hermes Desktop to reach the gateway at `http://vm-xa:8080` (LAN); send a request = the single JSON the gateway accepts: `{title, agent_capability, task_brief}`.
 - Report delivery: Desktop polls `GET /gateway/reports/<task_id>` (gateway proxies the manager's `/reports`) — record the exact endpoint contract in `deploy/m5/report-contract.md`.
 
 ## 3. Ordered full-stack bring-up — `deploy/m5/e2e-deploy.sh`
+
+*Why:* stage-gated bring-up is what makes "the whole stack" a **script, not a ritual** — each stage's healthcheck is the precondition of the next, and any failure halts with the stage named. That naming is the routing rule: the failing stage points at the owning milestone's gate test, so recovery never means re-running the chain.
 
 Idempotent, stage-gated (each stage's healthcheck must pass before the next; any failure halts + prints the stage):
 
@@ -70,6 +76,8 @@ bash deploy/m5/e2e-deploy.sh            # full bring-up; exits non-zero at the f
 
 ## 4. End-to-end acceptance run (the POC gate)
 
+*Why:* one request, human to human, with the **artifact chain as the evidence** — temporal trace → live labels → commit on origin → report JSON. That chain is what the paper cites as "the POC ran end-to-end"; every link in it is independently checkable after the fact, which is the difference between a demo and a result.
+
 ```bash
 # E1: one real request, human to human
 # Desktop: send {title:"add health endpoint", agent_capability:"dev", task_brief:"..."}
@@ -84,6 +92,8 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 
 ## 5. Failure-injection runbook (each injection: assert clean reap + human-visible error)
 
+*Why:* four injections are the POC's claim that "ephemeral" survives real failure: a source goes down (F1), the catalog is unreachable (F2), the agent process dies (F3), the TTL is exceeded (F4). Each one asserts the same two properties — **zero surviving containers** and an **error the human can see** — which is the resilience result, not the hope.
+
 | # | Injection | Command | Expected |
 |---|---|---|---|
 | F1 | LLM-Wiki down | `ssh vm-2 'docker pause llmwiki-api'` (run task) → `docker unpause` | hydrate reports missing source; task errors or degrades per policy (record the chosen policy); container reaped; report = failure + reason |
@@ -94,6 +104,8 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, and the engineer's report shows the error. Record results in `deploy/m5/evidence/failure-injections.txt`.
 
 ## 6. Credential hardening (R4 final)
+
+*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all seven images, an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
 
 ```bash
 # 6a. negative scan across ALL deployed images:
@@ -107,6 +119,8 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect $c | grep -Ei "owner_?tok
 
 ## 7. Lock the last open items + close the docs
 
+*Why:* the five open items (numbering, message shapes, concurrency, isolation level, curation owner) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
+
 Decision-log entries (in `deploy/m5/decision-log.md`, referenced from `../ARCHITECTURE.md`):
 
 - [ ] VM numbering (carried from M0) — final scheme recorded
@@ -119,6 +133,8 @@ Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: m
 
 ## 8. Rollback
 
+*Why:* M5 adds **no new infrastructure**, so its rollback is front-house-only — `compose down` on vm-xa, and everything behind it (M0–M4) stays up. When E2E fails, the failing stage names the owning milestone and you re-run *that* milestone's gate test, never the whole chain.
+
 M5 adds no new infrastructure. If E2E fails, the failing stage in §3 names the owning milestone — re-run **that milestone's** gate test (M1 §4, M2 §3, M3 §4, M4 §4), not the whole chain. Rollback of the front-house only:
 
 ```bash
@@ -127,6 +143,8 @@ ssh vm-xa 'cd /opt/poc/deploy/m5 && docker compose down'
 ```
 
 ## 9. POC complete — done-when (all five)
+
+*Why:* five concrete conditions make "the POC is complete" a **verifiable claim** instead of a feeling — and when they hold, the verdict in the feasibility analysis is confirmed *by evidence, not by analysis*. That sentence is the paper's thesis, and these five lines are its proof.
 
 1. §4 E2E run passed, **zero** surviving POC containers.
 2. §5 all four injections clean + reported.

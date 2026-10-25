@@ -38,6 +38,16 @@
 #
 # Secrets: generated once into gitignored deploy/m0/{rabbitmq,temporal}/.env
 # (openssl rand -hex 16). Never committed, never in compose files.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill in the
+#      ssh aliases + static IPs (hosts.env itself is gitignored).
+#   2. `bash deploy/m0/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m0/install.sh`                 # real run; idempotent —
+#      on failure it tells you what to fix (M0 install doc §8), then RE-RUN:
+#      the script skips everything that's already done.
+#   4. When the gate summary says "all 5 PASS": run TP-M0 before starting M1.
+#
 # =============================================================================
 set -euo pipefail
 

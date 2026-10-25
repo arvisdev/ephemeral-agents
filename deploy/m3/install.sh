@@ -37,6 +37,16 @@
 #
 # Rollback (doc §6): rebuild + re-load; M2 keeps its stub pin until new tags
 # pass, so a bad M3 image never takes down the lifecycle.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. M2 gate signed. The owner does the GitHub-side setup once (App + key +
+#      install, doc §1c); the script verifies it and runs the token dry-run.
+#   2. `bash deploy/m3/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m3/install.sh`                # build both executor images
+#      -> select them in M2 -> B1..B5 gate tests -> secret-hygiene scans.
+#   4. This is the POC's point of last cheap exit: a failure here is still a
+#      two-week fix. Evidence -> deploy/m3/evidence/, then run TP-M3.
+#
 # =============================================================================
 set -euo pipefail
 

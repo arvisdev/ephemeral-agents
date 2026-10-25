@@ -11,6 +11,8 @@
 
 ## 1. GitHub-side setup (do once, on the owner's workstation)
 
+*Why:* the GitHub App is the R4 credential mechanism — a **scoped token issued at spawn and revoked at reap** means no long-lived owner secret ever enters a container. The permission split (read on the catalog, read+write only on the project repo) is least-privilege by design, and the App key living at `/opt/poc/secrets/app-key.pem` (chmod 600, never in git or an image) is the control the M5 hardening scan verifies.
+
 **1a. Agent catalog repo — "Available Agent List"** (this IS the repo layout from M3 WP-3a.1):
 
 ```
@@ -43,6 +45,8 @@ Create the repo + one worked example agent; commit.
 **Revocation on reap:** the lifecycle `reap` step calls `DELETE` on the token (GitHub App tokens can be force-expired) — the "unusable after reap" check in §4 relies on this.
 
 ## 2. Build the two executor images
+
+*Why:* the two entrypoint contracts are what everything after M3 asserts against: Hermes's **boot-time hydration + self-report** is Note 2 made concrete (M4's hydrate feeds it; M5's E2E checks it), and the coder's **per-task branch + commit + report** is the artifact chain the engineer's report points at. The executors run their own runtimes — tooling, not Temporal SDK code — so they sit *outside* the Go mandate, which is recorded here so nobody "fixes" them into it.
 
 **2a. Hermes ephemeral** — `deploy/m3/hermes-ephemeral/`:
 
@@ -94,10 +98,14 @@ docker save poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0 | ssh vm-xb docker
 
 ## 3. Concurrency model — install decision (R3)
 
+*Why:* the concurrency decision is made **here, not at M5**, because M3 is its last cheap point: the N-parallel option is an M2 *config* change (worktree fan-out), not new infrastructure. Choosing it later, after hardening, means re-hardening the whole flow. Either way the choice is recorded in the decision log — it's an R3 closure, not an assumption.
+
 - **Default (recorded decision):** one coder per task → one container, one `task/<id>` branch, no shared checkout. M2 spawns a single container.
 - **If N-parallel is chosen later:** same image, per-coder **git worktrees** (each container gets `/work/project-<i>` via `git worktree add` on a shared base clone) — add an `N` field to the task config and fan out N spawns from "Executes Activity". This is a **change to M2 config, not a new image**.
 
 ## 4. Verification (the M3 gate tests)
+
+*Why:* M3 is the **point of last cheap exit** — if the two To-verify components fail here, the cost is a two-week spike rewrite, not a re-architecture of M4/M5. B1's boot-time p50 matters beyond the gate: it's the measured number M5's TTL sizing uses. The evidence table + self-reports are what `TP-M3` signs.
 
 ```bash
 # B1 boot-time (3 runs): spawn via M2 with a stub task; time: container start → self-report.json ready
@@ -114,6 +122,8 @@ Evidence → `deploy/m3/evidence/` (boot-time table, self-reports, commit SHAs, 
 
 ## 5. Secret hygiene checks (R4, run before claiming done)
 
+*Why:* "no secrets baked in" is the R4 property M5's hardening re-verifies fleet-wide — the three checks here (env dump, image history, trivy secrets class) are exactly the evidence that proves injection-at-spawn really happens. An image that fails this never ships; the fix is rebuilding the layer that wrote the secret, not deleting the string.
+
 ```bash
 docker run --rm poc/hermes-ephemeral:1.0.0 env > /tmp/env1; docker run --rm poc/claude-coder:1.0.0 env > /tmp/env2
 grep -Ei 'token|key|secret' /tmp/env1 /tmp/env2          # expect: NOTHING (secrets are injected at spawn, not baked in)
@@ -123,6 +133,8 @@ trivy image --exit-code 1 poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0   # 
 
 ## 6. Rollback / re-do
 
+*Why:* `POC_IMAGE` is a **config switch, not a code change** — M2 keeps its stub pin until the new executor tags pass, so a bad M3 image can never take down the lifecycle. GitHub-side rollback (uninstall App, delete tokens) is independent of the repos, which stay untouched.
+
 ```bash
 # images: rebuild + re-load; M2 keeps the M2 stub image pinned until the new tags pass, so a bad M3
 # image never takes down the lifecycle (POC_IMAGE is a config switch, not a code change)
@@ -130,6 +142,8 @@ trivy image --exit-code 1 poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0   # 
 ```
 
 ## 7. Troubleshooting
+
+*Why:* each row is a pre-diagnosed failure mode with a one-line cause — the classic ones being token scope (§1c), `index.json` ref mismatch, and TTL < task runtime ("measure, don't guess" is the M3 discipline: the TTL comes from B1's measured p50, not from a guess).
 
 | Symptom | Cause / fix |
 |---|---|

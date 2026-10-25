@@ -40,6 +40,17 @@
 #
 # Rollback (doc §8): M5 front-house only -> docker compose down on vm-xa;
 # everything behind it (M0–M4) stays up.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. TP-M0..TP-M4 all signed. Export M0_DONE=1 M1_DONE=1 M2_DONE=1
+#      M3_DONE=1 M4_DONE=1 to skip the live probes when you know they're green.
+#   2. `bash deploy/m5/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m5/install.sh`                # front-of-house ->
+#      e2e-deploy S1-S7 -> E2E run -> F1-F4 injections -> hardening scans.
+#   4. A failing E2E stage names its owning milestone: re-run THAT milestone's
+#      gate test (M1 §4 / M2 §3 / M3 §4 / M4 §4), not the whole chain.
+#   5. Final step: run TP-M5. All five done-when conditions hold = POC done.
+#
 # =============================================================================
 set -euo pipefail
 

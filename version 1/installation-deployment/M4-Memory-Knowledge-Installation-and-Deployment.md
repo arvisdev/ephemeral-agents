@@ -11,6 +11,8 @@
 
 ## 1. Hindsight on vm-3
 
+*Why:* Hindsight is the diagram's "R/W memory" made concrete — a small Go API over Postgres+pgvector (one image, so the `vector` extension can't be missing). Its Postgres instance is **separate from Temporal's by rule** (M0 §4), so a memory failure can never take down the workflow engine, and vice versa. That isolation is re-verified at every M4 gate (TC-M4-07).
+
 **1a. Stack — `deploy/m4/hindsight/compose.yaml`:**
 
 ```yaml
@@ -66,6 +68,8 @@ cd /opt/poc/deploy/m4/hindsight && docker compose up -d
 
 ## 2. LLM-Wiki on vm-2
 
+*Why:* LLM-Wiki is the owner's **curation artifact** (R7) — the whole process is "owner commits markdown, `docker compose run llmwiki-ingest` reindexes", and the curation cadence + owner is recorded in the decision log instead of drifting. Holding design standards and dev/business best practices here (not in the Git repo) follows the owner-confirmed store-content model.
+
 **2a. Content repo (owner-curated, the curation artifact for R7):** `llmwiki-content/`:
 
 ```
@@ -117,6 +121,8 @@ Endpoints:
 
 ## 3. Wire hydration into the lifecycle + executors (the connective work)
 
+*Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINTSIGHT_URL`/`LLMWIKI_URL` ride into every spawned container as env, and the M2 Go worker hydrates (read) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
+
 1. **Names:** ensure `vm-2`/`vm-3` resolve on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism).
 2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINTSIGHT_URL=http://vm-3:8081`, `LLMWIKI_URL=http://vm-2:8080` → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINTSIGHT_URL`/`LLMWIKI_URL`).
 3. **Hydrate step** (lifecycle worker): before task work, fan out `wiki/query` (topic = task + agent_ref) + `memory/read` → pass results into the agent's task payload; record per-source latency.
@@ -124,6 +130,8 @@ Endpoints:
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.
 
 ## 4. Verification (the M4 gate tests)
+
+*Why:* the **cross-task read-back (G2) is the single property that distinguishes "long-term memory" from a per-task scratchpad** — task t1's learning must be visible to task t2. G5's latency check protects the M2 TTL headroom (hydration must not slow spawn+work past the TTL). Evidence files are what `TP-M4` signs.
 
 ```bash
 # G1 network R/W: from a spawned agent container:
@@ -138,6 +146,8 @@ Evidence → `deploy/m4/evidence/` (read-back rows, query results with hits, lat
 
 ## 5. Rollback / re-do
 
+*Why:* named volumes keep rollback **non-destructive by default** (`down` keeps data; only a true re-do removes volumes). And because executors tolerate empty `HINTSIGHT_URL`/`LLMWIKI_URL` (hydrate skips missing sources), pulling M4 back **degrades** hydration rather than breaking the flow — the resilience property, stated.
+
 ```bash
 # services: down per-VM compose project; data lives in named volumes:
 docker compose down                     # keeps hindsight-pg-data / llmwiki-pg-data
@@ -146,6 +156,8 @@ docker volume rm hindsight-pg-data llmwiki-pg-data   # only on a true re-do
 ```
 
 ## 6. Troubleshooting
+
+*Why:* the two rows worth memorizing: "extension vector not installed" (wrong image — the pgvector pin from §1a) and "cross-task read-back empty" (the **scope-rule mismatch**: written with `scope=session` where `cross-task` was intended). Both are config/contract errors that G1–G2 catch in seconds if you run them first.
 
 | Symptom | Cause / fix |
 |---|---|

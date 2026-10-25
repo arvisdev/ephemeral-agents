@@ -1,3 +1,6 @@
 # Secrets / credentials — never commit
 github-pac.txt
 *.env
+
+# Quarantined material pending owner review — not part of the POC doc set
+_quarantine/

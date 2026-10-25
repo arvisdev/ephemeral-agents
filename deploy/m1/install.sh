@@ -30,6 +30,16 @@
 #   deploy/m1/tests/publish.sh   deploy/m1/tests/assert.sh
 #
 # Rollback (doc §5): cd deploy/m1 && docker compose down topic-bridge  — stateless.
+#
+# FOR THE OPERATOR (junior dev) — read this before running:
+#   1. The M0 gate must be signed (TP-M0 PASS). The script probes it in §0;
+#      set M0_DONE=1 to skip the probes when you know the chassis is green.
+#   2. `bash deploy/m1/install.sh --check-only`   # preview: no changes
+#   3. `bash deploy/m1/install.sh`                # build -> load -> deploy ->
+#      gate tests T1..T5, results in deploy/m1/evidence/m1-tests.txt
+#   4. A gate-test failure: fix per M1 install doc §6, re-run from the failed
+#      test. All T1..T5 PASS -> run TP-M1 before starting M2.
+#
 # =============================================================================
 set -euo pipefail
 

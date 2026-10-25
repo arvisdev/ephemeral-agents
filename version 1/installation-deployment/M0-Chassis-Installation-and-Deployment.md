@@ -11,6 +11,8 @@
 
 ## 0. Assumptions & conventions
 
+*Why:* pinning these up front is what makes the chassis **reproducible from the repo** — a rebuild is a scripted re-run, not tribal knowledge. Secrets live in gitignored per-VM `.env` files so they never enter compose files or git, and image pins in `image-tags.env` make every deployment byte-for-byte repeatable.
+
 - VMs run **Ubuntu 26.04 LTS** (matches the running Proxmox estate; use 24.04 if 26.04 images are unavailable).
 - Hostnames: `vm-xa`, `vm-xb`, `vm-2`, `vm-3`; SSH key auth with user `poc`.
 - All compose files, scripts, and generated `.env` (secrets) live in the POC repo under `deploy/m0/` — the chassis must be **reproducible from the repo**, not hand-built.
@@ -18,6 +20,8 @@
 - Pin every image tag at deploy time and record the pins in `deploy/m0/image-tags.env`.
 
 ## 1. Provision the VMs (PVE shell, on the host)
+
+*Why:* stable VMIDs + hostnames are what every later script and doc references; **chrony is a hard dependency** — RabbitMQ and Temporal both misbehave under clock skew, and M2's reaper logic compares `poc.expires` timestamps across containers. The `poc` user is the single account all install scripts use.
 
 ```bash
 # check existing VMIDs first, pick a free block (900-903 shown)
@@ -42,6 +46,8 @@ sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
 
 ## 2. Docker on every VM
 
+*Why:* every later milestone ships as containers, so Docker on all four VMs is the minimal common denominator. Adding `poc` to the docker group lets the install scripts run without sudo — the junior-operator path.
+
 ```bash
 sudo apt update && sudo apt install -y docker.io docker-compose-v2
 sudo usermod -aG docker poc             # re-login after
@@ -50,6 +56,8 @@ docker compose version                  # confirm v2 plugin
 ```
 
 ## 3. RabbitMQ (Topic) on vm-xb — `deploy/m0/rabbitmq/compose.yaml`
+
+*Why:* RabbitMQ (Topic) is the diagram's Manager ↔ RabbitMQ channel. The durable queue + binding + DLQ are the at-least-once backbone the M1 adapter builds on (the DLQ exists specifically for M1's poison-pill case). Binding the mgmt UI to loopback is the credential posture the whole POC keeps: no management plane ever opens to the LAN.
 
 ```yaml
 services:
@@ -82,6 +90,8 @@ curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.dlq" -d '{"durable":
 Cross-VM publish test: from **vm-xa**, `rabbitmqadmin publish -x agent.tasks -r agent.tasks.durable -m hello` (or a curl to the mgmt API) → message count on the queue becomes 1 on vm-xb.
 
 ## 4. Temporal on vm-xb — `deploy/m0/temporal/compose.yaml`
+
+*Why:* Temporal is what makes "ephemeral" safe — its retry/timeout/crash-recovery semantics are exactly what the M2 lifecycle leans on (a lost activity still gets reaped; a restarted engine never loses a started workflow). Its Postgres is **Temporal-only by rule**: M4's Hindsight gets its own instance on vm-3 so one database failure can never take down the other store.
 
 ```yaml
 services:
@@ -139,6 +149,8 @@ Note: this Postgres belongs to Temporal only. VM-3's Hindsight gets its **own** 
 
 ## 5. Network verification matrix
 
+*Why:* later milestones silently assume cross-VM name resolution and reachability; recording the full matrix — and *which* mechanism was chosen (PVE DNS vs `/etc/hosts`) in the decision log — turns an implicit assumption into an auditable entry. For the paper: this is the POC's environment baseline.
+
 Run from each VM; record results in `deploy/m0/evidence/network-matrix.txt`:
 
 ```bash
@@ -153,6 +165,8 @@ ssh vm-xb 'nc -vz temporal 7233; nc -vz rabbitmq 5672'
 For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-2/vm-3 (the POC-internal choice; record which in the decision log).
 
 ## 6. Lock VM numbering (D-num) + repo layout
+
+*Why:* VM numbering (D-8) and the language decision are open items that, left open, get re-litigated at every later milestone. Locking them now costs ten minutes; locking them at M5 costs a re-hardening pass. The repo layout is fixed here so the chassis is proven scriptable — `deploy.sh` exists to make "wipe and re-run" the recovery path.
 
 - Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) VM naming scheme (VM-Xa/Xb/2/3 as drawn, or renumbered); (b) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
@@ -170,6 +184,8 @@ deploy/
 
 ## 7. Acceptance checks (the M0 gate)
 
+*Why:* these five checks are the M0 gate — the test procedure `TP-M0` formalizes them and must PASS before M1's installation may begin. The Go SDK smoke is check #3 precisely because the language mandate (all Temporal code in Go) has to be proven at the chassis level, not argued about later.
+
 | # | Check | Command / where |
 |---|---|---|
 | 1 | 4 VMs, Docker runs on each | `docker run --rm alpine echo ok` on all |
@@ -179,6 +195,8 @@ deploy/
 | 5 | Numbering locked + docs updated | decision-log entry exists |
 
 ## 8. Troubleshooting
+
+*Why:* the chassis must be proven **rebuildable** — this table exists so "wipe the VMs and re-run `deploy.sh`" is a documented recovery path, not a last resort. Each row pre-diagnoses a symptom so the operator goes straight to the fix.
 
 | Symptom | Cause / fix |
 |---|---|

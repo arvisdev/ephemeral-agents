@@ -11,6 +11,8 @@
 
 ## 0. Prereq checks (run these first)
 
+*Why:* if the queue or Temporal is down, the M1 gate tests produce *false* failures that look like adapter bugs. Two commands now save an hour of mis-debugging later — this is the junior-operator's first habit: verify the gate you're standing on before building on it.
+
 ```bash
 ssh vm-xb 'curl -s -u poc:*** $(grep RABBITMQ_PASS deploy/m0/rabbitmq/.env | cut -d= -f2) \
   http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable | grep -o "\"messages\":[0-9]*"'
@@ -18,6 +20,8 @@ temporal operator cluster health
 ```
 
 ## 1. Build the adapter (`services/topic-bridge/` in the POC repo)
+
+*Why:* the four choices in the correctness contract are the entire POC's at-least-once story: **prefetch=1 + manual ack** means one in-flight message; **`task_id` as `WorkflowID`** is the idempotency key that makes duplicates no-ops; **DLQ for invalid messages** means a poison pill is quarantined, never requeued into a crash loop. M2 and M5 assume every one of these — changing any of them later is a cross-milestone change.
 
 Stack: **Go + Temporal Go SDK + amqp091-go** — **mandatory** (owner instruction: all Temporal code in Go, for speed + size; Temporal's multi-language support does not apply to this POC).
 
@@ -35,6 +39,8 @@ The consumer must do, in order (this is the correctness contract — M2+ assumes
 4. Valid: `client.StartWorkflow(ctx, StartWorkflowOptions{ WorkflowID: msg.TaskID, WorkflowIDReusePolicy: AllowDuplicate }, TaskWorkflow, msg)` → on `ErrWorkflowExecutionAlreadyExists` **ack** (idempotent duplicate) → otherwise **ack only after start confirmed**.
 
 ## 2. Package as an image — `deploy/m1/Dockerfile`
+
+*Why:* the POC has no container registry — `docker save | ssh docker load` is the transfer path, and it's deliberate: the POC must run on a LAN with no external dependencies. The static multi-stage build keeps the consumer a **single Go binary** — the speed + size mandate made concrete.
 
 ```dockerfile
 FROM golang:1.25 AS build
@@ -54,6 +60,8 @@ docker save poc/topic-bridge:1.0.0 | ssh vm-xb 'docker load'    # POC transfer p
 ```
 
 ## 3. Deploy on vm-xb — `deploy/m1/compose.yaml`
+
+*Why:* `depends_on: service_healthy` makes the bridge start only when RabbitMQ and Temporal are *actually* ready — no more "restart until it works". The shared external network is how the bridge reaches M0's services without re-deploying them; recording the network name keeps the next operator from guessing.
 
 ```yaml
 services:
@@ -82,6 +90,8 @@ docker compose ps && docker logs -f topic-bridge        # expect: consumer start
 
 ## 4. Verification run (the M1 gate tests)
 
+*Why:* T1–T5 each corresponds to a failure mode the POC must survive later — duplicates (T2), a crash mid-flight (T3), poison messages (T4), engine restart (T5). They *are* the M1 gate: all five must pass before M2's installation begins, and the evidence file is what `TP-M1` signs.
+
 Test harness: `deploy/m1/tests/publish.sh` + `assert.sh` (plain scripts, committed with the repo).
 
 ```bash
@@ -106,12 +116,16 @@ Record each result in `deploy/m1/evidence/m1-tests.txt`.
 
 ## 5. Rollback / re-do
 
+*Why:* the adapter is stateless — rollback is one command — and the queue state is durable in RabbitMQ, so rolling back **never loses in-flight work**. This is the property that makes re-running M1 cheap at any point.
+
 ```bash
 cd deploy/m1 && docker compose down topic-bridge      # stateless: no local data lost
 # queue state (messages not yet consumed) is durable in RabbitMQ — nothing to recover
 ```
 
 ## 6. Troubleshooting
+
+*Why:* these are the top failure modes, pre-diagnosed — each row maps a symptom (a log line or a count) to its cause, so a junior operator fixes in minutes instead of hours. The "duplicates starting workflows" row is the most important: it's the correctness contract (§1) observed from the outside.
 
 | Symptom | Cause / fix |
 |---|---|

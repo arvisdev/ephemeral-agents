@@ -11,6 +11,8 @@
 
 ## 1. Build the pieces
 
+*Why:* the stub executor proves the **lifecycle mechanics with zero agent logic** — if a container leaks or a timeout misfires, it's a lifecycle bug, not an agent bug, and that isolation of cause is what makes M2 debuggable. The loopback-only HTTP API + label-based reaper is the crash-safety design: the reaper lives in `lifecycle`, so it keeps working even when the Temporal worker dies (that's what TC-M2-04 tests).
+
 All under `services/lifecycle/` in the POC repo.
 
 **1a. Stub executor image** — `deploy/m2/executor-stub/Dockerfile`:
@@ -46,6 +48,8 @@ done
 
 ## 2. Deploy on vm-xb — `deploy/m2/compose.yaml`
 
+*Why:* the **no-pull deploy gate** (the entrypoint refuses to serve until the pinned image exists locally) is what makes "ephemeral" *deterministic* — a spawn can never start on an image that would have to be fetched. The read-only docker socket mount gives the lifecycle real container control without docker-in-docker, and the state lives in labels + a JSON file on a per-task volume, not in a database — the POC scale decision, recorded for the paper.
+
 ```yaml
 services:
   lifecycle:
@@ -78,6 +82,8 @@ ssh vm-xb 'docker compose -f /opt/poc/deploy/m2/compose.yaml exec lifecycle \
 
 ## 3. Run the verification suite (the M2 gate tests)
 
+*Why:* V1–V5 are the M2 gate, and **V4 (crash recovery) is the load-bearing test of the whole POC**: it proves an orphaned container is reaped even when the worker is killed mid-activity. If V4 cannot be made to pass, the abort condition fires — the POC stops, because everything M3+ runs on top of this guarantee.
+
 Driver: `deploy/m2/tests/run-task.sh '<taskJson>'` → starts a `TaskWorkflow` via Temporal CLI and waits for completion.
 
 ```bash
@@ -101,11 +107,15 @@ Record results in `deploy/m2/evidence/m2-tests.txt`.
 
 ## 4. Observability (M2.5, same deploy)
 
+*Why:* one JSON line per lifecycle event plus per-task logs is the POC's **entire** observability story — M5's failure injections assert against exactly these lines, and there is deliberately no dashboard at POC scale. Keeping it minimal is a design choice the paper should record, not an oversight.
+
 - Structured JSON logs: one line per lifecycle event `{ts, task_id, event: spawn|complete|fail|timeout|reap, container_id}`.
 - Per-task container logs captured to `/var/poc/tasks/<task_id>.log` (volume), retained until reaped + 24 h.
 - `GET /report` → one-page status (running tasks, last 10 reap events, reaper health). No dashboard for POC.
 
 ## 5. Rollback / re-do
+
+*Why:* state lives only in labels and `/var/poc/tasks`, so rollback is `compose down` + a one-liner reap of anything left — nothing here is hard to undo, which is the property that keeps M2 re-runnable as M4 re-wires it.
 
 ```bash
 cd deploy/m2 && docker compose down          # worker + lifecycle down
@@ -114,6 +124,8 @@ docker ps -a --filter label=poc.owner=lifecycle | xargs -r docker rm -f   # manu
 ```
 
 ## 6. Troubleshooting
+
+*Why:* every row pre-diagnoses a **leak class** (reaper filter mismatch, missing TTL label, clock skew, bypassed deploy gate) — leaks are the failure mode this milestone exists to eliminate, and the reaper-reaps-healthy-container row is the classic one: check the `poc.expires` label first, then chrony.
 
 | Symptom | Cause / fix |
 |---|---|
