@@ -86,6 +86,17 @@ Each milestone has its own delivery plan in `delivery plans/`:
 | M4 — Memory + knowledge | [delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md](delivery%20plans/M4-Memory-and-Knowledge-Delivery-Plan.md) |
 | M5 — End-to-end + hardening | [delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md](delivery%20plans/M5-End-to-End-Hardening-Delivery-Plan.md) |
 
+Each delivery plan has a matching **full installation/deployment instruction set** in `installation-deployment/`:
+
+| Milestone | Installation & deployment |
+|---|---|
+| M0 — Chassis | [installation-deployment/M0-Chassis-Installation-and-Deployment.md](installation-deployment/M0-Chassis-Installation-and-Deployment.md) |
+| M1 — RabbitMQ → Temporal adapter | [installation-deployment/M1-Adapter-Installation-and-Deployment.md](installation-deployment/M1-Adapter-Installation-and-Deployment.md) |
+| M2 — Container lifecycle manager | [installation-deployment/M2-Lifecycle-Installation-and-Deployment.md](installation-deployment/M2-Lifecycle-Installation-and-Deployment.md) |
+| M3 — Executor spikes | [installation-deployment/M3-Executors-Installation-and-Deployment.md](installation-deployment/M3-Executors-Installation-and-Deployment.md) |
+| M4 — Memory + knowledge | [installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md](installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md) |
+| M5 — End-to-end + hardening | [installation-deployment/M5-End-to-End-Installation-and-Deployment.md](installation-deployment/M5-End-to-End-Installation-and-Deployment.md) |
+
 ## What this plan does **not** decide
 It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (VM numbering, exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R9 at M0, R3/R4 at M3/M5) rather than up front.
 
