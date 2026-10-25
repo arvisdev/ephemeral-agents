@@ -83,8 +83,8 @@ one — each script is scoped to its own milestone.
 | Artifact | Location |
 |---|---|
 | Per-milestone gate results | `deploy/m<n>/evidence/` (created at run) |
-| Temporal history for the POC | Temporal Web on vm-2, namespace `poc` |
-| Docker state (images, containers) | on the VMs (vm-2: temporal+postgres; vm-3: hindsight; the rest as deployed) |
+| Temporal history for the POC | Temporal Web on vm-xb, namespace `poc` |
+| Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-llm-wiki: llmwiki; vm-xa: front-of-house at M5) |
 | GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on vm-xa (chmod 600, never in git) |
 
 ## The POC is complete when (from the M5 install doc §9)
