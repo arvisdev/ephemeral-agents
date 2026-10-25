@@ -18,7 +18,7 @@
 
 ## 1. System under analysis (Version 1, one flow)
 
-A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up two **ephemeral Docker containers** (Hermes Agent, Claude Code Agent (N+1)) → they hydrate from **LLM-Wiki (VM-2)**, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
+A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up **ephemeral Docker containers as needed** (a Hermes Agent for agent-type work, a Claude Code Agent when coding occurs — the "(N+1)" label means variable count, not a fixed two; concurrent requests run concurrent containers, team-config capped, POC rule of thumb ≤5 per VM sizing) → they hydrate from **LLM-Wiki (VM-2)**, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
 
 The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemeral, git-provisioned executor containers**, with knowledge split across a shared RAG wiki, a vector memory, and a git-hosted agent-catalog.
 

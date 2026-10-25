@@ -100,6 +100,8 @@ docker save poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0 | ssh vm-xb docker
 
 *Why:* the concurrency decision is made **here, not at M5**, because M3 is its last cheap point: the N-parallel option is an M2 *config* change (worktree fan-out), not new infrastructure. Choosing it later, after hardening, means re-hardening the whole flow. Either way the choice is recorded in the decision log — it's an R3 closure, not an assumption.
 
+- **Owner input (2026-10-25) — the semantics:** container count is **needs-based, not fixed** — a Hermes agent when agent work is needed, a Claude Code container when coding occurs, and **multiple containers in parallel when requests are concurrent**. The team sets a **hard limit in configuration**; the POC rule of thumb is **max 5**, tuned to the VM's configuration (a guideline, not an absolute). What remains to be chosen below is the *execution* model (branch vs. worktree) and the concrete cap value, under that limit.
+
 - **Default (recorded decision):** one coder per task → one container, one `task/<id>` branch, no shared checkout. M2 spawns a single container.
 - **If N-parallel is chosen later:** same image, per-coder **git worktrees** (each container gets `/work/project-<i>` via `git worktree add` on a shared base clone) — add an `N` field to the task config and fan out N spawns from "Executes Activity". This is a **change to M2 config, not a new image**.
 

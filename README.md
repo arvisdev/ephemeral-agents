@@ -29,8 +29,12 @@ One flow, read from the source diagram (full connection map in
    request to the **Hermes Agent Gateway + Manager Agent** on `vm-xa`.
 2. The manager publishes to a **RabbitMQ topic** on `vm-xb` (two-way — a
    response returns when needed); **Temporal** enqueues and polls it.
-3. "Executes Activity" spins up two **ephemeral Docker containers** on `vm-xb`
-   — a Hermes agent and a Claude Code agent (N+1).
+3. "Executes Activity" spins up **ephemeral Docker containers on `vm-xb` as
+   needed** — a Hermes agent for agent-type work, a Claude Code agent when
+   coding occurs (the diagram's "(N+1)" label means the count is *variable*,
+   not a fixed two), and multiple containers in parallel when requests are
+   concurrent. The team sets a hard limit in configuration; the POC rule of
+   thumb is **max 5**, tuned to the VM's configuration (not an absolute).
 4. The agents hydrate: agent personas/skills from the **Available Agent List
    (GitHub repo)**, design standards & best practices from the **LLM-Wiki**
    (`vm-llm-wiki`), and long-term memory from **Hindsight**
@@ -114,8 +118,13 @@ written. At that point the feasibility verdict is confirmed by evidence.
 
 ## What this POC deliberately does not decide
 
-Concurrency model, message-shape contract, ephemeral isolation level, and
-LLM-Wiki curation ownership are resolved **at** their owning milestones
-(M3–M5) and recorded in decision logs — they are not pre-decided here. The
-resolutions (or explicit deferrals) form the **Version 2 open-items list**,
-closing the loop from this POC to the next design iteration.
+Concurrency execution model, message-shape contract, ephemeral isolation
+level, and LLM-Wiki curation ownership are resolved **at** their owning
+milestones (M3–M5) and recorded in decision logs — they are not pre-decided
+here. The concurrency *semantics* were set by owner input (2026-10-25):
+needs-based container counts, parallel containers for parallel requests, a
+team-config hard limit (POC rule of thumb ≤5, VM-config dependent); what
+remains to lock at M3 is the execution model (branch vs. worktree) and the
+cap value. The resolutions (or explicit deferrals) form the **Version 2
+open-items list**, closing the loop from this POC to the next design
+iteration.
