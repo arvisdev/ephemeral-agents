@@ -9,6 +9,8 @@
 | **Entry criteria** | TP-M0 gate signed; `poc/topic-bridge:1.0.0` built, loaded on vm-xb, deployed via install §3; consumer connected and consuming |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M2 may begin** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M1-Adapter-Installation-and-Deployment.md, section "4. Verification run (the M1 gate tests)").
+
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M1, re-run the failed case + everything after.
 - Between every scenario that publishes workflows, record the baseline count (`temporal workflow list --type TaskWorkflow | grep -c running`) so increments are attributable.

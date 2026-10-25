@@ -9,6 +9,8 @@
 | **Entry criteria** | TP-M2 gate signed; Available Agent List + Project repos exist; GitHub App installed; `poc/hermes-ephemeral:1.0.0` + `poc/claude-coder:1.0.0` built, loaded, and selected in M2 config |
 | **Exit criteria** | All mandatory cases PASS + evidence filed + concurrency decision logged → **M4 may begin** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M3-Executors-Installation-and-Deployment.md, section "4. Verification (the M3 gate tests)").
+
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M3, re-run from the failed case.
 - **Abort condition (from M3):** if TC-M3-01/02 (Hermes boot-time persona load) fail, try the documented sidecar fallback (hydration sidecar prepares agent config before the agent process starts); if **that** also fails → **stop the POC sequence** and re-baseline the executor design (the R5 abort condition). A failed gate here is the last point where an executor swap is cheap.

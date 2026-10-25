@@ -9,6 +9,8 @@
 | **Entry criteria** | TP-M3 gate signed; hindsight + llmwiki services deployed (install §1–2); M2 lifecycle config carries `HINTSIGHT_URL`/`LLMWIKI_URL`; executor env updated (install §3) |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M5 may begin** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M4-Memory-Knowledge-Installation-and-Deployment.md, section "4. Verification (the M4 gate tests)").
+
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M4, re-run from the failed case.
 - Every case that spawns containers ends with a zero-survivors check (`docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0) — M2's property must hold with the new sources attached.

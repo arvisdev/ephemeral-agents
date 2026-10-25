@@ -9,6 +9,8 @@
 | **Entry criteria** | PVE shell access, IP pool, `deploy/m0/` committed to the POC repo |
 | **Exit criteria** | All mandatory cases PASS + evidence filed + decision log written → **M1 may begin** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §1" in this doc = M0-Chassis-Installation-and-Deployment.md, section "1. Provision the VMs").
+
 **Rules:**
 - Run cases in order; a failure stops the procedure — remediate within M0 (the M0 install doc §8), then re-run the failed case **and everything after it**.
 - Record PASS/FAIL + timestamp + operator in `deploy/m0/evidence/tp-m0-results.md` (one line per case; attach outputs for §4–§7 evidence items).

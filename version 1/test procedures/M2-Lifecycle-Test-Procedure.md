@@ -9,6 +9,8 @@
 | **Entry criteria** | TP-M1 gate signed; `poc/lifecycle`, `poc/worker`, `poc/executor-stub` built + loaded on vm-xb; lifecycle + worker deployed (install §2); no-pull deploy gate green |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M3 may begin** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §3" in this doc = M2-Lifecycle-Installation-and-Deployment.md, section "3. Run the verification suite (the M2 gate tests)").
+
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M2, re-run from the failed case.
 - "Zero survivors" after any case = `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0.

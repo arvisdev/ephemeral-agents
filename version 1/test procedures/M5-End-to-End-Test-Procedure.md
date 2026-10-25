@@ -9,6 +9,8 @@
 | **Entry criteria** | TP-M0…TP-M4 all signed; `deploy/m5/e2e-deploy.sh` completes S1–S6 green |
 | **Exit criteria** | All mandatory cases PASS + evidence pack filed + open items locked → **POC demonstrated feasible** |
 
+**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M5-End-to-End-Installation-and-Deployment.md, section "4. End-to-end acceptance run (the POC gate)").
+
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in the **owning milestone** (named in each case), re-run that gate's owning cases, then resume M5 from the failed case. M5 adds no new Temporal code — every Temporal component remains the Go M1/M2 services.
 - Every case that spawns containers ends with the zero-survivors check.
