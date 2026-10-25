@@ -12,7 +12,7 @@
 **WP-0.1 — Lock VM numbering and naming (decision D-numbers)**
 - Finalize the VM naming for this POC: VM-Xa, VM-Xb, VM-2 (LLM-Wiki), VM-3 (Hindsight) — or a new scheme; record the decision and update `../ARCHITECTURE.md` open items.
 - Assign hostnames + network role per VM.
-- Deliverable: decision-log entry (2–4 lines) + updated docs.
+- Deliverable: decision-log entry (2–4 lines) + updated docs; record the **language decision: Go for all Temporal code** (owner instruction: speed + size).
 
 **WP-0.2 — Provision VMs on Proxmox 9.x**
 - 4 KVM VMs: VM-Xa, VM-Xb, VM-2, VM-3 (Debian/Ubuntu, matching the running Proxmox estate).

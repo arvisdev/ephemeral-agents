@@ -7,6 +7,7 @@
 | **Installs on** | vm-xb (the adapter service container), built on the owner's workstation or a build VM |
 | **Prereqs** | M0 gate passed: RabbitMQ topic `agent.tasks` + queue `agent.tasks.durable` up; Temporal reachable on vm-xb:7233 |
 | **What gets deployed** | 1 container on vm-xb: `poc/topic-bridge:1.0.0` (+ its compose entry, env, healthcheck) |
+| **Language (mandatory)** | The adapter **must be Go** (Temporal Go SDK) — owner instruction: all Temporal code in Go for speed + size. |
 
 ## 0. Prereq checks (run these first)
 
@@ -18,7 +19,7 @@ temporal operator cluster health
 
 ## 1. Build the adapter (`services/topic-bridge/` in the POC repo)
 
-Stack: **Go + Temporal Go SDK + amqp091-go** (matches the owner's Go stack; any language with a Temporal SDK works — record the choice in the decision log).
+Stack: **Go + Temporal Go SDK + amqp091-go** — **mandatory** (owner instruction: all Temporal code in Go, for speed + size; Temporal's multi-language support does not apply to this POC).
 
 ```bash
 cd services/topic-bridge

@@ -7,6 +7,7 @@
 | **Installs on** | vm-3 (Hindsight: Postgres+pgvector + API), vm-2 (LLM-Wiki: content + retrieval API + ingest) |
 | **Prereqs** | M0 (vm-2/vm-3 exist, Docker up), M2/M3 (an executor that hydrates and writes memory) |
 | **What gets deployed** | `poc/hindsight-api:1.0.0` + `hindsight-pg` (vm-3), `poc/llmwiki-api:1.0.0` + content repo + ingest job (vm-2), updated M2/M3 env wiring |
+| **Language (mandatory)** | No new Temporal code in this milestone — all workflow/activity code stays in the M2 Go services (owner instruction: Go for all Temporal code, speed + size). The Hindsight/LLM-Wiki API services follow the POC's Go convention. |
 
 ## 1. Hindsight on vm-3
 

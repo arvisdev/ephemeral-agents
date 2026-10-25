@@ -7,6 +7,7 @@
 | **Installs on** | vm-xb (lifecycle service + Temporal worker + reaper) |
 | **Prereqs** | M0 (Docker + Temporal on vm-xb), M1 (workflows startable); a stub executor image built (§1) |
 | **What gets deployed** | `poc/lifecycle:1.0.0` (API + reaper), `poc/worker:1.0.0` (Temporal worker running the activity), `poc/executor-stub:1.0.0` (placeholder executor) |
+| **Language (mandatory)** | The lifecycle service, worker, and all activities **must be Go** — owner instruction: all Temporal code in Go for speed + size. The executor images run their own runtimes (M3), not Temporal SDK code. |
 
 ## 1. Build the pieces
 
@@ -23,7 +24,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 `entrypoint.sh`: echo back the config env (`TASK_ID`, `AGENT_REF`, `BEHAVIORAL_SPEC`) to stdout, create a marker file, then `sleep $TTL` (responds to SIGTERM). This proves lifecycle mechanics with **zero agent logic** — M3 replaces it with real images.
 
-**1b. Lifecycle service** (Go) — HTTP API on loopback only (`127.0.0.1:8090`):
+**1b. Lifecycle service (Go — mandatory)** — HTTP API on loopback only (`127.0.0.1:8090`):
 
 - `POST /spawn`  — `docker run -d` the pinned image: env config, per-task work volume, labels `poc.task=<task_id>`, `poc.owner=lifecycle`, `poc.expires=<RFC3339 TTL>`, resource limits; returns container ID.
 - `GET  /status?task=<id>` — container state + health.
@@ -32,7 +33,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 - Docker access: mount `/var/run/docker.sock` (no docker-in-docker).
 - State: container labels + a JSON state file on a per-task volume; no DB for POC.
 
-**1c. Worker** (Go) — Temporal worker registered on `default` namespace; activity `executes_activity(taskCfg)`:
+**1c. Worker (Go — mandatory)** — Temporal worker registered on `default` namespace; activity `executes_activity(taskCfg)`:
 `spawn → poll status until complete/failed/TTL → reap → return result`. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
 
 ```bash

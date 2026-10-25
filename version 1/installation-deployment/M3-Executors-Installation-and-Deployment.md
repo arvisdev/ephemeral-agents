@@ -7,6 +7,7 @@
 | **Installs on** | vm-xb (two executor images + token issuance on the lifecycle host); the Available Agent List + Project Repos on GitHub |
 | **Prereqs** | M2 gate passed (lifecycle + worker + reaper healthy); GitHub access (owner's account) for repos + a GitHub App |
 | **What gets deployed** | `poc/hermes-ephemeral:1.0.0`, `poc/claude-coder:1.0.0` images; token-issuance script; the agent-catalog repo; per-task branch strategy |
+| **Language (mandatory)** | All Temporal code in this POC is Go (M1/M2 — untouched here; owner instruction: speed + size). The executor images run their own runtimes (Hermes runtime; node for the Claude Code CLI) — tooling, not Temporal SDK code, so outside the Go mandate. |
 
 ## 1. GitHub-side setup (do once, on the owner's workstation)
 

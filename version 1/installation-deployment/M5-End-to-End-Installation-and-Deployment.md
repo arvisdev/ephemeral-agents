@@ -7,6 +7,7 @@
 | **Installs on** | vm-xa (Gateway + Manager Agent), engineer's desktop (Hermes Desktop config) |
 | **Prereqs** | M0–M4 gates all passed (chassis, adapter, lifecycle, executors, memory + knowledge) |
 | **What gets deployed** | `poc/gateway:1.0.0` + `poc/manager:1.0.0` on vm-xa; the ordered full-stack bring-up; the failure-injection + hardening runbooks |
+| **Language (mandatory)** | Every Temporal component in the stack (M1 adapter, M2 worker/lifecycle) is Go — owner instruction: all Temporal code in Go for speed + size. M5 adds no new Temporal code; the gateway/manager services are Go. |
 
 M5 adds **no new infrastructure** — it composes what M0–M4 installed and locks the last open items.
 

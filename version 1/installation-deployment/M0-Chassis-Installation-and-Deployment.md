@@ -7,6 +7,7 @@
 | **Installs on** | PVE host + 4 KVM VMs (vm-xa, vm-xb, vm-2, vm-3) |
 | **Prereqs** | Proxmox 9.x host with PVE shell access; a DHCP/static IP pool; outbound Internet on the Proxmox LAN |
 | **Hosts touched** | PVE host (VM creation), all 4 VMs (OS + Docker + services) |
+| **Language (mandatory)** | All Temporal SDK code — workflows, workers, activities, adapters, CLI samples — **must be Go** (owner instruction: speed + size). No other language for Temporal code in this POC. |
 
 ## 0. Assumptions & conventions
 
@@ -124,6 +125,16 @@ temporal operator cluster health          # expect: service members HEALTHY
 temporal operator namespace list          # shows: default
 ```
 
+**4b. Go SDK smoke (the language-decision check)** — `deploy/m0/go-sdk-smoke/`: a minimal Go program, one `greet` workflow + worker on `github.com/temporalio/sdk-go`:
+
+```bash
+cd deploy/m0/go-sdk-smoke
+go mod init go-sdk-smoke && go get github.com/temporalio/sdk-go@latest
+go run . -addr vm-xb:7233              # start the workflow, run the worker, expect: "hello from greet"
+```
+
+This doubles as proof of the mandatory language decision: M0's gate includes "a Go-SDK workflow completes", and all later milestones build on this same Go toolchain.
+
 Note: this Postgres belongs to Temporal only. VM-3's Hindsight gets its **own** Postgres in M4 — do not share instances.
 
 ## 5. Network verification matrix
@@ -143,7 +154,7 @@ For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-2/v
 
 ## 6. Lock VM numbering (D-num) + repo layout
 
-- Record the naming decision (VM-Xa/Xb/2/3 as drawn, or renumbered) in `../ARCHITECTURE.md`'s open-items section + a `deploy/m0/decision-log.md` entry.
+- Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) VM naming scheme (VM-Xa/Xb/2/3 as drawn, or renumbered); (b) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
 
 ```
@@ -163,7 +174,7 @@ deploy/
 |---|---|---|
 | 1 | 4 VMs, Docker runs on each | `docker run --rm alpine echo ok` on all |
 | 2 | Cross-VM topic publish/consume | §3 last block |
-| 3 | Temporal healthy, `default` ns | §4 last block |
+| 3 | Temporal healthy, `default` ns, **Go SDK smoke completes** | §4 + §4b |
 | 4 | Network matrix 100% | §5, recorded |
 | 5 | Numbering locked + docs updated | decision-log entry exists |
 

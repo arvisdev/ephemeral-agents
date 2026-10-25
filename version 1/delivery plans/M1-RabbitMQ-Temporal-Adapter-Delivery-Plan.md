@@ -37,7 +37,7 @@
 
 ## Deliverables
 
-1. Adapter source (recommend Go + Temporal Go SDK; the POC project's stack is owner's choice) in the POC repo under `services/topic-bridge/`.
+1. Adapter source **in Go** (Temporal Go SDK — **mandatory**: owner instruction that all Temporal code be Go, for speed + size) in the POC repo under `services/topic-bridge/`.
 2. Message schema + example (`docs/` or `schemas/`).
 3. Test report: the §WP-1.4 scenarios with actual results.
 4. Compose/healthcheck entries for VM-Xb.

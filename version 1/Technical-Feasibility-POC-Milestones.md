@@ -8,6 +8,8 @@
 
 Principle: **prove the risky parts first, in dependency order.** The two To-verify components and the integration glue come before the full end-to-end run, so a failure is caught cheaply.
 
+**Mandatory language decision (owner instruction, 2026-10-24):** all Temporal SDK code — workflows, workers, activities, adapters, CLI samples — **must be Golang** (chosen for speed and size). Temporal's multi-language support does not apply to this POC; every installation/deployment document carries this decision.
+
 ---
 
 ## M0 — Chassis
