@@ -73,9 +73,22 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 
 **Gate:** proceed from M(n) to M(n+1) only when M(n)'s done-when criteria are met. A failed gate in M3 is the point of last cheap exit.
 
+## Delivery plans (per milestone)
+
+Each milestone has its own delivery plan in `delivery plans/`:
+
+| Milestone | Delivery plan |
+|---|---|
+| M0 — Chassis | [delivery plans/M0-Chassis-Delivery-Plan.md](delivery%20plans/M0-Chassis-Delivery-Plan.md) |
+| M1 — RabbitMQ → Temporal adapter | [delivery plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md](delivery%20plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md) |
+| M2 — Container lifecycle manager | [delivery plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md](delivery%20plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md) |
+| M3 — Executor spikes | [delivery plans/M3-Executor-Spikes-Delivery-Plan.md](delivery%20plans/M3-Executor-Spikes-Delivery-Plan.md) |
+| M4 — Memory + knowledge | [delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md](delivery%20plans/M4-Memory-and-Knowledge-Delivery-Plan.md) |
+| M5 — End-to-end + hardening | [delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md](delivery%20plans/M5-End-to-End-Hardening-Delivery-Plan.md) |
+
 ## What this plan does **not** decide
 It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (VM numbering, exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R9 at M0, R3/R4 at M3/M5) rather than up front.
 
 ---
 
-*Companion: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks).*
+*Companions: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks), and the six per-milestone files in `delivery plans/`.*
