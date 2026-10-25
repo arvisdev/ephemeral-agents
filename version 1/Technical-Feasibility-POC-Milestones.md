@@ -73,7 +73,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - **M4** adds knowledge/memory only after the executor runs.
 - **M5** composes the whole flow and locks the remaining open design items.
 
-**Gate:** proceed from M(n) to M(n+1) only when M(n)'s done-when criteria are met. A failed gate in M3 is the point of last cheap exit.
+**Gate:** proceed from M(n) to M(n+1) only when M(n)'s **test procedure** (`test procedures/`) passes all its mandatory cases — the test procedure is the formal gate for the next milestone's installation. A failed gate in M3 is the point of last cheap exit.
 
 ## Delivery plans (per milestone)
 
@@ -99,9 +99,20 @@ Each delivery plan has a matching **full installation/deployment instruction set
 | M4 — Memory + knowledge | [installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md](installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md) |
 | M5 — End-to-end + hardening | [installation-deployment/M5-End-to-End-Installation-and-Deployment.md](installation-deployment/M5-End-to-End-Installation-and-Deployment.md) |
 
+Each milestone also has a formal **test procedure** in `test procedures/` — the gate that must PASS before the next milestone's installation begins:
+
+| Milestone | Test procedure (the gate) |
+|---|---|
+| M0 — Chassis | [test procedures/M0-Chassis-Test-Procedure.md](test%20procedures/M0-Chassis-Test-Procedure.md) |
+| M1 — RabbitMQ → Temporal adapter | [test procedures/M1-Adapter-Test-Procedure.md](test%20procedures/M1-Adapter-Test-Procedure.md) |
+| M2 — Container lifecycle manager | [test procedures/M2-Lifecycle-Test-Procedure.md](test%20procedures/M2-Lifecycle-Test-Procedure.md) |
+| M3 — Executor spikes | [test procedures/M3-Executors-Test-Procedure.md](test%20procedures/M3-Executors-Test-Procedure.md) |
+| M4 — Memory + knowledge | [test procedures/M4-Memory-Knowledge-Test-Procedure.md](test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
+| M5 — End-to-end + hardening | [test procedures/M5-End-to-End-Test-Procedure.md](test%20procedures/M5-End-to-End-Test-Procedure.md) |
+
 ## What this plan does **not** decide
 It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (VM numbering, exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R9 at M0, R3/R4 at M3/M5) rather than up front.
 
 ---
 
-*Companions: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks), and the six per-milestone files in `delivery plans/`.*
+*Companions: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks), the six per-milestone files in `delivery plans/`, the six installation/deployment instruction sets in `installation-deployment/`, and the six gate test procedures in `test procedures/`.*
