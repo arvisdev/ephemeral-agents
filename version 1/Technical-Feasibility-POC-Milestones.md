@@ -19,7 +19,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - RabbitMQ topic reachable from VM-Xa (publish) and VM-Xb (consume).
 - Temporal Server up; a trivial workflow + worker runs to completion.
 - Cross-VM reachability (VM-Xb → VM-2/VM-3, → GitHub) verified.
-**Retires:** R8 (service discovery), R9 (VM numbering — lock it here), and the "does the chassis stand" risk.
+**Retires:** R8 (service discovery), R9 (VM naming — recorded here; owner-resolved 2026-10-25: labels are POC discussion devices, not commitments), and the "does the chassis stand" risk.
 
 ## M1 — RabbitMQ → Temporal adapter
 **Goal:** A RabbitMQ consumer that starts exactly one Temporal workflow per message (idempotent, no loss).
@@ -138,7 +138,7 @@ Each installation/deployment instruction set has a matching **complete installat
 **Note:** scripts fail fast on missing assets and list exactly which files the delivery plan must produce (compose files, Dockerfiles, Go services, test harnesses) before the install can run.
 
 ## What this plan does **not** decide
-It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (VM numbering, exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R9 at M0, R3/R4 at M3/M5) rather than up front.
+It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R3/R4 at M3/M5) rather than up front. **VM naming (R9) is already settled** (owner 2026-10-25): the labels are POC discussion devices, not commitments — per-project naming is a deploy-time choice.
 
 ---
 

@@ -164,11 +164,11 @@ ssh vm-xb 'nc -vz temporal 7233; nc -vz rabbitmq 5672'
 
 For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-2/vm-3 (the POC-internal choice; record which in the decision log).
 
-## 6. Lock VM numbering (D-num) + repo layout
+## 6. Record the VM naming decision (D-8) + lock language + repo layout
 
-*Why:* VM numbering (D-8) and the language decision are open items that, left open, get re-litigated at every later milestone. Locking them now costs ten minutes; locking them at M5 costs a re-hardening pass. The repo layout is fixed here so the chassis is proven scriptable — `deploy.sh` exists to make "wipe and re-run" the recovery path.
+*Why:* the language decision is the open item that, left open, gets re-litigated at every later milestone — locking it now costs ten minutes; locking it at M5 costs a re-hardening pass. VM naming (D-8) was resolved by the owner 2026-10-25 (labels are POC discussion devices, not commitments); this section just *records* that plus the POC's concrete hostnames. The repo layout is fixed here so the chassis is proven scriptable — `deploy.sh` exists to make "wipe and re-run" the recovery path.
 
-- Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) VM naming scheme (VM-Xa/Xb/2/3 as drawn, or renumbered); (b) **language decision: Go for all Temporal code** (owner instruction: speed + size).
+- Record in `deploy/m0/decision-log.md` (and update the open-items section of `../ARCHITECTURE.md`): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames + which hostname maps to which label; (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
 
 ```
@@ -192,7 +192,7 @@ deploy/
 | 2 | Cross-VM topic publish/consume | §3 last block |
 | 3 | Temporal healthy, `default` ns, **Go SDK smoke completes** | §4 + §4b |
 | 4 | Network matrix 100% | §5, recorded |
-| 5 | Numbering locked + docs updated | decision-log entry exists |
+| 5 | Naming decision recorded (D-8) + docs updated | decision-log entry exists |
 
 ## 8. Troubleshooting
 

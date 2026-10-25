@@ -166,3 +166,13 @@ The four **[confirm]** items in Sections 3–4 were resolved by the diagram owne
 - **Hindsight (VM-3)** = Long-Term Memory (R/W).
 - **LLM-Wiki (VM-2)** = Design Standards and anything that guides development and business best practices.
 - **Git repo (Available Agent List)** = anything the agents load (agent skills / personas).
+
+## 9. VM naming decision (owner, 2026-10-25 — new content, not from the diagram)
+
+**VM-Xa / VM-Xb / VM-2 / VM-3 are POC-local discussion labels, not commitments.** In the
+development arena each project will have its own manager-template VM and its own
+ephemeral-agent VM(s); the concrete names are the team's or company's choice, made
+to meet their own needs. This POC uses the labels as drawn purely so the design
+pattern can be discussed in an orderly way. This resolves §7 open item 1
+("the VM numbering scheme as a whole") — no renumbering will be forced on any
+project adopting the pattern.

@@ -119,11 +119,11 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect $c | grep -Ei "owner_?tok
 
 ## 7. Lock the last open items + close the docs
 
-*Why:* the five open items (numbering, message shapes, concurrency, isolation level, curation owner) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
+*Why:* the five open items (message shapes, concurrency, isolation level, curation owner, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
 
 Decision-log entries (in `deploy/m5/decision-log.md`, referenced from `../ARCHITECTURE.md`):
 
-- [ ] VM numbering (carried from M0) — final scheme recorded
+- [x] VM naming (D-8) — resolved 2026-10-25: labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records its own hostname mapping in `deploy/m0/decision-log.md`.
 - [ ] topic/queue message shapes — `schemas/message-v1.json` is the contract (version it)
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)

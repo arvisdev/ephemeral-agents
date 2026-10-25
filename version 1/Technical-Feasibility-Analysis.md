@@ -65,7 +65,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | R6 | **Hindsight R/W API** not available for agent sessions | L | M | Define the memory contract early; use a thin API wrapper; pgvector is the substrate. |
 | R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. |
 | R8 | **Cross-VM service discovery** (VM-Xb agents must reach VM-2, VM-3, cloud) | L | M | Flat L2/overlay network or DNS/service-catalog; fixed service endpoints per VM. |
-| R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | Resolve numbering before provisioning infra; keep docs authoritative. |
+| R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | **Resolved by owner 2026-10-25:** the labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records the decision (M0 §6) and moves on. |
 
 *(L = likelihood, I = impact.)*
 
@@ -111,7 +111,7 @@ Full plan in `Technical-Feasibility-POC-Milestones.md`. Order by what de-risks t
 
 ## 9. Open design items (carried from Version 1)
 
-The Version 1 foundation doc intentionally leaves these open; feasibility does not depend on resolving them now, but each gates a later milestone: VM numbering (R9), RabbitMQ↔Temporal wiring detail (R2), LLM-Wiki curation (R7), ephemeral isolation level (per-task VM vs. co-located container), N+1 semantics (R3), and topic/queue message shapes.
+The Version 1 foundation doc intentionally leaves these open; feasibility does not depend on resolving them now, but each gates a later milestone: RabbitMQ↔Temporal wiring detail (R2), LLM-Wiki curation (R7), ephemeral isolation level (per-task VM vs. co-located container), N+1 semantics (R3), and topic/queue message shapes. (VM naming, R9, was settled by the owner on 2026-10-25 — the labels are POC discussion devices, not commitments; M0 records the decision.)
 
 ---
 

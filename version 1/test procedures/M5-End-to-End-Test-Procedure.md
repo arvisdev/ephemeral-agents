@@ -25,7 +25,7 @@
 | TC-M5-04 | Credential hardening | §6: trivy secret scan across all 7 images; `docker inspect` env sweep on every running container; token lifecycle re-check (M3 TC-M3-05) | no long-lived owner secret anywhere; issued tokens dead post-reap | all three clean |
 | TC-M5-05 | Concurrency model locked | §7: the M3-chosen model's evidence re-validated on the **real** images (sequential task branches, or N-parallel worktrees) + decision-log entry | the recorded model is what actually runs | decision log + matching evidence |
 | TC-M5-06 | Human report loop | after TC-M5-02: the engineer's desktop receives the outcome without asking Temporal/RabbitMQ directly | report delivered via the gateway (correlation path, the two-way Manager ↔ RabbitMQ variant) | engineer sees artifact pointer or error; path logged |
-| TC-M5-07 | Docs closed | §7 checklist: decision log complete (numbering, message shapes, concurrency, isolation, curation owner); `../ARCHITECTURE.md` + foundation doc updated; **Version 2 open items list** written | all five open items either locked or explicitly deferred | checklist 100%; docs committed |
+| TC-M5-07 | Docs closed | §7 checklist: decision log complete (naming D-8 recorded, message shapes, concurrency, isolation, curation owner); `../ARCHITECTURE.md` + foundation doc updated; **Version 2 open items list** written | all five open items either locked or explicitly deferred | checklist 100%; docs committed |
 
 ## Informational (record, do not gate)
 

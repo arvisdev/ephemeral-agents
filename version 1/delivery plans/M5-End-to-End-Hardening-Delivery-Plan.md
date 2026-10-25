@@ -32,7 +32,7 @@
 
 **WP-5.6 — Report + docs**
 - Human report format finalized (success/failure + artifact pointer, e.g. task-branch/PR link).
-- Update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md` open items with the POC's resolutions (VM numbering, message shapes, concurrency model, isolation level); list the genuinely-open items for **Version 2**.
+- Update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md` open items with the POC's resolutions (VM naming decision D-8 already recorded at M0; message shapes, concurrency model, isolation level); list the genuinely-open items for **Version 2**.
 
 ## Deliverables
 
@@ -40,14 +40,14 @@
 2. Evidence pack: E2E trace + lifecycle log + commit + report.
 3. Failure-injection report (WP-5.3) with pass/fail per injection.
 4. Credential-model page + negative scan results.
-5. Decision-log entries closing R3, R4, VM numbering, message shapes; a "Version 2 open items" list.
+5. Decision-log entries closing R3, R4, message shapes (VM naming D-8 already resolved by owner 2026-10-25, recorded at M0); a "Version 2 open items" list.
 
 ## Acceptance criteria (done-when)
 
 1. **E2E:** a real request completes end-to-end with **zero** surviving POC containers afterwards.
 2. **Failure-injection:** all four injections end clean (reaped, reported, no leaks).
 3. **Credentials:** the negative scan passes; no long-lived owner secret reachable from any container.
-4. **Model locked:** concurrency + isolation + numbering + message shapes are recorded in the decision log; docs updated.
+4. **Model locked:** concurrency + isolation + message shapes are recorded in the decision log (VM naming D-8 was already resolved by the owner); docs updated.
 5. **Human loop closed:** the engineer sees the outcome (artifact pointer or error), matching the diagram's human-initiated/human-reported scope.
 
 ## Exit gate / POC complete

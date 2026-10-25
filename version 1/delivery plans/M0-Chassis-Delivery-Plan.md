@@ -3,15 +3,15 @@
 | | |
 |---|---|
 | **Milestone** | M0 (from `../Technical-Feasibility-POC-Milestones.md`) |
-| **Goal** | Proxmox 9.x + VMs + Docker + RabbitMQ + Temporal standing up and reachable; VM numbering locked. |
+| **Goal** | Proxmox 9.x + VMs + Docker + RabbitMQ + Temporal standing up and reachable; VM naming decision recorded (D-8 resolved: labels are POC discussion devices). |
 | **Depends on** | Nothing (first milestone) |
 | **Retires risk** | R8 (service discovery), R9 (VM numbering) |
 
 ## Work packages
 
-**WP-0.1 — Lock VM numbering and naming (decision D-numbers)**
-- Finalize the VM naming for this POC: VM-Xa, VM-Xb, VM-2 (LLM-Wiki), VM-3 (Hindsight) — or a new scheme; record the decision and update `../ARCHITECTURE.md` open items.
-- Assign hostnames + network role per VM.
+**WP-0.1 — Record the VM naming decision (D-8 resolved by owner, 2026-10-25)**
+- Decision to record: VM-Xa, VM-Xb, VM-2 (LLM-Wiki), VM-3 (Hindsight) are **POC-local discussion labels, not commitments** — in the development arena each project has its own manager-template VM and ephemeral-agent VM, and the concrete names are the team's/company's choice to meet their needs. This POC adopts the labels as drawn so the pattern can be discussed in an orderly way.
+- Assign hostnames + network role per VM (the POC's concrete hostnames; record which hostname maps to which label).
 - Deliverable: decision-log entry (2–4 lines) + updated docs; record the **language decision: Go for all Temporal code** (owner instruction: speed + size).
 
 **WP-0.2 — Provision VMs on Proxmox 9.x**
