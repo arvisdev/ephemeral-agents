@@ -110,9 +110,34 @@ Each milestone also has a formal **test procedure** in `test procedures/` — th
 | M4 — Memory + knowledge | [test procedures/M4-Memory-Knowledge-Test-Procedure.md](test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
 | M5 — End-to-end + hardening | [test procedures/M5-End-to-End-Test-Procedure.md](test%20procedures/M5-End-to-End-Test-Procedure.md) |
 
+## Install scripts (one per milestone)
+
+Each installation/deployment instruction set has a matching **complete installation bash script** in `deploy/` (repo root), one per milestone. Each script implements its install doc end-to-end: asset check → build → deploy → gate tests → evidence. They are idempotent and safe to re-run.
+
+| Milestone | Install script |
+|---|---|
+| M0 — Chassis | [../deploy/m0/install.sh](../deploy/m0/install.sh) |
+| M1 — RabbitMQ → Temporal adapter | [../deploy/m1/install.sh](../deploy/m1/install.sh) |
+| M2 — Container lifecycle manager | [../deploy/m2/install.sh](../deploy/m2/install.sh) |
+| M3 — Executor spikes | [../deploy/m3/install.sh](../deploy/m3/install.sh) |
+| M4 — Memory + knowledge | [../deploy/m4/install.sh](../deploy/m4/install.sh) |
+| M5 — End-to-end + hardening | [../deploy/m5/install.sh](../deploy/m5/install.sh) |
+
+**Common interface (all six):**
+
+- `bash deploy/mN/install.sh` — full run: install + gate tests (evidence to `deploy/mN/evidence/`)
+- `--check-only` — preconditions + asset check only, no changes
+- `--no-gate` — run the install, but don't fail the script on gate-test failures
+- `ASSUME_YES=1` — non-interactive (CI / re-runs)
+- Hosts come from `deploy/m0/hosts.env` (auto-loaded); secrets are generated into gitignored `.env` files, never committed
+- A script exits 0 only when its gate checks pass (unless `--no-gate`) — the gate result is what the matching test procedure signs off on
+- The install docs are the source of truth; the scripts implement them. Keep them in sync — a script/proc drift is a docs bug.
+
+**Note:** scripts fail fast on missing assets and list exactly which files the delivery plan must produce (compose files, Dockerfiles, Go services, test harnesses) before the install can run.
+
 ## What this plan does **not** decide
 It sequences de-risking; it does **not** finalize the open design items from the Version 1 foundation doc (VM numbering, exact RabbitMQ↔Temporal wiring, LLM-Wiki curation process, ephemeral isolation level, N+1 semantics, message shapes). Those get resolved *at* the relevant milestones (R9 at M0, R3/R4 at M3/M5) rather than up front.
 
 ---
 
-*Companions: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks), the six per-milestone files in `delivery plans/`, the six installation/deployment instruction sets in `installation-deployment/`, and the six gate test procedures in `test procedures/`.*
+*Companions: `Technical-Feasibility-Analysis.md` (the rating + verdict this plan de-risks), the six per-milestone files in `delivery plans/`, the six installation/deployment instruction sets in `installation-deployment/`, the six gate test procedures in `test procedures/`, and the six complete installation bash scripts in `deploy/m0/`–`deploy/m5/` (`install.sh`).*
