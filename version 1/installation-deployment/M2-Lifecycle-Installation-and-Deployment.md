@@ -11,7 +11,7 @@
 
 ## 1. Build the pieces
 
-*Why:* the stub executor proves the **lifecycle mechanics with zero agent logic** — if a container leaks or a timeout misfires, it's a lifecycle bug, not an agent bug, and that isolation of cause is what makes M2 debuggable. The loopback-only HTTP API + label-based reaper is the crash-safety design: the reaper lives in `lifecycle`, so it keeps working even when the Temporal worker dies (that's what TC-M2-04 tests).
+*Why:* the stub executor proves the **lifecycle mechanics with zero agent logic** — if a container leaks or a timeout misfires, it's a lifecycle bug, not an agent bug, and that isolation of cause is what makes M2 debuggable. The compose-network-only HTTP API + label-based reaper is the crash-safety design: the reaper lives in `lifecycle`, so it keeps working even when the Temporal worker dies (that's what TC-M2-04 tests).
 
 All under `services/lifecycle/` in the POC repo.
 
@@ -26,7 +26,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 `entrypoint.sh`: echo back the config env (`TASK_ID`, `AGENT_REF`, `BEHAVIORAL_SPEC`) to stdout, create a marker file, then `sleep $TTL` (responds to SIGTERM). This proves lifecycle mechanics with **zero agent logic** — M3 replaces it with real images.
 
-**1b. Lifecycle service (Go — mandatory)** — HTTP API on loopback only (`127.0.0.1:8090`):
+**1b. Lifecycle service (Go — mandatory)** — HTTP API bound to the compose network only (`0.0.0.0:8090` inside the compose network, **not** published to the host — the worker and reaper reach it over the compose network; binding loopback inside the container would lock the worker out):
 
 - `POST /spawn`  — `docker run -d` the pinned image: env config, per-task work volume, labels `poc.task=<task_id>`, `poc.owner=lifecycle`, `poc.expires=<RFC3339 TTL>`, resource limits; returns container ID.
 - `GET  /status?task=<id>` — container state + health.

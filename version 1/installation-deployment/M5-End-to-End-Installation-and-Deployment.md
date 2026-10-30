@@ -105,7 +105,7 @@ After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, 
 
 ## 6. Credential hardening (R4 final)
 
-*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all seven images, an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
+*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all ten deployed images (the full set the §6a loop iterates), an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
 
 ```bash
 # 6a. negative scan across ALL deployed images:
@@ -124,7 +124,7 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}
 Decision-log entries (in `deploy/m5/decision-log.md`, referenced from `../ARCHITECTURE.md`):
 
 - [x] VM naming (D-8) — resolved 2026-10-25: labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records its own hostname mapping in `deploy/m0/decision-log.md`.
-- [x] TTL ownership — hybrid settled: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)
+- [x] TTL ownership — hybrid settled 2026-10-29: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
 - [ ] LLM-Wiki curation owner + cadence (from M4)

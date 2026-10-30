@@ -27,12 +27,16 @@ Each `install.sh` does three things, in order:
 | Step | Do | Result you need before the next step |
 |---|---|---|
 | 0 | Read the M0 install doc, `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill it | — |
-| 1 | `bash deploy/m0/install.sh` | M0 gate = 5 PASS → run **TP-M0** |
-| 2 | `bash deploy/m1/install.sh` | T1–T5 PASS → run **TP-M1** |
-| 3 | `bash deploy/m2/install.sh` | V1–V5 PASS → run **TP-M2** |
-| 4 | `bash deploy/m3/install.sh` | B1–B5 PASS → run **TP-M3** |
-| 5 | `bash deploy/m4/install.sh` | G1–G6 PASS → run **TP-M4** |
+| 1 | `bash deploy/m0/install.sh` | M0 gate (5 checks §7) PASS → run **TP-M0** (8 mandatory cases) |
+| 2 | `bash deploy/m1/install.sh` | T1–T5 PASS → run **TP-M1** (6 mandatory cases) |
+| 3 | `bash deploy/m2/install.sh` | V1–V5 PASS → run **TP-M2** (6 mandatory cases) |
+| 4 | `bash deploy/m3/install.sh` | B1–B5(+B6) PASS → run **TP-M3** (7 mandatory cases) |
+| 5 | `bash deploy/m4/install.sh` | G1–G6 PASS → run **TP-M4** (7 mandatory cases) |
 | 6 | `bash deploy/m5/install.sh` | E2E + F1–F4 + hardening → run **TP-M5** |
+
+The script gate labels (§-checks, T/V/B/G, F) are the script's own block
+names; the **TP case counts are the authoritative gate** — sign off against
+the test procedure, not the script output alone.
 
 **The rule (the gate):** a milestone's test procedure (`version 1/test
 procedures/TP-M<n>`) must be signed **before** the next install script is

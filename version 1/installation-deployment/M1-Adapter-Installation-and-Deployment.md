@@ -35,7 +35,7 @@ The consumer must do, in order (this is the correctness contract — M2+ assumes
 
 1. `QoS(prefetch=1)`, **manual ack**.
 2. Consume `agent.tasks.durable` bound to topic exchange `agent.tasks`.
-3. On message: validate against `schemas/message-v1.json` → **invalid: publish to `agent.tasks.dlq` with the reason as property, then ack** (never requeue invalid messages).
+3. On message: validate against `schemas/message-v1.json` → **invalid: publish to `agent.tasks.dlq` with the reason as property, then ack** (never requeue invalid messages). The schema's fields: `task_id`, `agent_ref`, `behavioral_spec`, `repo_target`, `requester`/correlation data, plus one **optional field `ttl_s`** (integer seconds) — the manager is the only writer of it; when absent, M2's lifecycle applies its config default (`POC_TTL_DEFAULT`, 900s). The reaper stays authoritative either way (R1 backstop intact).
 4. Valid: `client.StartWorkflow(ctx, StartWorkflowOptions{ WorkflowID: msg.TaskID, WorkflowIDReusePolicy: AllowDuplicate }, TaskWorkflow, msg)` → on `ErrWorkflowExecutionAlreadyExists` **ack** (idempotent duplicate) → otherwise **ack only after start confirmed**.
 
 ## 2. Package as an image — `deploy/m1/Dockerfile`
