@@ -93,7 +93,7 @@ prereqs() {
   [ -f "$envf" ] || die "deploy/m0/rabbitmq/.env missing — run M0 install first"
   local pass; pass="$(grep '^RABBITMQ_PASS=' "$envf" | cut -d= -f2)"
   local qmsg
-  qmsg="$(ssh "$VM_XB" "curl -s -u 'poc:$pass' 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable' | grep -o '\"messages\":[0-9]*' || true")"
+  qmsg="$(printf 'user = "poc:%s"\n' "$pass" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable' | grep -o '\"messages\":[0-9]*' || true")"
   log "§0   agent.tasks.durable queue present: ${qmsg:-<not found>}"
   if [ -z "$qmsg" ]; then
     die "agent.tasks.durable not found — RabbitMQ topology missing (re-run M0 install §3)"
@@ -166,7 +166,7 @@ deploy_adapter() {
   local pass; pass="$(grep '^RABBITMQ_PASS=' "$envf" | cut -d= -f2)"
   ssh "$VM_XB" "mkdir -p /opt/poc/deploy/m1"
   rsync -az "$M1/compose.yaml" "$VM_XB:/opt/poc/deploy/m1/compose.yaml"
-  ssh "$VM_XB" "echo \"RABBITMQ_PASS=$pass\" > /opt/poc/deploy/m1/.env"
+  printf '%s\n' "RABBITMQ_PASS=$pass" | ssh "$VM_XB" 'umask 077; cat > /opt/poc/deploy/m1/.env && chmod 600 /opt/poc/deploy/m1/.env'  # stdin + 600: secret not in argv/logs
   # M0 services live in their own compose project on vm-xb -> shared external
   # network (record the network name in deploy/m1/.env notes / image-tags.env).
   ssh "$VM_XB" "cd /opt/poc/deploy/m1 && docker compose up -d topic-bridge"
@@ -189,41 +189,44 @@ gate_tests() {
   local RMP; RMP="$(grep '^RABBITMQ_PASS=' "$REPO_ROOT/deploy/m0/rabbitmq/.env" | cut -d= -f2)"
   {
     echo "# M1 gate tests — $(date -u)"
-    local count running expected
+    local count expected base delta
+    wf_count() { temporal workflow list --type TaskWorkflow --limit 1000 2>/dev/null | grep -c "TaskWorkflow" || true; }
+    # run-scoped: assert on the DELTA of workflows ever started (not absolute "running"
+    # counts), so a re-run against leftover state doesn't false-fail.
     # T1: N -> N (N=50)
+    base="$(wf_count)"
     bash "$M1/tests/publish.sh" 50
     sleep 5
-    count="$(temporal workflow list --type TaskWorkflow --limit 100 | grep -c running || true)"
-    expected=50
-    echo "T1 n->n: $count running (expected $expected) : $([ "$count" -eq "$expected" ] && echo PASS || echo FAIL)"
-    # T2: duplicate safety — republish all 50
+    delta=$(( $(wf_count) - base ))
+    echo "T1 n->n: +$delta started (expected 50) : $([ "$delta" -eq 50 ] && echo PASS || echo FAIL)"
+    # T2: duplicate safety — republish all 50 (same task_ids -> zero new workflows)
+    base="$(wf_count)"
     bash "$M1/tests/publish.sh" 50 --dup
     sleep 5
-    count="$(temporal workflow list --type TaskWorkflow | grep -c running || true)"
-    expected=50
-    echo "T2 dup: $count running (expected $expected) : $([ "$count" -eq "$expected" ] && echo PASS || echo FAIL)"
-    # T3: kill -9 mid-flight
+    delta=$(( $(wf_count) - base ))
+    echo "T2 dup: +$delta started (expected 0) : $([ "$delta" -eq 0 ] && echo PASS || echo FAIL)"
+    # T3: kill -9 mid-flight (all 20 redelivered, no doubles -> exactly +20)
+    base="$(wf_count)"
     bash "$M1/tests/publish.sh" 20 & local ppid=$!
     sleep 1
     ssh "$VM_XB" "docker kill topic-bridge && docker start topic-bridge"
     wait "$ppid" || true
     sleep 5
-    count="$(temporal workflow list --type TaskWorkflow | grep -c running || true)"
-    expected=70
-    echo "T3 kill-9: $count running (expected $expected, no doubles) : $([ "$count" -eq "$expected" ] && echo PASS || echo FAIL)"
+    delta=$(( $(wf_count) - base ))
+    echo "T3 kill-9: +$delta started (expected 20, no doubles) : $([ "$delta" -eq 20 ] && echo PASS || echo FAIL)"
     # T4: poison pill
     bash "$M1/tests/publish.sh" --invalid 3
     sleep 5
-    local dlq; dlq="$(ssh "$VM_XB" "curl -s -u 'poc:$RMP' 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.dlq' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || echo 0")"
+    local dlq; dlq="$(printf 'user = "poc:%s"\n' "$RMP" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.dlq' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || echo 0")"
     echo "T4 dlq: $dlq (expected 3; consumer still up) : $([ "${dlq:-0}" -ge 3 ] && echo PASS || echo FAIL)"
     # T5: Temporal restart
     ssh "$VM_XB" "cd /opt/poc/deploy/m0/temporal && docker compose restart temporal"
     sleep 30
+    base="$(wf_count)"
     bash "$M1/tests/publish.sh" 5
     sleep 5
-    count="$(temporal workflow list --type TaskWorkflow | grep -c running || true)"
-    expected=75
-    echo "T5 temporal-restart: $count running (expected $expected) : $([ "$count" -eq "$expected" ] && echo PASS || echo FAIL)"
+    delta=$(( $(wf_count) - base ))
+    echo "T5 temporal-restart: +$delta started (expected 5) : $([ "$delta" -eq 5 ] && echo PASS || echo FAIL)"
   } | tee "$out"
   if grep -q FAIL "$out"; then
     warn "M1 gate tests: FAILURES above — remediate per M1 §6 troubleshooting, re-run from the failed test."

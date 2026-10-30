@@ -7,7 +7,7 @@ Source: `AI Enterprise Team - ephemeral-agents.pdf` (single architecture diagram
 
 ## Overview (read from the diagram)
 
-A single-flow proof of concept for an AI Dev Agent system. A Software Engineer (Human-In-The-Loop, on Hermes Desktop, outside the company boundary) sends a request to the Hermes Agent Gateway on VM-Xa. The Manager Agent (VM-Xa) publishes to a RabbitMQ (Topic) on VM-Xb; the Temporal Server enqueues it and the Temporal Worker polls it ("Polls Task Queue"), then "Executes Activity" spins up two ephemeral Docker containers — Hermes Agent and Claude Code Agent (N+1). Both read context from the LLM-Wiki (VM-2), the Available Agent List repo, and Long-Term Memory / Hindsight (VM-3); the Claude Code agent writes source code to the Project Repo; per Note 2 the agents and containers are then destroyed.
+A single-flow proof of concept for an AI Dev Agent system. A Software Engineer (Human-In-The-Loop, on Hermes Desktop, outside the company boundary) sends a request to the Hermes Agent Gateway on VM-Xa. The Manager Agent (VM-Xa) publishes to a RabbitMQ (Topic) on VM-Xb; the Temporal Server enqueues it and the Temporal Worker polls it ("Polls Task Queue"), then "Executes Activity" spins up two ephemeral Docker containers — Hermes Agent and Claude Code Agent (N+1; per the owner decision of 2026-10-25 the count is needs-based, not a fixed two — parallel containers for parallel requests under a hard team-config cap, POC rule of thumb ≤5). Both read context from the LLM-Wiki (VM-2), the Available Agent List repo, and Long-Term Memory / Hindsight (VM-3); the Claude Code agent writes source code to the Project Repo; per Note 2 the agents and containers are then destroyed.
 
 ## Zones and nesting (outermost → innermost)
 
@@ -78,6 +78,8 @@ Key structural point: **"Proxmox 9.x Server" is a parent box that contains both 
 | "Load Agent Skill" | Available Agent List (Github Repo) → Hermes Agent (Ephemeral) | owner-confirmed: agent-load content lives in the Git repo |
 | "R/W Memory" | Long-Term Memory / Hindsight (VM-3) ↔ the ephemeral agents | owner-confirmed: long-term memory = Hindsight |
 | "Write Source Code to Repo" | Claude Code Agent (N+1) → Project Repo (Github) | as drawn |
+| (unlabeled, blue dashed) | LLM-Wiki (VM-2) → Long-Term Memory / Hindsight (VM-3) | as drawn (unlabeled) |
+| (unlabeled, blue dashed) | LLM-Wiki (VM-2) → Github Repo | as drawn (unlabeled) |
 
 Line conventions: solid = task/control flow; green dashed = Manager Agent's publish; blue dashed = knowledge reads and memory R/W; red-dashed box around the ephemeral row = the disposable units.
 

@@ -6,7 +6,7 @@
 |---|---|
 | **Milestone** | M4 (Hindsight R/W API + LLM-Wiki retrieval/ingest, wired into the lifecycle) |
 | **Companion docs** | `../delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md` · `../installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md` |
-| **Entry criteria** | TP-M3 gate signed; hindsight + llmwiki services deployed (install §1–2); M2 lifecycle config carries `HINTSIGHT_URL`/`LLMWIKI_URL`; executor env updated (install §3) |
+| **Entry criteria** | TP-M3 gate signed; hindsight + llmwiki services deployed (install §1–2); M2 lifecycle config carries `HINDSIGHT_URL`/`LLMWIKI_URL`; executor env updated (install §3) |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M5 may begin** |
 
 **Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M4-Memory-Knowledge-Installation-and-Deployment.md, section "4. Verification (the M4 gate tests)").
@@ -20,7 +20,7 @@
 
 | ID | Title | Procedure (install §4) | Expected result | Pass criteria |
 |---|---|---|---|---|
-| TC-M4-01 | Hindsight network R/W | from inside a spawned agent container: `curl "$HINTSIGHT_URL/memory/read?task_id=t1&scope=cross-task"` then `curl -XPOST .../memory/write -d '{...}'` → re-read | write persists; read returns it | read-back equals the written body (JSON compare) |
+| TC-M4-01 | Hindsight network R/W | from inside a spawned agent container: `curl "$HINDSIGHT_URL/memory/read?task_id=t1&scope=cross-task"` then `curl -XPOST .../memory/write -d '{...}'` → re-read | write persists; read returns it | read-back equals the written body (JSON compare) |
 | TC-M4-02 | Cross-task read-back | task t1 (scope `cross-task`) writes `{learning:"use X for Y"}` → reaped; task t2 hydrate runs | t2's hydrate payload contains t1's learning | present in t2's task payload (recorded) |
 | TC-M4-03 | Retrieval quality ×3 | `curl "$LLMWIKI_URL/wiki/query?q=..."` for: (a) a design standard, (b) a dev best practice, (c) a skill/tool topic | top-1 hit is the correct doc section for each | 3/3 correct (record query + hit) |
 | TC-M4-04 | Catalog regression + wiring | re-run M3's TC-M3-02 self-report check **with both M4 sources live**; confirm the M2 worker (unchanged Go binary) picked up the new env | self-report still correct; sources include llmwiki + hindsight; no M2 code redeploy needed | self-report matches; worker image tag unchanged |
@@ -45,7 +45,7 @@
 
 ## Gate decision
 
-- **PASS:** TC-M4-01…06 (07 informational-confirmed) → **M5 installation authorized**.
+- **PASS:** TC-M4-01…07 all PASS (07 is the store-isolation check — a shared Postgres FAILS the gate) → **M5 installation authorized**.
 - **FAIL TC-M4-02** (read-back empty) → scope-rule mismatch: writes used `session` where `cross-task` was intended (install §3.4) — fix the executor write, re-run 01 + 02 + 04.
 - **FAIL TC-M4-03** → retrieval quality: check chunking/embedding dims (install §6 first row); re-run 03 + 06.
 - **FAIL TC-M4-05** → hydration too slow for TTL: reduce k / add provider latency; resize TTL only via the decision log.

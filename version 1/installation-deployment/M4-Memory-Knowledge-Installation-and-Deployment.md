@@ -32,7 +32,8 @@ services:
     environment:
       DB_DSN: postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight
       LISTEN: 0.0.0.0:8081
-      EMBEDDINGS: ${EMBEDDING_PROVIDER}  # provider API at POC scale (record the choice + rate-limit note)
+      EMBEDDINGS: ${EMBEDDING_PROVIDER}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}   # provider key — without it every write 500s
     depends_on: {hindsight-pg: {condition: service_healthy}}
     restart: unless-stopped
 volumes:
@@ -48,7 +49,8 @@ CREATE TABLE memory_entries (
   agent_ref text,
   scope     text,              -- 'session' | 'cross-task' (the scoping rule from the plan)
   body      jsonb,
-  embedding vector(1536),     -- dimension per provider; record the actual value
+  embedding vector(1536),     -- dimension per provider (1536 = OpenAI text-embedding-3-small);
+                              -- changing provider/dimension forces a table rebuild — record it
   created   timestamptz default now()
 );
 ```
@@ -62,8 +64,9 @@ CREATE TABLE memory_entries (
 
 ```bash
 docker build -f deploy/m4/hindsight/Dockerfile.api -t poc/hindsight-api:1.0.0 services/hindsight-api
-ssh vm-hindsight 'mkdir -p /opt/poc/deploy/m4/hindsight' && cp -r deploy/m4/hindsight/* / via rsync
-cd /opt/poc/deploy/m4/hindsight && docker compose up -d
+ssh vm-hindsight 'mkdir -p /opt/poc/deploy/m4/hindsight'
+rsync -a deploy/m4/hindsight/ vm-hindsight:/opt/poc/deploy/m4/hindsight/
+ssh vm-hindsight 'cd /opt/poc/deploy/m4/hindsight && docker compose up -d'
 ```
 
 ## 2. LLM-Wiki on vm-llm-wiki
@@ -97,6 +100,7 @@ services:
     environment:
       DB_DSN: postgres://llmwiki:${LLMWIKI_DB_PASS}@llmwiki-pg:5432/llmwiki
       EMBEDDINGS: ${EMBEDDING_PROVIDER}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
       LISTEN: 0.0.0.0:8080
     ports: ["8080"]
     depends_on: {llmwiki-pg: {condition: service_healthy}}
@@ -105,10 +109,11 @@ services:
     command: ["ingest"]                  # one-shot: clone llmwiki-content (depth 1), chunk, embed, upsert
     environment:
       DB_DSN: postgres://llmwiki:${LLMWIKI_DB_PASS}@llmwiki-pg:5432/llmwiki
-      CONTENT_REPO: git@github.com:<owner>/llmwiki-content.git
+      CONTENT_REPO: https://x-access-token:${LLMWIKI_READ_TOKEN}@github.com/<owner>/llmwiki-content.git   # token auth over HTTPS — git@ SSH ignores GITHUB_TOKEN
       GITHUB_TOKEN: ${LLMWIKI_READ_TOKEN}
       EMBEDDINGS: ${EMBEDDING_PROVIDER}
-    volumes: [llmwiki-pg-data:/var/lib/postgresql/data]   # upsert path
+    # no data-volume mount: ingest inserts over the network via DB_DSN —
+    # two writers on the same PG data dir is unsafe
 volumes:
   llmwiki-pg-data: {}
 ```
@@ -121,10 +126,10 @@ Endpoints:
 
 ## 3. Wire hydration into the lifecycle + executors (the connective work)
 
-*Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINTSIGHT_URL`/`LLMWIKI_URL` ride into every spawned container as env, and the M2 Go worker hydrates (read) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
+*Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL`/`LLMWIKI_URL` ride into every spawned container as env, and the M2 Go worker hydrates (read) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
 
 1. **Names:** ensure `vm-llm-wiki`/`vm-hindsight` resolve on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism).
-2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINTSIGHT_URL=http://vm-hindsight:8081`, `LLMWIKI_URL=http://vm-llm-wiki:8080` → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINTSIGHT_URL`/`LLMWIKI_URL`).
+2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081`, `LLMWIKI_URL=http://vm-llm-wiki:8080` → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLMWIKI_URL`).
 3. **Hydrate step** (lifecycle worker): before task work, fan out `wiki/query` (topic = task + agent_ref) + `memory/read` → pass results into the agent's task payload; record per-source latency.
 4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the §1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.
@@ -135,7 +140,7 @@ Endpoints:
 
 ```bash
 # G1 network R/W: from a spawned agent container:
-curl -s "$HINTSIGHT_URL/memory/read?task_id=t1&scope=cross-task" ; curl -s -XPOST "$HINTSIGHT_URL/memory/write" -d '{...}'
+curl -s "$HINDSIGHT_URL/memory/read?task_id=t1&scope=cross-task" ; curl -s -XPOST "$HINDSIGHT_URL/memory/write" -d '{...}'
 # G2 cross-task read-back: task t1 writes {learning:"use X for Y"}; task t2's hydrate fetches it
 # G3 retrieval quality: 3 canned queries (a standard, a skill, a business practice) → top-1 hit is the right doc section (record in evidence)
 # G4 catalog regression: M3's self-report still correct with the two new sources live
@@ -146,13 +151,13 @@ Evidence → `deploy/m4/evidence/` (read-back rows, query results with hits, lat
 
 ## 5. Rollback / re-do
 
-*Why:* named volumes keep rollback **non-destructive by default** (`down` keeps data; only a true re-do removes volumes). And because executors tolerate empty `HINTSIGHT_URL`/`LLMWIKI_URL` (hydrate skips missing sources), pulling M4 back **degrades** hydration rather than breaking the flow — the resilience property, stated.
+*Why:* named volumes keep rollback **non-destructive by default** (`down` keeps data; only a true re-do removes volumes). And because executors tolerate empty `HINDSIGHT_URL`/`LLMWIKI_URL` (hydrate skips missing sources), pulling M4 back **degrades** hydration rather than breaking the flow — the resilience property, stated.
 
 ```bash
 # services: down per-VM compose project; data lives in named volumes:
 docker compose down                     # keeps hindsight-pg-data / llmwiki-pg-data
 docker volume rm hindsight-pg-data llmwiki-pg-data   # only on a true re-do
-# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINTSIGHT_URL/LLMWIKI_URL (hydrate skips missing sources)
+# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINDSIGHT_URL/LLMWIKI_URL (hydrate skips missing sources)
 ```
 
 ## 6. Troubleshooting

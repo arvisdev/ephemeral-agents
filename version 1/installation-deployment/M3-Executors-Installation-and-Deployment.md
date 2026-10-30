@@ -53,9 +53,11 @@ Create the repo + one worked example agent; commit.
 ```dockerfile
 FROM debian:trixie-slim               # or the estate's pinned base; record in image-tags.env
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates git curl gnupg && rm -rf /var/lib/apt/lists/*
+      ca-certificates git curl gnupg procps && rm -rf /var/lib/apt/lists/*
 # Hermes runtime install (per the owner's Hermes packaging):
-RUN curl -fsSL https://.../hermes-install.sh | bash          # pin the installer revision
+# HERMES_INSTALLER_URL is a mandatory build-arg: the estate's pinned Hermes
+# installer URL+revision. The build FAILS if unset (no silent defaults).
+RUN test -n "$HERMES_INSTALLER_URL" && curl -fsSL "$HERMES_INSTALLER_URL" | bash
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 ```
@@ -68,14 +70,14 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 4. Missing repo / malformed persona / index miss → write `self-report.json` with `error` and exit 2 (M2 surfaces + reaps).
 5. Launch the Hermes agent runtime with persona + spec; on completion write a task report, exit 0.
 
-Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINTSIGHT_URL`, `LLMWIKI_URL`, `TTL_S`.
+Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLMWIKI_URL`, `TTL_S`.
 
 **2b. Claude Code coder** — `deploy/m3/claude-coder/`:
 
 ```dockerfile
 FROM node:22-slim                    # pin minor
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates && rm -rf /var/lib/apt/lists/*
-RUN npm install -g @anthropic-ai/claude-code        # pin the CLI version in the tag
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates procps && rm -rf /var/lib/apt/lists/*
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}   # mandatory build-arg: exact CLI version (build fails if unset)
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 ```
@@ -83,7 +85,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 `entrypoint.sh`:
 1. `git clone` Project Repo to `/work/project` (auth: `GITHUB_TOKEN`, the scoped App installation token from §1c).
 2. `git checkout -b task/<TASK_ID>` (per-task branch — the default concurrency model, §3).
-3. Run the headless agent: `claude -p "<task prompt + behavioral spec + design standards retrieved at hydration>" --max-turns N` with the API key from `ANTHROPIC_API_KEY` env (injected per-run, scoped by the owner's billing/limits; **never baked into the image**).
+3. Run the headless agent: `claude -p "<task prompt + behavioral spec + design standards retrieved at hydration>" --max-turns N` with the API key from `ANTHROPIC_API_KEY` env (injected per-run, scoped by the owner's billing/limits; **never baked into the image**). Hermes's own model-provider key(s) ride the same way via the M2 spawn env (`MODEL_API_KEY`) — required at spawn, never in the image.
 4. `git add -A && git commit -m "task/<TASK_ID>: <summary>" && git push origin task/<TASK_ID>`.
 5. Write `/work/report.json` `{task_id, branch, commit_sha, files_changed}`; exit 0 (non-zero on push failure).
 
@@ -127,7 +129,7 @@ Evidence → `deploy/m3/evidence/` (boot-time table, self-reports, commit SHAs, 
 *Why:* "no secrets baked in" is the R4 property M5's hardening re-verifies fleet-wide — the three checks here (env dump, image history, trivy secrets class) are exactly the evidence that proves injection-at-spawn really happens. An image that fails this never ships; the fix is rebuilding the layer that wrote the secret, not deleting the string.
 
 ```bash
-docker run --rm poc/hermes-ephemeral:1.0.0 env > /tmp/env1; docker run --rm poc/claude-coder:1.0.0 env > /tmp/env2
+docker run --rm --entrypoint env poc/hermes-ephemeral:1.0.0 > /tmp/env1; docker run --rm --entrypoint env poc/claude-coder:1.0.0 > /tmp/env2   # --entrypoint: run env directly, don't trigger the entrypoint's exit-2
 grep -Ei 'token|key|secret' /tmp/env1 /tmp/env2          # expect: NOTHING (secrets are injected at spawn, not baked in)
 docker history --no-trunc <images> | grep -Ei 'secret|token'   # expect: no RUN layer wrote secrets
 trivy image --exit-code 1 poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0   # secrets vuln class = 0

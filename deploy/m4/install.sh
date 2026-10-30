@@ -71,7 +71,7 @@ done
 VM_2="${VM_2:-vm-llm-wiki}"; VM_3="${VM_3:-vm-hindsight}"; VM_XB="${VM_XB:-vm-xb}"; VM_XA="${VM_XA:-vm-xa}"
 IMAGE_TAG="${IMAGE_TAG:-1.0.0}"
 EMBEDDING_PROVIDER="${EMBEDDING_PROVIDER:-}"
-HINTSIGHT_URL="http://$VM_3:8081"
+HINDSIGHT_URL="http://$VM_3:8081"
 LLMWIKI_URL="http://$VM_2:8080"
 
 log()  { printf '[m4 %s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$LOG"; }
@@ -157,7 +157,7 @@ deploy_hindsight() {
   ssh "$VM_3" "cd /opt/poc/deploy/m4/hindsight && docker compose up -d"
   local i
   for i in $(seq 1 40); do
-    if ssh "$VM_3" "curl -sf $HINTSIGHT_URL/healthz >/dev/null" 2>/dev/null; then break; fi
+    if ssh "$VM_3" "curl -sf $HINDSIGHT_URL/healthz >/dev/null" 2>/dev/null; then break; fi
     sleep 3
     if [ "$i" = "40" ]; then die "hindsight /healthz never came up (M4 §6: pgvector image? .env pass?)"; fi
   done
@@ -215,19 +215,19 @@ wire_hydration() {
   else
     log "§3   verifying name resolution ($(getent hosts "$VM_2" >/dev/null && echo "workstation resolves $VM_2" || echo "workstation does NOT resolve $VM_2 — PVE DNS or /etc/hosts, M0 §5"))"
   fi
-  # M2 env: HINTSIGHT_URL + LLMWIKI_URL ride into every spawned container.
+  # M2 env: HINDSIGHT_URL + LLMWIKI_URL ride into every spawned container.
   # This is a CONFIG change (the M2 Go services are untouched — no new Temporal
   # code): the operator adds the two env lines to the lifecycle + worker
   # services in /opt/poc/deploy/m2/compose.yaml, then re-up.
-  if ssh "$VM_XB" "grep -q 'HINTSIGHT_URL' /opt/poc/deploy/m2/compose.yaml"; then
-    log "§3   M2 compose already carries HINTSIGHT_URL (idempotent)"
+  if ssh "$VM_XB" "grep -q 'HINDSIGHT_URL' /opt/poc/deploy/m2/compose.yaml"; then
+    log "§3   M2 compose already carries HINDSIGHT_URL (idempotent)"
   else
-    warn "§3   M2 compose has no HINTSIGHT_URL yet — add both lines from the snippet below, then re-run this script"
+    warn "§3   M2 compose has no HINDSIGHT_URL yet — add both lines from the snippet below, then re-run this script"
   fi
   cat > "$EVIDENCE/m4-wiring-snippet.env" <<ENVEOF
 # add to the lifecycle + worker service env in /opt/poc/deploy/m2/compose.yaml,
 # then: cd /opt/poc/deploy/m2 && docker compose up -d   (on $VM_XB)
-HINTSIGHT_URL=$HINTSIGHT_URL
+HINDSIGHT_URL=$HINDSIGHT_URL
 LLMWIKI_URL=$LLMWIKI_URL
 ENVEOF
   log "§3   env snippet written to $EVIDENCE/m4-wiring-snippet.env"
@@ -254,8 +254,8 @@ gate_tests() {
     # G1 network R/W
     local body='{"task_id":"t-g1","agent_ref":"dev","scope":"cross-task","body":{"learning":"m4-install-g1"}}'
     local w r
-    w="$(curl -s -XPOST "$HINTSIGHT_URL/memory/write" -H 'content-type: application/json' -d "$body" || echo CURL-FAIL)"
-    r="$(curl -s "$HINTSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" || echo CURL-FAIL)"
+    w="$(curl -s -XPOST "$HINDSIGHT_URL/memory/write" -H 'content-type: application/json' -d "$body" || echo CURL-FAIL)"
+    r="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" || echo CURL-FAIL)"
     if echo "$r" | grep -q "m4-install-g1"; then
       echo "G1 network R/W: write+read-back : PASS"
     else
@@ -263,7 +263,7 @@ gate_tests() {
     fi
     # G2 cross-task read-back (API-level proof; the executor read path is the M2 wiring above)
     local r2
-    r2="$(curl -s "$HINTSIGHT_URL/memory/read?task_id=t-other&scope=cross-task" || echo CURL-FAIL)"
+    r2="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-other&scope=cross-task" || echo CURL-FAIL)"
     if echo "$r2" | grep -q "m4-install-g1"; then
       echo "G2 cross-task read-back: a different task_id fetches the cross-task entry : PASS"
     else
@@ -284,14 +284,14 @@ gate_tests() {
         && echo "G4 catalog regression: boot-time harness re-ran with sources live (verify self-report in $EVIDENCE)" \
         || echo "G4 catalog regression : FAIL (M3 TC-M3-02 re-run)"
     else
-      echo "G4 catalog regression: manual — re-run M3 B2 with HINTSIGHT_URL/LLMWIKI_URL set"
+      echo "G4 catalog regression: manual — re-run M3 B2 with HINDSIGHT_URL/LLMWIKI_URL set"
     fi
     # G5 hydration latency (3 runs)
     for run in 1 2 3; do
       local t0 t1
       t0=$(date +%s.%N)
       curl -s "$LLMWIKI_URL/wiki/query?q=$q1&k=5" >/dev/null || true
-      curl -s "$HINTSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" >/dev/null || true
+      curl -s "$HINDSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" >/dev/null || true
       t1=$(date +%s.%N)
       echo "G5 latency run $run: total $(echo "$t1 $t0" | awk '{printf "%.2f", $1-$2}')s (must stay < M2 TTL headroom — record per-source)"
     done

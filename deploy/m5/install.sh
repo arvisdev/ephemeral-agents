@@ -146,7 +146,9 @@ build_and_deploy_front_of_house() {
   docker save "poc/gateway:$IMAGE_TAG" "poc/manager:$IMAGE_TAG" | ssh "$VM_XA" "docker load"
   ssh "$VM_XA" "mkdir -p /opt/poc/deploy/m5 /opt/poc/reports"
   rsync -az "$M5/compose.yaml" "$VM_XA:/opt/poc/deploy/m5/compose.yaml"
-  [ -n "${AGENT_LIST_READ_TOKEN:-}" ] && ssh "$VM_XA" "echo \"AGENT_LIST_READ_TOKEN=$AGENT_LIST_READ_TOKEN\" > /opt/poc/deploy/m5/.env"
+  if [ -n "${AGENT_LIST_READ_TOKEN:-}" ]; then
+    printf '%s\n' "AGENT_LIST_READ_TOKEN=$AGENT_LIST_READ_TOKEN" | ssh "$VM_XA" 'umask 077; cat > /opt/poc/deploy/m5/.env && chmod 600 /opt/poc/deploy/m5/.env'   # stdin + 600: secret not in argv/logs
+  fi
   ssh "$VM_XA" "cd /opt/poc/deploy/m5 && docker compose up -d"
   local i
   for i in $(seq 1 40); do
@@ -173,10 +175,12 @@ full_stack_bringup() {
 e2e_acceptance_run() {
   log "§4 — E2E acceptance run: one real request, human to human"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip E2E run"; return 0; fi
-  local resp task_id
+  local resp task_id payload
+  payload="$(printf '%s' "$E2E_BRIEF" | python3 -c 'import json,sys; print(json.dumps({"title":"add health endpoint","agent_capability":"dev","task_brief":sys.stdin.read()}))')" \
+    || die "E2E payload build failed (python3 required on the build host)"
   resp="$(curl -s -X POST "$GATEWAY_URL/" \
     -H 'content-type: application/json' \
-    -d "{\"title\":\"add health endpoint\",\"agent_capability\":\"dev\",\"task_brief\":\"$E2E_BRIEF\"}")"
+    --data-binary "$payload")"
   log "§4   gateway response: $resp"
   task_id="$(echo "$resp" | sed -n 's/.*"task_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
   [ -n "$task_id" ] || die "gateway response has no task_id (see deploy/m5/report-contract.md)"
@@ -295,7 +299,7 @@ credential_hardening() {
   if [ "$CHECK_ONLY" = "1" ]; then return 0; fi
   if command -v trivy >/dev/null; then
     local img
-    for img in poc/topic-bridge poc/lifecycle poc/worker poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api; do
+    for img in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api poc/gateway poc/manager; do   # ALL 10 deployed images
       trivy image --exit-code 1 --scanners vuln,secret "$img:$IMAGE_TAG" \
         && log "§6   trivy $img:$IMAGE_TAG : clean" \
         || die "§6   trivy: $img:$IMAGE_TAG has findings — remediate"

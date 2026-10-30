@@ -181,7 +181,7 @@ provision_vms() {
       confirm "write static netplan on $hn (IP $nip; existing file backed up)"
       if [ "$CHECK_ONLY" != "1" ]; then
         ssh "$h" "sudo cp /etc/netplan/01-netcfg.yaml /etc/netplan/01-netcfg.yaml.bak 2>/dev/null || true; \
-          printf 'version: 2\nethernets:\n  eno1:\n    addresses:\n      - %s/24\n    routes:\n      - to: default\n        via: 10.0.90.1\n' '$nip' | sudo tee /etc/netplan/01-netcfg.yaml >/dev/null; sudo netplan apply"
+          printf 'version: 2\nethernets:\n  ${NETPLAN_IF:-eno1}:\n    addresses:\n      - %s/24\n    routes:\n      - to: default\n        via: ${NETPLAN_GW:-10.0.90.1}\n' '$nip' | sudo tee /etc/netplan/01-netcfg.yaml >/dev/null; sudo netplan apply"
       fi
     else
       cur="$(ssh "$h" "hostname -I | awk '{print \$1}'" || echo unknown)"
@@ -206,15 +206,21 @@ install_docker() {
 declare_topology() {
   local base="http://127.0.0.1:15672"
   local m
-  m="$(ssh "$VM_XB" "curl -s -o /dev/null -w '%{http_code}' -u 'poc:$RABBITMQ_PASS' $base/api/exchanges/%2F || true")"
+  m="$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -o /dev/null -w '%{http_code}' -K - $base/api/exchanges/%2F || true")"
   if [ "$m" = "404" ]; then
     confirm "declare topic exchange agent.tasks + queue + binding + DLQ on $VM_XB"
     if [ "$CHECK_ONLY" != "1" ]; then
-      ssh "$VM_XB" "set -e; B=$base; A='poc:$RABBITMQ_PASS';
-        curl -s -u \"\$A\" -XPOST \"\$B/api/exchanges/%2F\" -d '{\"name\":\"agent.tasks\",\"type\":\"topic\",\"durable\":true}'
-        curl -s -u \"\$A\" -XPOST \"\$B/api/queues/%2F/agent.tasks.durable\" -d '{\"durable\":true}'
-        curl -s -u \"\$A\" -XPOST \"\$B/api/bindings/%2F/e/agent.tasks/all/queue\" -d '{\"source\":\"agent.tasks\",\"destination\":\"agent.tasks.durable\"}'
-        curl -s -u \"\$A\" -XPOST \"\$B/api/queues/%2F/agent.tasks.dlq\" -d '{\"durable\":true}'"
+      # corrected mgmt-API paths (POST the named resource; binding = /q/<queue>);
+      # agent.tasks.response declared for M5; password via stdin curl config (-K -), never argv
+      RABBITMQ_PASS="$RABBITMQ_PASS" base="$base" ssh "$VM_XB" 'bash -s' <<'RABBIT_API'
+set -e; B=$base
+cfg=$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS")
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.durable"}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'
+RABBIT_API
     fi
   else
     log "§3   topology already declared (idempotent)"
@@ -223,19 +229,12 @@ declare_topology() {
 
 cross_vm_publish_test() {
   local n via
-  log "§3   cross-VM publish test (mgmt UI is loopback-only on $VM_XB — record which path the estate permits)"
-  if ssh "$VM_XA" "command -v rabbitmqadmin >/dev/null" 2>/dev/null; then
-    ssh "$VM_XA" "rabbitmqadmin -H '$VM_XB' -P 15672 -u poc -p '$RABBITMQ_PASS' publish -x agent.tasks -r agent.tasks.durable -m m0-cross-test"
-    via="rabbitmqadmin from $VM_XA"
-  else
-    # mgmt bound to 127.0.0.1:15672 -> API only reachable on $VM_XB itself.
-    # Publishing through the exchange still proves the cross-VM topology
-    # (vm-xa reaches AMQP on $VM_XB:5672 in later milestones).
-    ssh "$VM_XB" "curl -s -u 'poc:$RABBITMQ_PASS' -XPOST 'http://127.0.0.1:15672/api/exchanges/%2Fagent.tasks/publish' -H 'content-type: application/json' -d '{\"properties\":{\"routing-keys\":[\"agent.tasks.durable\"],\"delivery-mode\":2},\"payload\":\"m0-cross-test\",\"payload-encoding\":\"string\"}'"
-    via="mgmt API on $VM_XB"
-  fi
+  log "§3   cross-VM publish test (mgmt UI is loopback-only on $VM_XB; AMQP 5672 is the cross-VM path)"
+  # publish via the mgmt API on vm-xb itself (relay through ssh; password via stdin config)
+  printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -K - -XPOST 'http://127.0.0.1:15672/api/exchanges/%2F/agent.tasks/publish' -H 'content-type: application/json' -d '{\"properties\":{\"routing-keys\":[\"agent.tasks.durable\"],\"delivery-mode\":2},\"payload\":\"m0-cross-test\",\"payload-encoding\":\"string\"}'"
+  via="mgmt API on $VM_XB"
   sleep 2
-  n="$(ssh "$VM_XB" "curl -s -u 'poc:$RABBITMQ_PASS' 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || true")"
+  n="$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || true")"
   if [ "${n:-0}" -ge 1 ]; then
     log "§3   queue messages=$n via $via"
     return 0
@@ -297,7 +296,8 @@ PINS
     rsync -az "$M0/temporal/compose.yaml" "$envf" "$VM_XB:/opt/poc/deploy/m0/temporal/"
     ssh "$VM_XB" "cd /opt/poc/deploy/m0/temporal && docker compose up -d"
   fi
-  ssh "$VM_XB" "command -v temporal >/dev/null || { sudo curl -sSL https://cli.temporal.io/install.sh | sudo bash; }"
+  # pinned: override TEMPORAL_CLI_VERSION in hosts.env; fetched to a file, not piped to a shell
+  ssh "$VM_XB" "command -v temporal >/dev/null || { curl -sSL https://cli.temporal.io/install.sh -o /tmp/tc-install.sh && sudo bash /tmp/tc-install.sh; }"
   local i
   for i in $(seq 1 40); do
     if ssh "$VM_XB" "temporal operator cluster health 2>/dev/null" | grep -q "HEALTHY"; then

@@ -6,7 +6,7 @@
 |---|---|
 | **Milestone** | M5 (front-of-house, E2E, hardening, open-item lockout) |
 | **Companion docs** | `../delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md` · `../installation-deployment/M5-End-to-End-Installation-and-Deployment.md` |
-| **Entry criteria** | TP-M0…TP-M4 all signed; `deploy/m5/e2e-deploy.sh` completes S1–S6 green |
+| **Entry criteria** | TP-M0…TP-M4 all signed; `deploy/m5/e2e-deploy.sh` completes S1–S7 green (S7 = stub smoke) |
 | **Exit criteria** | All mandatory cases PASS + evidence pack filed + open items locked → **POC demonstrated feasible** |
 
 **Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M5-End-to-End-Installation-and-Deployment.md, section "4. End-to-end acceptance run (the POC gate)").

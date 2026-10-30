@@ -106,12 +106,12 @@ Full plan in `Technical-Feasibility-POC-Milestones.md`. Order by what de-risks t
 - Proxmox 9.x hosts KVM VMs running Docker; VM-Xa/Xb/2/3 are network-reachable to each other and to GitHub.
 - Temporal + RabbitMQ + Postgres/pgvector are all provisioned as containers/VMs on the same substrate.
 - The Manager Agent is a persistent, containerized agent (runtime to be confirmed).
-- "N+1" means one Hermes agent + N coder agents; the concurrency model is open.
+- "N+1" means one Hermes agent + N coder agents; concurrency semantics were settled by the owner 2026-10-25 (needs-based counts, parallel containers for parallel requests, hard cap in team config — POC rule of thumb ≤5). Only the execution model (branch vs. worktree) and the concrete cap value remain, chosen at M3.
 - This is a **single-flow** POC; multi-flow concurrency is out of scope for Version 1.
 
 ## 9. Open design items (carried from Version 1)
 
-The Version 1 foundation doc intentionally leaves these open; feasibility does not depend on resolving them now, but each gates a later milestone: RabbitMQ↔Temporal wiring detail (R2), LLM-Wiki curation (R7), ephemeral isolation level (per-task VM vs. co-located container), N+1 semantics (R3), and topic/queue message shapes. (VM naming, R9, was settled by the owner on 2026-10-25 — the labels are POC discussion devices, not commitments; M0 records the decision.)
+The Version 1 foundation doc intentionally leaves these open; feasibility does not depend on resolving them now, but each gates a later milestone: RabbitMQ↔Temporal wiring detail (R2), LLM-Wiki curation (R7), ephemeral isolation level (per-task VM vs. co-located container), and topic/queue message shapes. (N+1 semantics, R3, was settled by the owner 2026-10-25 — needs-based counts, ≤5 config cap; only the execution model + cap value are chosen at M3.) (VM naming, R9, was settled by the owner on 2026-10-25 — the labels are POC discussion devices, not commitments; M0 records the decision.)
 
 ---
 

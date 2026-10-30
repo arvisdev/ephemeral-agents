@@ -96,7 +96,7 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 
 | # | Injection | Command | Expected |
 |---|---|---|---|
-| F1 | LLM-Wiki down | `ssh vm-llm-wiki 'docker pause llmwiki-api'` (run task) → `docker unpause` | hydrate reports missing source; task errors or degrades per policy (record the chosen policy); container reaped; report = failure + reason |
+| F1 | LLM-Wiki down | `ssh vm-llm-wiki 'docker pause llmwiki-api'` (run task) → `docker unpause` | **policy: fail-fast** — hydrate error ⇒ task fails; container reaped; report = failure + reason |
 | F2 | agent catalog unreachable | block vm-xb→GitHub 443 for the read token (nftables) | manager/spawn fails fast; no container leak |
 | F3 | agent crash | `docker exec <agent-cid> pkill -9 <agent pid>` | timeout → force-reap; report = failure |
 | F4 | TTL exceeded | task with `TTL_S` smaller than work time | reaper path (M2 V3, now with real agents) |
@@ -109,11 +109,11 @@ After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, 
 
 ```bash
 # 6a. negative scan across ALL deployed images:
-for i in poc/topic-bridge poc/lifecycle poc/worker poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api; do
+for i in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api poc/gateway poc/manager; do   # ALL 10 deployed images
   trivy image --exit-code 1 --scanners vuln,secret $i
 done
 # 6b. env review: no owner long-lived tokens anywhere:
-ssh vm-xb 'for c in $(docker ps -q); do docker inspect $c | grep -Ei "owner_?token|github_pat"; done'   # expect empty
+ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}" $c | grep -Ei "owner_?token|github_pat"; done'   # expect empty (filter to .Config.Env, not raw JSON)
 # 6c. token lifecycle evidence: M3 §4 B5 re-run (issued at spawn, revoked at reap, 401 after)
 ```
 
