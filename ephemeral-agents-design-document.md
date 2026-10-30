@@ -1,0 +1,158 @@
+# Architectural Design Document — Ephemeral AI Dev Agent System
+
+| | |
+|---|---|
+| **Status** | Version 1 design — formalized from the owner-approved diagram + feasibility analysis |
+| **Date** | 2026-10-29 |
+| **Source docs** | `version 1/ARCHITECTURE.md`, `Initial-Foundation-Design-Document.md`, `Technical-Feasibility-Analysis.md`, `Technical-Feasibility-POC-Milestones.md` |
+| **Scope** | Single-flow POC. This document turns the diagram record + feasibility verdict into a buildable design: components, contracts, state machines, deployment topology, failure modes. It does not repeat the diagram transcription. |
+
+---
+
+## 1. Purpose and context
+
+A human Software Engineer (human-in-the-loop, Hermes Desktop, outside the company boundary) submits a development request. A durable orchestrator (Temporal) drives short-lived, git-provisioned executor containers that hydrate from shared knowledge sources, perform one unit of development work, and are destroyed with nothing left behind. The outcome — artifact pointer or error — returns to the human.
+
+**Load-bearing design decision:** *a durable orchestrator drives ephemeral, git-provisioned executor containers*, with knowledge split across a shared RAG wiki, a vector long-term memory, and a git-hosted agent catalog.
+
+**Hard constraints (owner-settled):**
+1. All Temporal SDK code is **Golang** (workflows, workers, activities, adapters, services, CLI samples).
+2. **RabbitMQ stays** as the V2 ingestion boundary — non-Temporal systems will publish tasks to the topic alongside the manager; the adapter's idempotency/no-loss machinery is the accepted cost.
+3. Concurrency semantics: needs-based container counts, parallel containers for parallel requests, hard team-config cap (POC rule of thumb ≤5, VM-size dependent). Execution model (branch vs. worktree) and cap value are locked at M3.
+4. VM labels (`vm-xa`, `vm-xb`, `vm-llm-wiki`, `vm-hindsight`) are POC-local; per-project naming is a deploy-time choice (D-8).
+5. Hybrid TTL: `ttl_s` optional in `message-v1.json`, written only by the manager (sized from M3 B1 boot-time p50); absent → lifecycle default `POC_TTL_DEFAULT=900s`; the reaper is authoritative either way.
+
+## 2. System context
+
+```
+                    ┌──────────── On-Prem Company Boundary ────────────┐
+ Engineer (Hermes   │  ┌── Proxmox 9.x ──────────────────────────┐     │
+ Desktop, external)─┼─►│ vm-xa: Gateway + Manager Agent          │     │
+                    │  └──────────────────────────────────────────┘    │
+                    │  ┌── vm-xb ─────────────────────────────────┐    │
+                    │  │ RabbitMQ (topic) · Temporal Server+Worker│    │
+                    │  │ [ephemeral: Hermes agent, Claude Code]   │    │
+                    │  └───────────────────────────────────────────┘   │
+                    │  vm-llm-wiki (RAG standards)  vm-hindsight (pgvector memory)
+                    └───────────────────────────────────────────────────┘
+                    Cloud: GitHub — Available Agent List repo · Project Repo
+```
+
+- **Persistent:** Gateway + Manager (vm-xa); queue + Temporal (vm-xb); wiki + memory VMs.
+- **Ephemeral:** executor containers on vm-xb, spawned per task, destroyed on completion.
+- The engineer is the only external actor; the flow is human-initiated and human-reported.
+
+## 3. Components and responsibilities
+
+| Component | VM | Role | Maturity |
+|---|---|---|---|
+| **Hermes Agent Gateway** | vm-xa | Accepts engineer requests; front door for the flow | Build (Go) |
+| **Manager Agent** | vm-xa | Resolves the agent definition from the Available Agent List index (Note 1), publishes the task envelope to the topic, receives the response (two-way) | Build (Go) |
+| **RabbitMQ topic exchange** | vm-xb | Decouples manager from execution; the V2 ingestion boundary | Proven |
+| **Topic-bridge adapter** | vm-xb | RabbitMQ consumer → Temporal workflow start; exactly-once-effect per message | Build (Go, amqp091-go + Temporal SDK) |
+| **Temporal Server + Worker** | vm-xb | Durable orchestration: task queue, activities, retries, timeouts | Proven |
+| **Container lifecycle manager** | vm-xb | Spawn/hydrate/teardown of ephemeral containers via `docker run`; crash-safe reaper; idempotent teardown | Build (Go) — the core custom piece |
+| **Hermes ephemeral agent** | vm-xb (container) | Agent-type work; boots persona + skills from git at startup, stateless | To-verify (M3a spike) |
+| **Claude Code agent (N+1)** | vm-xb (container) | Coding; clones repo, commits with a scoped token | To-verify (M3b spike) |
+| **LLM-Wiki** | vm-llm-wiki | RAG over design standards / dev + business best practices | Build (API + ingest) |
+| **Hindsight** | vm-hindsight | Long-term memory (Postgres + pgvector) behind a R/W session API | Build (API) |
+| **GitHub repos** | cloud | Available Agent List (personas, skills, behavioral spec) + Project Repo | Proven |
+
+## 4. Data and control flow
+
+1. **Request in.** Engineer → Gateway (vm-xa).
+2. **Resolve.** Manager Agent looks up the agent index in the Available Agent List repo; selects persona/skills/tool set; obtains repo location + markdown folder + Behavioral Specification.
+3. **Publish.** Manager → topic (`tasks.dev.*`, routing key per task type). Two-way: the response returns on a reply routing/correlation when one is needed.
+4. **Bridge.** Topic-bridge consumes, validates `message-v1.json`, starts exactly one Temporal workflow per message (idempotency key = message id; ack-after-workflow-start → no loss, no duplicates' second workflow).
+5. **Orchestrate.** Temporal workflow runs the "execute activity," which calls the lifecycle manager.
+6. **Spawn + hydrate.** Lifecycle manager `docker run`s the needed executor containers (pre-pulled images, no pull at activity time), injecting: repo location + markdown folder, Behavioral Specification, per-run scoped credentials, TTL. Executors hydrate:
+   - Available Agent List repo → full persona/skill markdowns;
+   - LLM-Wiki API → relevant design standards/tools/skills;
+   - Hindsight API → memory read; memory write on completion.
+7. **Work.** Claude Code agent makes code changes and commits to the Project Repo (branch/worktree per coder — locked at M3).
+8. **Teardown.** On success, failure, timeout, or TTL expiry the lifecycle manager destroys the containers — idempotently, including after a manager/worker crash (reaper backstop). Zero surviving containers.
+9. **Report.** Result returns through the manager to the engineer (human-reported; no auto-flow).
+
+## 5. Contracts
+
+### 5.1 Message envelope — `message-v1.json`
+The inter-zone contract. Fields: `message_id` (idempotency key, UUID), `task_type` (routing key), `payload` (request text + task params), `repo_location`, `repo_folder`, `behavioral_spec_ref`, `agent_selection`, `ttl_s` (optional, manager-written only), `created_at`, `correlation_id` (response routing). Versioned at the top level (`$schema`) so V2 changes don't break the bridge. **Status: not yet written — owned by the M1 delivery plan.**
+
+### 5.2 Service APIs
+- **Hindsight R/W API** (`services/hindsight-api`): session-scoped read/write of memory records; pgvector substrate; contract fixed early (R6) so the executor entrypoints are stable.
+- **LLM-Wiki API** (`services/llmwiki-api`): query → relevant standards/skills chunks (RAG); ingest pipeline for curation (R7 — curation *ownership* remains open, resolved at M4/M5).
+- **Lifecycle API** (`services/lifecycle`): spawn(task) / status(id) / teardown(id); teardown is idempotent; the reaper sweeps TTL-expired and orphaned containers independent of Temporal.
+
+### 5.3 Git interface
+Executors receive: repo URL, branch/worktree name, a **short-lived, branch-limited token** issued by `issue-token.sh` (GitHub App JWT → installation access token, run on vm-xb; app key at `/opt/poc/secrets/app-key.pem`, 0600, never in git or containers).
+
+## 6. Lifecycle state machine (per executor container)
+
+```
+SPAWNED → PULLING(implicit; images pre-pulled) → RUNNING → (SUCCESS|FAILED|TIMED_OUT) → TEARDOWN → GONE
+                    └──────────── TTL_EXPIRED ─────────────────────────────────────┘
+   crash of anything at any point → REAPER sweep → idempotent teardown → GONE
+```
+
+Invariants: teardown is safe to re-run; after M runs, zero leaked containers (TP-M2 mandatory case); no orphan survives a worker crash (reaper is authoritative, R1).
+
+## 7. Deployment topology
+
+- **Proxmox 9.x host** provisions 4 KVM VMs (`deploy/m0/hosts.env`, netplan record-only unless `--apply-netplan`).
+- vm-xa: gateway + manager containers (M5 compose).
+- vm-xb: rabbitmq + temporal (+ their Postgres) compose (M0); topic-bridge (M1); lifecycle services (M2); executor images pre-loaded (M3); gateway/manager deploy (M5).
+- vm-llm-wiki / vm-hindsight: wiki + memory compose + API containers (M4).
+- Flat L2/overlay network + fixed DNS endpoints per VM (R8, verified by the M0 network matrix).
+- Install path: `deploy/mN/install.sh` per milestone (idempotent, `--check-only`, gate tests → `evidence/`), gated by signed TP-Mn; `hosts.env`/`.env` gitignored, secrets generated via `openssl rand -hex 16`, never in compose files or git.
+
+## 8. Failure modes and mitigations
+
+| Failure | Design answer |
+|---|---|
+| Leaked/hung container (R1) | Lifecycle manager idempotent teardown + TTL reaper + Temporal activity timeouts; M2 gate proves the crash path. |
+| Message loss / duplicate workflow (R2) | Durable consumer, ack after workflow start, idempotency key on `message_id`; M1 gate T1–T5. |
+| N coders on one repo (R3) | Branch/worktree per coder (locked M3); cap in team config. |
+| Credential exposure (R4) | Short-lived branch-limited tokens per run; no long-lived owner secret in any container; M5 credential scan is the gate. |
+| Slow/unsupported Hermes boot persona load (R5) | M3a spike first; fallback = hydration sidecar fills the container before the agent starts. TTL sized from measured boot p50. |
+| Hindsight API gap (R6) | Contract defined early; thin Go wrapper over pgvector. |
+| Stale standards (R7) | Ingest pipeline + owner curation cadence; versioned standards. |
+| Cross-VM reachability (R8) | M0 network verification matrix as the gate. |
+| Stage failure at M5 | Failure injections F1–F4 are mandatory cases; each stage names its owning milestone for re-run. |
+
+## 9. Milestone mapping (design → proof)
+
+| Milestone | Proves the design element | Gate |
+|---|---|---|
+| M0 Chassis | §2, §7 — VMs, Docker, topic, Temporal, Go SDK smoke, network matrix | TP-M0 (8 cases) |
+| M1 Adapter | §4.4, §5.1 — exactly-one-workflow, idempotent, no loss | TP-M1 (6 cases) |
+| M2 Lifecycle | §6 — spawn/timeout/reap state machine, crash-safe, no-pull gate | TP-M2 (6 cases) |
+| M3 Executors | §3 executors, §5.3 — Hermes boot-time persona load (point of last cheap exit); headless Claude Code real commit; lock execution model + cap | TP-M3 (7 cases) |
+| M4 Memory/knowledge | §5.2 — Hindsight R/W, wiki retrieval, git hydration, cross-task read-back | TP-M4 (7 cases) |
+| M5 E2E + hardening | §4 end-to-end, four failure injections, credential hardening, V2 open-items list | TP-M5 |
+
+**POC exit condition (M5 §9):** E2E passed with zero surviving POC containers; four failure injections clean and human-reported; no long-lived owner secret reachable from any container; Version-2 open items listed; TP-M5 signed — confirming the feasibility verdict *by evidence, not by analysis*.
+
+## 10. Open items (explicitly deferred, not pre-decided here)
+
+1. RabbitMQ↔Temporal wiring detail + message-shape finalization (R2/M1, `message-v1.json`).
+2. LLM-Wiki curation ownership and promotion rules (R7/M4).
+3. Ephemeral isolation level — co-located containers on vm-xb vs. per-task VMs (M3/M5).
+4. N+1 execution model (branch vs. worktree) and the concrete cap value (M3).
+5. LLM-Wiki ↔ Hindsight ↔ GitHub unlabeled flows from the source diagram (whether wiki learnings promote into repos/wiki) — resolve at M4.
+
+These resolutions (or explicit deferrals) form the **Version 2 open-items list** required at M5 exit.
+
+## 11. Decision log (carried)
+
+| # | Decision | Date |
+|---|---|---|
+| D-8 | VM labels are POC discussion devices; per-project naming at deploy time | 2026-10-25 |
+| D-lang | All Temporal SDK code is Golang | 2026-10-24 |
+| D-rmq | RabbitMQ kept deliberately as the V2 ingestion boundary | 2026-10-29 |
+| D-ttl | Hybrid TTL: manager-written optional `ttl_s`, lifecycle default 900 s, reaper authoritative | 2026-10-29 |
+| D-n1 | Needs-based counts, parallel for parallel requests, team-config hard cap (≤5 POC thumb) | 2026-10-25 |
+| D-stores | Hindsight = long-term memory (R/W); LLM-Wiki = standards/best practices; Available Agent List repo = everything agents load | 2026-10-24 |
+
+---
+
+*This design document is the buildable reading of the Version 1 doc set. Where it goes beyond the diagram record (§5 contracts, §6 state machine, §8 failure table), it is new, clearly-marked design content per the baseline rule — not silently mixed into the foundation record.*
