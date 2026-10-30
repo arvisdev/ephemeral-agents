@@ -206,20 +206,23 @@ install_docker() {
 declare_topology() {
   local base="http://127.0.0.1:15672"
   local m
-  m="$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -o /dev/null -w '%{http_code}' -K - $base/api/exchanges/%2F || true")"
+  m="$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -o /dev/null -w '%{http_code}' -K - $base/api/exchanges/%2F/agent.tasks || true")"
   if [ "$m" = "404" ]; then
     confirm "declare topic exchange agent.tasks + queue + binding + DLQ on $VM_XB"
     if [ "$CHECK_ONLY" != "1" ]; then
       # corrected mgmt-API paths (POST the named resource; binding = /q/<queue>);
       # agent.tasks.response declared for M5; password via stdin curl config (-K -), never argv
-      RABBITMQ_PASS="$RABBITMQ_PASS" base="$base" ssh "$VM_XB" 'bash -s' <<'RABBIT_API'
-set -e; B=$base
-cfg=$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS")
+      # stage the curl auth config (0600 on the remote; removed after declare)
+    printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" 'umask 077; cat > /tmp/rmq-cfg && chmod 600 /tmp/rmq-cfg'
+    ssh "$VM_XB" "B=$base bash -s" <<'RABBIT_API'
+set -e
+cfg=$(cat /tmp/rmq-cfg)
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.durable"}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'
+rm -f /tmp/rmq-cfg
 RABBIT_API
     fi
   else

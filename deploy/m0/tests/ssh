@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# ssh shim for declare-topology-test.sh: executes the "remote" command LOCALLY
+# via bash -c with stdin passthrough. Mimics: ssh [options] HOST COMMAND...
+# Logs HOST + command to $SSH_SHIM_AUDIT for no-secret-on-argv assertions.
+set -u
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -*) shift ;;
+    *)  host="$1"; shift; break ;;
+  esac
+done
+printf 'HOST=%s CMD=%s\n' "${host:-?}" "$*" >> "${SSH_SHIM_AUDIT:?}"
+exec bash -c "$*" shim
