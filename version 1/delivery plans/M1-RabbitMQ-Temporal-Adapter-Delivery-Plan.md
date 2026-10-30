@@ -7,6 +7,14 @@
 | **Depends on** | M0 (RabbitMQ topic + Temporal server up and reachable) |
 | **Retires risk** | R2 (bridge correctness / loss) |
 
+**Why the broker exists (owner decision 2026-10-29):** Temporal alone could queue
+these requests (its task queues are durable and the manager could start workflows
+directly via the SDK). RabbitMQ is kept anyway because it is the **V2 ingestion
+boundary**: other, non-Temporal systems will publish tasks into the topic alongside
+the manager, and a broker is the right seam for multi-publisher fan-out. Everything
+in this plan (manual ack, ack-after-start, idempotency, DLQ, no-loss tests) is the
+price of owning that boundary — M1's job is to prove the price is manageable.
+
 ## Work packages
 
 **WP-1.1 — Define the v1 message schema**

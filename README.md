@@ -50,6 +50,7 @@ One flow, read from the source diagram (full connection map in
 |---|---|
 | **Store-content model** | Hindsight = long-term memory (R/W). LLM-Wiki = design standards + dev/business best practices. Git repo (Available Agent List) = everything the agents load (skills / personas). |
 | **Manager ↔ RabbitMQ** | Two-way (double-headed): responses return to the manager when needed. |
+| **RabbitMQ stays (owner decision 2026-10-29)** | The broker is kept **deliberately**, not by default: it is the V2 ingestion boundary — other (non-Temporal) systems will publish tasks into the topic alongside the manager, which a direct SDK start cannot serve. The M1 adapter's idempotency/loss machinery (TC-M1-03..06) is the cost of owning that boundary, and M1 is the milestone that proves it is manageable. |
 | **Language mandate** | **All Temporal SDK code is Golang** — workflows, workers, activities, adapters, CLI samples (owner instruction: speed + size). Every install doc carries this. |
 | **TTL ownership (owner-settled 2026-10-29)** | Hybrid: `ttl_s` is optional in `message-v1.json`, written **only** by the manager (sized from M3 B1 boot-time p50); when absent, M2's lifecycle applies `POC_TTL_DEFAULT=900s`; the reaper is authoritative either way (R1 backstop intact). |
 | **VM naming (D-8)** | `VM-Xa / VM-Xb / VM-2 / VM-3` are **discussion labels, not commitments**. Each project defines its own names; this POC uses `vm-xa`, `vm-xb`, `vm-llm-wiki`, `vm-hindsight` (legend in [`deploy/m0/hosts.env.example`](deploy/m0/hosts.env.example)). |
