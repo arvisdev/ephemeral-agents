@@ -11,7 +11,7 @@
 
 - **Where it runs:** a Temporal **worker** + a **lifecycle service** on VM-Xb. The worker drives the durable workflow; the lifecycle service owns the Docker daemon (socket access) and exposes a small localhost API (`spawn`, `status`, `reap`) so the worker never holds a Docker client across retries.
 - **State machine:** `creating → running → (complete | failed | timed-out) → reaped`. Persist state per `task_id` (a small table or labels/annotations on the container) so a crashed worker can resume or clean up.
-- **Per-run config shape:** image tag (pinned), agent_ref + repo folder (from M1 message), behavioral spec, secrets reference (by name, not value — resolved at spawn), resource limits, TTL.
+- **Per-run config shape:** image tag (pinned), agent_ref + repo folder (from M1 message), behavioral spec, secrets reference (by name, not value — resolved at spawn), resource limits, TTL (**owner: `ttl_s` from the M1 message when present; otherwise the lifecycle config default `POC_TTL_DEFAULT` — the reaper is authoritative either way**).
 
 ## Work packages
 

@@ -11,7 +11,7 @@
 
 **WP-5.1 — Wire the front of the house**
 - Software Engineer (Hermes Desktop, outside the boundary) → Hermes Agent Gateway (VM-Xa) request path.
-- **Manager Agent behavior (Note 1, made concrete):** look in the Available Agent List repo, search the agent index, find the full persona + skill and tools that can pull the markdown files, and create the appropriate agent artifact ("agent.f" as drawn); pass **repo location + repo folder + Behavioral Specification** into the task message (the M1 schema's `agent_ref` / `behavioral_spec` fields).
+- **Manager Agent behavior (Note 1, made concrete):** look in the Available Agent List repo, search the agent index, find the full persona + skill and tools that can pull the markdown files, and create the appropriate agent artifact ("agent.f" as drawn); pass **repo location + repo folder + Behavioral Specification** into the task message (the M1 schema's `agent_ref` / `behavioral_spec` fields). The manager is also the **only writer of `ttl_s`**: it computes `max(3 × boot-time p50 from M3's B1 evidence, task-brief estimate)` and sets it explicitly; tasks without it fall back to M2's `POC_TTL_DEFAULT`.
 - Verify the two-way Manager ↔ RabbitMQ response path (owner-confirmed): correlation fields flow back to the manager.
 
 **WP-5.2 — End-to-end run**

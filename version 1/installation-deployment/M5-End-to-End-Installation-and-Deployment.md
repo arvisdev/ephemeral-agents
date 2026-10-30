@@ -44,7 +44,7 @@ services:
 1. `git clone --depth 1` the Available Agent List (read token).
 2. Search `index.json` for the agent matching the request (by role/capability in the request payload).
 3. Locate the folder: full persona + skill and tools + the folder containing all the markdowns + the Behavioral Specification.
-4. Compose the M1 task message: `{task_id, agent_ref, repo_location + repo_folder, behavioral_spec, repo_target, requester, correlation_id}` → publish to `agent.tasks` (topic).
+4. Compose the M1 task message: `{task_id, agent_ref, repo_location + repo_folder, behavioral_spec, repo_target, requester, correlation_id, ttl_s}` → publish to `agent.tasks` (topic). **`ttl_s` is set by the manager (the only writer): `max(3 × B1 boot-time p50, brief estimate)`; absent ⇒ M2 applies `POC_TTL_DEFAULT` (900s). The reaper is authoritative regardless.**
 5. Consume `agent.tasks.response` filtered by `correlation_id` → write the human report (outcome + artifact pointer: `task/<id>` branch / commit) to `/reports/<task_id>.json` → surface it to the engineer's desktop (the two-way Manager ↔ RabbitMQ path, owner-confirmed).
 
 ## 2. Engineer's desktop (external actor)
@@ -124,7 +124,7 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}
 Decision-log entries (in `deploy/m5/decision-log.md`, referenced from `../ARCHITECTURE.md`):
 
 - [x] VM naming (D-8) — resolved 2026-10-25: labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records its own hostname mapping in `deploy/m0/decision-log.md`.
-- [ ] topic/queue message shapes — `schemas/message-v1.json` is the contract (version it)
+- [x] TTL ownership — hybrid settled: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
 - [ ] LLM-Wiki curation owner + cadence (from M4)

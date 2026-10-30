@@ -16,7 +16,8 @@
   - `behavioral_spec` — the Behavioral Specification passed by the manager (Note 1)
   - `repo_target` — Project Repo to write code to
   - `requester` / correlation data for the response path (the two-way Manager ↔ RabbitMQ variant)
-- Deliverable: `message-schema-v1.json` + one example message + a short schema-rationale note.
+- One optional field: `ttl_s` (integer seconds) — the manager is the only writer of it; when absent, M2's lifecycle applies its config default (`POC_TTL_DEFAULT`). The reaper stays authoritative regardless (R1).
+- Deliverable: `message-schema-v1.json` + one example message + a short schema-rationale note (including the `ttl_s` ownership rule).
 
 **WP-1.2 — Build the adapter service**
 - A durable RabbitMQ consumer (manual ack, prefetch = 1 for POC simplicity) that, per message:

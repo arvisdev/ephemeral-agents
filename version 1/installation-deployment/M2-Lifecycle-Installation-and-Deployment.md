@@ -59,6 +59,7 @@ services:
       DOCKER_HOST: unix:///var/run/docker.sock
       LISTEN: 0.0.0.0:8090                  # compose-network only (loopback would lock the worker out)
       REAPER_INTERVAL: 30s
+      POC_TTL_DEFAULT: 900s                  # TTL default when the message carries no ttl_s (owner-settled hybrid)
       POC_IMAGE: poc/executor-stub:1.0.0     # pinned — no pulls at activity time
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
