@@ -175,6 +175,7 @@ gate_tests() {
   local out="$EVIDENCE/m2-tests.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip gate tests"; return 0; fi
   local R2="$M2/tests/run-task.sh"
+  local v4pid t004 survivors
   {
     echo "# M2 gate tests — $(date -u)"
     # V1 clean path
@@ -198,11 +199,10 @@ gate_tests() {
     # V4 crash recovery — THE load-bearing test
     log "V4 — crash recovery: spawn t004 (hang, ttl 120), kill worker, reaper must get it"
     bash "$R2" '{"task_id":"t004","inject":"hang","ttl_s":120}' &
-    local v4pid=$!
+    v4pid=$!
     sleep 5
     ssh "$VM_XB" "docker kill worker"
     sleep 35   # one reaper interval (REAPER_INTERVAL=30s) on lifecycle keeps running
-    local t004
     t004="$(ssh "$VM_XB" "docker ps -a --filter label=poc.task=t004 -q || true")"
     ssh "$VM_XB" "docker start worker"
     wait "$v4pid" || true
@@ -217,7 +217,6 @@ gate_tests() {
     else
       echo "V5 mixed-10 : FAIL"
     fi
-    local survivors
     survivors="$(ssh "$VM_XB" "docker ps -a --filter label=poc.owner=lifecycle -q | wc -l")"
     echo "V5 zero-survivors: $survivors : $([ "$survivors" -eq 0 ] && echo PASS || echo FAIL)"
   } | tee "$out"

@@ -334,9 +334,9 @@ go_sdk_smoke() {
 network_matrix() {
   log "§5 — network verification matrix -> $EVIDENCE/network-matrix.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip live matrix"; return 0; fi
+  local from to
   {
     echo "# M0 network matrix — $(date -u)"
-    local from to
     for from in "${PVMXS[@]}"; do
       for to in "${PVMXS[@]}"; do
         if ssh -o BatchMode=yes -o ConnectTimeout=5 "$from" "ssh -o BatchMode=yes -o ConnectTimeout=5 '$to' true" 2>/dev/null; then

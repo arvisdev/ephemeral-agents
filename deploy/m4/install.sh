@@ -249,11 +249,11 @@ gate_tests() {
   log "§4 — verification G1..G6 (the M4 gate tests) -> $EVIDENCE/"
   local out="$EVIDENCE/m4-tests.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip gate tests"; return 0; fi
+  local body w r r2 q1 q2 q3 q top t0 t1 run v3v v2v
   {
     echo "# M4 gate tests — $(date -u)"
     # G1 network R/W
-    local body='{"task_id":"t-g1","agent_ref":"dev","scope":"cross-task","body":{"learning":"m4-install-g1"}}'
-    local w r
+    body='{"task_id":"t-g1","agent_ref":"dev","scope":"cross-task","body":{"learning":"m4-install-g1"}}'
     w="$(curl -s -XPOST "$HINDSIGHT_URL/memory/write" -H 'content-type: application/json' -d "$body" || echo CURL-FAIL)"
     r="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" || echo CURL-FAIL)"
     if echo "$r" | grep -q "m4-install-g1"; then
@@ -262,7 +262,6 @@ gate_tests() {
       echo "G1 network R/W : FAIL (write=$w read=$r)"
     fi
     # G2 cross-task read-back (API-level proof; the executor read path is the M2 wiring above)
-    local r2
     r2="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-other&scope=cross-task" || echo CURL-FAIL)"
     if echo "$r2" | grep -q "m4-install-g1"; then
       echo "G2 cross-task read-back: a different task_id fetches the cross-task entry : PASS"
@@ -270,12 +269,11 @@ gate_tests() {
       echo "G2 cross-task read-back : FAIL (record which step: M2 wiring vs. scope rule, M4 §6)"
     fi
     # G3 retrieval quality x3
-    local q1 q2 q3
     q1="${WIKI_QUERY_STANDARD:-design standard}"
     q2="${WIKI_QUERY_SKILL:-a tool the agents may need}"
     q3="${WIKI_QUERY_BUSINESS:-business best practice}"
     for q in "$q1" "$q2" "$q3"; do
-      local top; top="$(curl -sG "$LLMWIKI_URL/wiki/query" --data-urlencode "q=$q" --data-urlencode "k=5" | head -c 200 || echo CURL-FAIL)"
+      top="$(curl -sG "$LLMWIKI_URL/wiki/query" --data-urlencode "q=$q" --data-urlencode "k=5" | head -c 200 || echo CURL-FAIL)"
       echo "G3 query '$q' -> top hit: ${top:-<none>} (record the correct doc section in the evidence)"
     done
     # G4 catalog regression (M3 self-report with the two new sources live)
@@ -288,7 +286,6 @@ gate_tests() {
     fi
     # G5 hydration latency (3 runs)
     for run in 1 2 3; do
-      local t0 t1
       t0=$(date +%s.%N)
       curl -s "$LLMWIKI_URL/wiki/query?q=$q1&k=5" >/dev/null || true
       curl -s "$HINDSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" >/dev/null || true
@@ -296,7 +293,6 @@ gate_tests() {
       echo "G5 latency run $run: total $(echo "$t1 $t0" | awk '{printf "%.2f", $1-$2}')s (must stay < M2 TTL headroom — record per-source)"
     done
     # G6 data isolation: two distinct Postgres instances
-    local v3v v2v
     v3v="$(ssh "$VM_3" "docker volume ls --format '{{.Name}}' | grep -E 'hindsight' | head -1 || true")"
     v2v="$(ssh "$VM_2" "docker volume ls --format '{{.Name}}' | grep -E 'llmwiki' | head -1 || true")"
     echo "G6 isolation: vm-hindsight volume='${v3v:-none}' vm-llm-wiki volume='${v2v:-none}' : $([ -n "$v3v" ] && [ -n "$v2v" ] && [ "$v3v" != "$v2v" ] && echo PASS || echo FAIL)"

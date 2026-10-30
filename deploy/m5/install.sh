@@ -222,9 +222,9 @@ e2e_acceptance_run() {
 failure_injections() {
   log "§5 — failure-injection runbook F1–F4 (each: clean reap + human-visible error)"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip injections"; return 0; fi
+  local f _f3pid cid
   {
     echo "# M5 failure injections — $(date -u)"
-    local f
     # F1: LLM-Wiki down
     log "F1 — pause llmwiki-api on $VM_2 during a task"
     ssh "$VM_2" "docker pause llmwiki-api" || true
@@ -240,9 +240,9 @@ failure_injections() {
     # F3: agent crash
     log "F3 — pkill -9 the agent process mid-task"
     run_one_task >/dev/null &
-    local _f3pid=$!
+    _f3pid=$!
     sleep 10
-    local cid; cid="$(ssh "$VM_XB" "docker ps --filter label=poc.owner=lifecycle -q | head -1 || true")"
+    cid="$(ssh "$VM_XB" "docker ps --filter label=poc.owner=lifecycle -q | head -1 || true")"
     if [ -n "$cid" ]; then
       ssh "$VM_XB" "docker exec $cid sh -c 'pkill -9 1 2>/dev/null || pkill -9 agent 2>/dev/null || true'"
     fi

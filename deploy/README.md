@@ -78,7 +78,7 @@ one — each script is scoped to its own milestone.
 | `--check-only` | run preconditions only, touch nothing |
 | `ASSUME_YES=1` | skip the interactive "proceed?" prompt (CI / non-interactive) |
 | `M0_DONE=1 M1_DONE=1 …` | skip the "is the previous milestone green?" probes (set after a signed TP) |
-| `--no-gate` | skip the gate-test section (rare; use only when re-running tests by hand) |
+| `--no-gate` | run the install but don't fail the script on gate-test failures (the gate section still runs and still writes evidence — use only when re-running tests by hand) |
 
 ## What lands where
 

@@ -218,6 +218,7 @@ gate_tests() {
   log "§4 — verification B1..B5$( [ "$N_PARALLEL" = "1" ] && echo B6 ) (the M3 gate tests) -> $EVIDENCE/"
   local out="$EVIDENCE/m3-tests.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip gate tests"; return 0; fi
+  local task_id
   {
     echo "# M3 gate tests — $(date -u)"
     # B1 boot-time x3
@@ -233,7 +234,7 @@ gate_tests() {
     echo "B3 failure: operator runs (a) unreachable AGENT_REPO_URL and (b) malformed persona -> both exit 2 + reap (record in $EVIDENCE)"
     # B4 coder real work
     if [ -n "${PROJECT_LOCAL_DIR:-}" ] && [ -d "$PROJECT_LOCAL_DIR" ]; then
-      local task_id="m3b-$(date +%H%M%S)"
+      task_id="m3b-$(date +%H%M%S)"
       if bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"$task_id\",\"agent_ref\":\"coder\",\"brief\":\"add a /healthz handler\"}" >/dev/null 2>&1; then
         git -C "$PROJECT_LOCAL_DIR" fetch origin "task/$task_id" 2>/dev/null || true
         if git -C "$PROJECT_LOCAL_DIR" log --oneline "origin/task/$task_id" >/dev/null 2>&1; then

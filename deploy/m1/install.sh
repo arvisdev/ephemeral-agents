@@ -187,9 +187,9 @@ gate_tests() {
   local out="$EVIDENCE/m1-tests.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip gate tests"; return 0; fi
   local RMP; RMP="$(grep '^RABBITMQ_PASS=' "$REPO_ROOT/deploy/m0/rabbitmq/.env" | cut -d= -f2)"
+  local count expected base delta ppid dlq
   {
     echo "# M1 gate tests — $(date -u)"
-    local count expected base delta
     wf_count() { temporal workflow list --type TaskWorkflow --limit 1000 2>/dev/null | grep -c "TaskWorkflow" || true; }
     # run-scoped: assert on the DELTA of workflows ever started (not absolute "running"
     # counts), so a re-run against leftover state doesn't false-fail.
@@ -207,7 +207,7 @@ gate_tests() {
     echo "T2 dup: +$delta started (expected 0) : $([ "$delta" -eq 0 ] && echo PASS || echo FAIL)"
     # T3: kill -9 mid-flight (all 20 redelivered, no doubles -> exactly +20)
     base="$(wf_count)"
-    bash "$M1/tests/publish.sh" 20 & local ppid=$!
+    bash "$M1/tests/publish.sh" 20 & ppid=$!
     sleep 1
     ssh "$VM_XB" "docker kill topic-bridge && docker start topic-bridge"
     wait "$ppid" || true
@@ -217,7 +217,7 @@ gate_tests() {
     # T4: poison pill
     bash "$M1/tests/publish.sh" --invalid 3
     sleep 5
-    local dlq; dlq="$(printf 'user = "poc:%s"\n' "$RMP" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.dlq' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || echo 0")"
+    dlq="$(printf 'user = "poc:%s"\n' "$RMP" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.dlq' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || echo 0")"
     echo "T4 dlq: $dlq (expected 3; consumer still up) : $([ "${dlq:-0}" -ge 3 ] && echo PASS || echo FAIL)"
     # T5: Temporal restart
     ssh "$VM_XB" "cd /opt/poc/deploy/m0/temporal && docker compose restart temporal"
