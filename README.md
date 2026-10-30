@@ -88,6 +88,7 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   ├── AI Enterprise Team - ephemeral-agents.pdf   Source diagram (single source of truth for the v1 docs)
 │   ├── ARCHITECTURE.md               Quick-reference diagram record: zones, components, all 15 connections, flow, verbatim notes
 │   ├── Initial-Foundation-Design-Document.md       Detailed diagram baseline + confirmed items + the D-8 naming decision
+│   ├── Architectural-Design-Document.md            Full buildable design: components, contracts, lifecycle state machine, failure modes, open items
 │   ├── Technical-Feasibility-Analysis.md           Component ratings (Proven/Feasible/Needs-build/To-verify), risk register, verdict
 │   ├── Technical-Feasibility-POC-Milestones.md     The M0–M5 plan: goals, done-when, gate rule, and links to every companion doc
 │   ├── delivery plans/               One delivery plan per milestone (work packages, deliverables, acceptance criteria)
