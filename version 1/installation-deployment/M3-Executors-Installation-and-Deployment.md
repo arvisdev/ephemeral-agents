@@ -70,7 +70,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 4. Missing repo / malformed persona / index miss → write `self-report.json` with `error` and exit 2 (M2 surfaces + reaps).
 5. Launch the Hermes agent runtime with persona + spec; on completion write a task report, exit 0.
 
-Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLMWIKI_URL`, `TTL_S`.
+Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLMWIKI_URL`, `TTL_S`. (`GITHUB_READ_TOKEN` is a **read-only** credential for catalog/repo clones; the coder's separate scoped write token is issued as `GITHUB_TOKEN` per §1c — two different tokens, two different scopes.)
 
 **2b. Claude Code coder** — `deploy/m3/claude-coder/`:
 
@@ -92,11 +92,19 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 **Build + load onto vm-xb** (same transfer pattern as M1/M2):
 
 ```bash
-docker build -f deploy/m3/hermes-ephemeral/Dockerfile ... -t poc/hermes-ephemeral:1.0.0
-docker build -f deploy/m3/claude-coder/Dockerfile ...    -t poc/claude-coder:1.0.0
+docker build -f deploy/m3/hermes-ephemeral/Dockerfile \
+  --build-arg HERMES_INSTALLER_URL="$HERMES_INSTALLER_URL" \
+  deploy/m3/hermes-ephemeral -t poc/hermes-ephemeral:1.0.0
+docker build -f deploy/m3/claude-coder/Dockerfile \
+  --build-arg CLAUDE_CODE_VERSION="$CLAUDE_CODE_VERSION" \
+  deploy/m3/claude-coder -t poc/claude-coder:1.0.0
 docker save poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0 | ssh vm-xb docker load
 # update M2: POC_IMAGE per task type in deploy/m2/compose.yaml + lifecycle config
 ```
+
+Both build-args are mandatory (the Dockerfiles fail the build if unset — see §2's
+`RUN test -n "$HERMES_INSTALLER_URL"` guard and the `CLAUDE_CODE_VERSION` note);
+export them in the build shell before running the block.
 
 ## 3. Concurrency model — install decision (R3)
 

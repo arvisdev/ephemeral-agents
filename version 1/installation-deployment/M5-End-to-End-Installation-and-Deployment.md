@@ -121,7 +121,7 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}
 
 *Why:* the five open items (message shapes, concurrency, isolation level, curation owner, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
 
-Decision-log entries (in `deploy/m5/decision-log.md`, referenced from `../ARCHITECTURE.md`):
+Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items section of `../Initial-Foundation-Design-Document.md` §7):
 
 - [x] VM naming (D-8) — resolved 2026-10-25: labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records its own hostname mapping in `deploy/m0/decision-log.md`.
 - [x] TTL ownership — hybrid settled 2026-10-29: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)

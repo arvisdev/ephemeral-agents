@@ -47,7 +47,7 @@
 
 ## Exit gate
 
-M1 may start only when criteria 1–4 hold and topic naming (WP-0.4) is documented. A missed criterion is a chassis defect — fix in M0, don't carry it forward.
+M1 may start only when **all five** criteria hold (including criterion 5, the D-8 naming decision recorded). A missed criterion is a chassis defect — fix in M0, don't carry it forward.
 
 ## Notes
 

@@ -50,8 +50,7 @@ On the **build workstation**:
 - docker (+ buildx), go, the `temporal` CLI, `gh` (logged in), rsync,
   an SSH keypair → authorize the public half for the `poc` user on PVE + the
   4 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
-  `poc` needs **passwordless sudo** on the VMs — m0/m4/m5 provisioning steps
-  use it).
+  `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 §2.
 - `ssh -o StrictHostKeyChecking=accept-new poc@PVE_HOST` once per host —
   known_hosts gets seeded for you.
 - `mkdir -p /opt/poc/deploy/m1 /opt/poc/deploy/m2 /opt/poc/deploy/m3
@@ -89,7 +88,7 @@ one — each script is scoped to its own milestone.
 | Artifact | Location |
 |---|---|
 | Per-milestone gate results | `deploy/m<n>/evidence/` (created at run) |
-| Temporal history for the POC | Temporal Web on vm-xb, namespace `default` (no `poc` namespace is created) |
+| Temporal history for the POC | `temporal workflow list/show` via the CLI on vm-xb, namespace `default` (no Web UI is deployed; no `poc` namespace is created) |
 | Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-llm-wiki: llmwiki; vm-xa: front-of-house at M5) |
 | GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never in git) — where `issue-token.sh` runs |
 

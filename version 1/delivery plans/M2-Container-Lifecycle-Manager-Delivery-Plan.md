@@ -51,7 +51,7 @@
 
 ## Exit gate
 
-M3 may start when criteria 1–4 pass. If the reaper cannot be made crash-safe inside M2, **stop**: R1 is the POC's load-bearing risk and the whole point of sequencing M2 before the real executors.
+M3 may start when **all five** criteria pass (including criterion 5, the no-pull rule — TP-M2 gates on it as TC-M2-06). If the reaper cannot be made crash-safe inside M2, **stop**: R1 is the POC's load-bearing risk and the whole point of sequencing M2 before the real executors.
 
 ## Notes
 

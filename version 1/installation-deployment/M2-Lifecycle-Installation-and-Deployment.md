@@ -59,7 +59,7 @@ services:
       DOCKER_HOST: unix:///var/run/docker.sock
       LISTEN: 0.0.0.0:8090                  # compose-network only (loopback would lock the worker out)
       REAPER_INTERVAL: 30s
-      POC_TTL_DEFAULT: 900s                  # TTL default when the message carries no ttl_s (owner-settled hybrid)
+      POC_TTL_DEFAULT: 900s                  # TTL default when the message carries no ttl_s (owner-settled hybrid). Units: the lifecycle config takes a Go duration string ("900s"); message ttl_s is integer seconds
       POC_IMAGE: poc/executor-stub:1.0.0     # pinned — no pulls at activity time
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
@@ -72,6 +72,7 @@ services:
     environment:
       TEMPORAL_ADDR: temporal:7233
       LIFECYCLE_API: http://lifecycle:8090     # same compose project; expose the API to this network
+      RABBITMQ_URL: amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/   # response publisher (M2 §1c) — declare agent.tasks.response (M0 §3)
     depends_on: [lifecycle]
     restart: unless-stopped
 ```

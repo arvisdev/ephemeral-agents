@@ -68,7 +68,7 @@ services:
   topic-bridge:
     image: poc/topic-bridge:1.0.0
     environment:
-      RABBITMQ_URL: amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672     # same host network/compose project as M0's rabbitmq
+      RABBITMQ_URL: amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/   # substitute the real password from deploy/m0/rabbitmq/.env (gitignored) — same compose network as M0's rabbitmq, so the short service name resolves; M5's manager runs on vm-xa and uses the routable host name vm-xb:5672 instead
       TEMPORAL_ADDR: temporal:7233
       TEMPORAL_NAMESPACE: default
       TASKS_EXCHANGE: agent.tasks
@@ -132,5 +132,5 @@ cd deploy/m1 && docker compose down topic-bridge      # stateless: no local data
 | `connection refused` to `rabbitmq:5672` | adapter and rabbitmq not on the shared compose network (§3 note) |
 | Adapter acks but no workflow | namespace mismatch (`TEMPORAL_NAMESPACE` vs `temporal operator namespace list`) |
 | Duplicates starting workflows | `WorkflowID` not set to `task_id` — that is THE idempotency key; check the start options |
-| Consumer stuck after crash | unacked message redelivered — expected; if it double-starts, T2's assertion is wrong before T3's fix |
+| Consumer stuck after crash | unacked message redelivered — expected. If a redelivery starts a **second** workflow for the same task_id, the duplicate guard (T2) has regressed: re-run T2 before diagnosing T3. |
 | High memory | prefetch raised without cause; keep `prefetch=1` for POC scale |

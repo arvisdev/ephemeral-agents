@@ -20,7 +20,7 @@
 
 | ID | Title | Procedure (commands in the install doc) | Expected result | Pass criteria |
 |---|---|---|---|---|
-| TC-M0-01 | VMs provisioned & configured | Install §1–§2: 4 VMs boot; hostname, static IP, chrony, `poc` ssh user | `ssh poc@vm-xa/xb/2/3` from build host; `timedatectl` shows NTP synced on all | all 4 reachable, NTP synced |
+| TC-M0-01 | VMs provisioned & configured | Install §1–§2: 4 VMs boot; hostname, static IP, chrony, `poc` ssh user | `ssh poc@$VM_XA / $VM_XB / $VM_2 / $VM_3` from build host (hostnames from `deploy/m0/hosts.env`: vm-xa, vm-xb, vm-llm-wiki, vm-hindsight per the D-8 mapping); `timedatectl` shows NTP synced on all | all 4 reachable, NTP synced |
 | TC-M0-02 | Docker on all VMs | `docker run --rm alpine echo ok` + `docker compose version` on each VM | `ok` ×4; compose v2 | zero failures |
 | TC-M0-03 | RabbitMQ service + topology | Install §3: compose healthy; mgmt-API checks for exchange `agent.tasks`, queue `agent.tasks.durable`, binding, DLQ queue | all 4 objects present; healthcheck `healthy` | objects exist; healthcheck green |
 | TC-M0-04 | Cross-VM publish/consume | From **vm-xa**, publish 1 message to `agent.tasks` → check queue depth on vm-xb | queue shows 1 message | 1 |
