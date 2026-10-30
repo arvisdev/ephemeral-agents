@@ -175,7 +175,8 @@ provision_vms() {
       "$VM_3")  ipkey=3 ;;
       *)        ipkey="$(printf '%s' "$hn" | sed 's/^vm-//; s/-/_/g')" ;;
     esac
-    nip="${NETPLAN_IP_${ipkey}:-}"
+    nip=""
+    if declare -n _netplan_ref="NETPLAN_IP_${ipkey}" 2>/dev/null; then nip="${_netplan_ref:-}"; fi
     if [ -n "$nip" ] && [ "$APPLY_NETPLAN" = "1" ]; then
       confirm "write static netplan on $hn (IP $nip; existing file backed up)"
       if [ "$CHECK_ONLY" != "1" ]; then
@@ -315,11 +316,10 @@ go_sdk_smoke() {
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip smoke"; return 0; fi
   if [ "$host" = "local" ]; then
     command -v go >/dev/null || die "Go toolchain not found on the build host (required — Go mandate)"
-    if ( cd "$M0/go-sdk-smoke" && go run . -addr "$TEMPORAL_ADDR" ) | tee -a "$LOG" | grep -q "hello from greet"; then
-      :
-    else
-      die "go-sdk-smoke did not print 'hello from greet'"
-    fi
+    local smoke_out
+    smoke_out="$( cd "$M0/go-sdk-smoke" && go run . -addr "$TEMPORAL_ADDR" 2>&1 )" || true
+    echo "$smoke_out" | tee -a "$LOG"
+    echo "$smoke_out" | grep -q "hello from greet" || die "go-sdk-smoke did not print 'hello from greet'"
   else
     ssh "$host" "cd /opt/poc/deploy/m0/go-sdk-smoke && go run . -addr $TEMPORAL_ADDR" | grep -q "hello from greet" \
       || die "go-sdk-smoke failed on $host"

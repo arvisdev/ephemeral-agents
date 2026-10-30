@@ -31,12 +31,13 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 - `POST /spawn`  — `docker run -d` the pinned image: env config, per-task work volume, labels `poc.task=<task_id>`, `poc.owner=lifecycle`, `poc.expires=<RFC3339 TTL>`, resource limits; returns container ID.
 - `GET  /status?task=<id>` — container state + health.
 - `POST /reap?task=<id>` — idempotent: `docker rm -f` + remove per-task volume; no-ops when absent.
-- **Reaper loop** (every 30 s in the same process): `docker ps -aq --filter label=poc.owner=lifecycle` → reap any container past `poc.expires` or whose owning workflow is no longer running (queried via Temporal client).
+- **Reaper loop** (every 30 s in the same process): `docker ps -aq --filter label=poc.owner=lifecycle` → reap any container past `poc.expires` **or** whose owning workflow is no longer running (Temporal unreachable ⇒ skip that check, rely on `poc.expires` only).
 - Docker access: mount `/var/run/docker.sock` (no docker-in-docker).
 - State: container labels + a JSON state file on a per-task volume; no DB for POC.
 
 **1c. Worker (Go — mandatory)** — Temporal worker registered on `default` namespace; activity `executes_activity(taskCfg)`:
-`spawn → poll status until complete/failed/TTL → reap → return result`. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
+`spawn → poll status until complete/failed/TTL → reap → publish result → return result`.
+- **Response publisher (worker):** on completion (success or failure), publish `{task_id, correlation_id, status, artifact}` to the `agent.tasks.response` queue (declared in M0 §3) — the M5 manager's consume side of the two-way Manager ↔ RabbitMQ path. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
 
 ```bash
 docker build -f deploy/m2/Dockerfile.services -t poc/lifecycle:1.0.0 -t poc/worker:1.0.0 services/lifecycle
@@ -56,11 +57,12 @@ services:
     image: poc/lifecycle:1.0.0
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
-      LISTEN: 127.0.0.1:8090
+      LISTEN: 0.0.0.0:8090                  # compose-network only (loopback would lock the worker out)
       REAPER_INTERVAL: 30s
       POC_IMAGE: poc/executor-stub:1.0.0     # pinned — no pulls at activity time
-      POC_PULL_AT_DEPLOY: "true"
-    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
+      - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)
     restart: unless-stopped
     # deploy gate (deploy/m2/deploy.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
     # on boot and refuses to serve until the pinned image exists locally (the no-pull rule, enforced).
@@ -73,11 +75,10 @@ services:
     restart: unless-stopped
 ```
 
-Pre-deploy gate:
+Pre-deploy gate (host-side check; the entrypoint's `docker image inspect` refusal is the real gate):
 
 ```bash
-ssh vm-xb 'docker compose -f /opt/poc/deploy/m2/compose.yaml exec lifecycle \
-  test -n "$(curl -s http://127.0.0.1:8090/health)"'
+ssh vm-xb 'curl -sf http://127.0.0.1:8090/health'   # lifecycle healthy AFTER the entrypoint gate passed
 ```
 
 ## 3. Run the verification suite (the M2 gate tests)

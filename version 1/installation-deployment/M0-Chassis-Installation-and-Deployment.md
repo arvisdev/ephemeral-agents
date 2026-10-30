@@ -26,10 +26,10 @@
 ```bash
 # check existing VMIDs first, pick a free block (900-903 shown)
 qm list
-qm create 900 --name vm-xa --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 901 --name vm-xb --ostype l26 --memory 8192 --cores 4 --virtio-local 40 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virtio-local 20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 900 --name vm-xa --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 901 --name vm-xb --ostype l26 --memory 8192 --cores 4 --virtio0 local:40 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 for i in 900 901 902 903; do qm start $i; done
 ```
 
@@ -64,7 +64,9 @@ services:
   rabbitmq:
     image: rabbitmq:4-management-alpine   # pin exact tag in image-tags.env
     hostname: rabbitmq
-    ports: ["127.0.0.1:15672:15672"]      # mgmt UI loopback-only; 5672 via internal bridge
+    ports:
+      - "5672:5672"                        # AMQP must be reachable cross-VM (M5 manager on vm-xa publishes here)
+      - "127.0.0.1:15672:15672"            # mgmt UI loopback-only — no management plane on the LAN
     environment:
       RABBITMQ_DEFAULT_USER: poc
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}   # from .env (gitignored, generated: openssl rand -hex 16)
@@ -81,13 +83,14 @@ Deploy + declare the topic topology (management API):
 ```bash
 cd deploy/m0/rabbitmq && docker compose up -d
 BASE=http://127.0.0.1:15672; AUTH="poc:$RABBITMQ_PASS"
-curl -s -u "$AUTH" -XPOST "$BASE/api/exchanges/%2F" -d '{"name":"agent.tasks","type":"topic","durable":true}'
+curl -s -u "$AUTH" -XPOST "$BASE/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
 curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
-curl -s -u "$AUTH" -XPOST "$BASE/api/bindings/%2F/e/agent.tasks/all/queue" -d '{"source":"agent.tasks","destination":"agent.tasks.durable"}'
+curl -s -u "$AUTH" -XPOST "$BASE/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.durable"}'
 curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'   # for M1 poison pills
+curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'  # M5 manager consumes; M2 worker publishes results
 ```
 
-Cross-VM publish test: from **vm-xa**, `rabbitmqadmin publish -x agent.tasks -r agent.tasks.durable -m hello` (or a curl to the mgmt API) → message count on the queue becomes 1 on vm-xb.
+Cross-VM publish test: from **vm-xa**, verify AMQP reachability (`nc -vz -w3 vm-xb 5672`), then publish through the exchange (from vm-xa with any AMQP client against vm-xb:5672, or locally on vm-xb via the mgmt API) → message count on the queue becomes 1 on vm-xb. (The mgmt UI stays loopback-only; AMQP 5672 is published cross-VM because M5's manager on vm-xa publishes to it.)
 
 ## 4. Temporal on vm-xb — `deploy/m0/temporal/compose.yaml`
 
@@ -96,19 +99,17 @@ Cross-VM publish test: from **vm-xa**, `rabbitmqadmin publish -x agent.tasks -r 
 ```yaml
 services:
   temporal:
-    image: temporalio/server:1.27.0        # pin: check cli.temporal.io for current stable
+    image: temporalio/auto-setup:1.27.0    # pin; auto-setup runs the schema init the bare server image lacks
     ports: ["7233"]
     environment:
-      DB_HOST: postgres
+      DB: postgres12
       DB_PORT: "5432"
-      DB_NAME: temporal
-      DB_USER: temporal
-      DB_PASSWORD: ${TEMPORAL_DB_PASS}
-      DB_PLUGIN: postgres12
-      DB_SEEDS: postgres
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: ${TEMPORAL_DB_PASS}
+      POSTGRES_SEEDS: postgres
     depends_on: [postgres]
     healthcheck:
-      test: ["CMD", "temporal", "operator", "cluster", "health"]
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/7233'"]  # server image ships no temporal CLI
       interval: 15s
   postgres:
     image: postgres:16                     # pin
@@ -142,6 +143,8 @@ cd deploy/m0/go-sdk-smoke
 go mod init go-sdk-smoke && go get github.com/temporalio/sdk-go@latest
 go run . -addr vm-xb:7233              # start the workflow, run the worker, expect: "hello from greet"
 ```
+
+Prereq: a pinned Go toolchain (≥ 1.25) on the build host — `go version` must succeed before this step.
 
 This doubles as proof of the mandatory language decision: M0's gate includes "a Go-SDK workflow completes", and all later milestones build on this same Go toolchain.
 

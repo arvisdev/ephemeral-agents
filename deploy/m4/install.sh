@@ -91,7 +91,7 @@ confirm() {
 # ---------------------------------------------------------------- prereqs
 prereqs() {
   log "§0 — prereq checks (M0/M3 gates)"
-  [ "$M3_DONE" = "1" ] || {
+  [ "${M3_DONE:-0}" = "1" ] || {
     for h in "$VM_2" "$VM_3"; do
       ssh -o BatchMode=yes -o ConnectTimeout=8 "$h" "docker version >/dev/null" \
         || die "$h not reachable / docker down (M0)"

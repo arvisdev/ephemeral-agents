@@ -85,7 +85,7 @@ confirm() {
 # ---------------------------------------------------------------- §0 prereqs
 prereqs() {
   log "§0 — prereq checks (M0 gate)"
-  [ "$M0_DONE" = "1" ] && { log "§0   M0_DONE=1 — skipping live prereq checks"; return 0; }
+  [ "${M0_DONE:-0}" = "1" ] && { log "§0   M0_DONE=1 — skipping live prereq checks"; return 0; }
   command -v temporal >/dev/null || die "temporal CLI not found on build host (install per M0 §4)"
   temporal operator cluster health 2>/dev/null | grep -q "HEALTHY" \
     || die "Temporal not healthy (TEMPORAL_ADDR=$TEMPORAL_ADDR)"

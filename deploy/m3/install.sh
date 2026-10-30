@@ -92,7 +92,7 @@ confirm() {
 # ---------------------------------------------------------------- prereqs
 prereqs() {
   log "§0 — prereq checks (M2 gate)"
-  [ "$M2_DONE" = "1" ] || {
+  [ "${M2_DONE:-0}" = "1" ] || {
     if ! ssh "$VM_XB" "docker ps --format '{{.Names}}' | grep -Eq '^(lifecycle|worker)$'"; then
       die "lifecycle/worker not running on $VM_XB — run M2 install first"
     fi

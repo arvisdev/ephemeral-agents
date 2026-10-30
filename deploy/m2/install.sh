@@ -87,11 +87,11 @@ confirm() {
 # ---------------------------------------------------------------- prereqs
 prereqs() {
   log "§0 — prereq checks (M0 + M1 gates)"
-  [ "$M0_DONE" = "1" ] || {
+  [ "${M0_DONE:-0}" = "1" ] || {
     command -v temporal >/dev/null || die "temporal CLI missing on build host"
     temporal operator cluster health 2>/dev/null | grep -q HEALTHY || die "Temporal not healthy (M0)"
   }
-  [ "$M1_DONE" = "1" ] || {
+  [ "${M1_DONE:-0}" = "1" ] || {
     if ! ssh "$VM_XB" "docker ps --format '{{.Names}}' | grep -q topic-bridge"; then
       die "topic-bridge not running on $VM_XB — run M1 install first (M1 gate: workflows startable)"
     fi

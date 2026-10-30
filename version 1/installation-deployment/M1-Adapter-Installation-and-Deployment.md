@@ -14,7 +14,7 @@
 *Why:* if the queue or Temporal is down, the M1 gate tests produce *false* failures that look like adapter bugs. Two commands now save an hour of mis-debugging later — this is the junior-operator's first habit: verify the gate you're standing on before building on it.
 
 ```bash
-ssh vm-xb 'curl -s -u poc:*** $(grep RABBITMQ_PASS deploy/m0/rabbitmq/.env | cut -d= -f2) \
+ssh vm-xb 'curl -s -u "poc:$(grep RABBITMQ_PASS /opt/poc/deploy/m0/rabbitmq/.env | cut -d= -f2)" \
   http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable | grep -o "\"messages\":[0-9]*"'
 temporal operator cluster health
 ```
@@ -74,9 +74,9 @@ services:
       TASKS_EXCHANGE: agent.tasks
       TASKS_QUEUE: agent.tasks.durable
       DLQ_QUEUE: agent.tasks.dlq
-    depends_on:
-      rabbitmq: {condition: service_healthy}
-      temporal: {condition: service_healthy}
+    # NOTE: rabbitmq/temporal are M0 compose projects, NOT services in this file —
+    # depends_on cannot reach across projects. The bridge reconnects on start
+    # (restart: unless-stopped); §0's prereq checks are the real gate.
     restart: unless-stopped
     logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
 ```

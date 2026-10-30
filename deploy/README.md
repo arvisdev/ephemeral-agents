@@ -45,13 +45,15 @@ On the **build workstation**:
 
 - docker (+ buildx), go, the `temporal` CLI, `gh` (logged in), rsync,
   an SSH keypair → authorize the public half for the `poc` user on PVE + the
-  4 VMs (the scripts SSH as `poc` everywhere; no passwords, no sudo in the
-  POC image set).
+  4 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
+  `poc` needs **passwordless sudo** on the VMs — m0/m4/m5 provisioning steps
+  use it).
 - `ssh -o StrictHostKeyChecking=accept-new poc@PVE_HOST` once per host —
   known_hosts gets seeded for you.
-- `mkdir -p /opt/poc/m1 /opt/poc/m2 /opt/poc/m3 /opt/poc/m5` on the VMs that
-  need them (the scripts create the compose dirs themselves; these are the
-  parents).
+- `mkdir -p /opt/poc/deploy/m1 /opt/poc/deploy/m2 /opt/poc/deploy/m3
+  /opt/poc/deploy/m5` on the VMs that need them (the scripts use
+  `/opt/poc/deploy/m<n>` and create the compose dirs themselves; these are
+  the parents).
 
 ## When a step fails, where do you look?
 
@@ -83,9 +85,9 @@ one — each script is scoped to its own milestone.
 | Artifact | Location |
 |---|---|
 | Per-milestone gate results | `deploy/m<n>/evidence/` (created at run) |
-| Temporal history for the POC | Temporal Web on vm-xb, namespace `poc` |
+| Temporal history for the POC | Temporal Web on vm-xb, namespace `default` (no `poc` namespace is created) |
 | Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-llm-wiki: llmwiki; vm-xa: front-of-house at M5) |
-| GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on vm-xa (chmod 600, never in git) |
+| GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never in git) — where `issue-token.sh` runs |
 
 ## The POC is complete when (from the M5 install doc §9)
 
