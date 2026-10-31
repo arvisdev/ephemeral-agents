@@ -33,7 +33,41 @@ qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virti
 for i in 900 901 902 903; do qm start $i; done
 ```
 
-Install Ubuntu on each (ISO/cloud-init per the estate's existing pattern). Post-boot on each VM:
+### 1a. Install the OS (the `qm create` disks start EMPTY)
+
+*Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets four unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given).
+
+**Path A — cloud-init template (preferred):** on the PVE host, attach the estate's Ubuntu cloud-init image/template to each VM and seed the `poc` user + SSH key + hostname via cloud-init:
+
+```bash
+# once, if no template exists yet: download + import the Ubuntu cloud image into local storage
+# (matches the estate's Ubuntu 26.04 LTS assumption; 24.04 image if 26.04 is unavailable)
+wget https://cloud-images.ubuntu.com/<release>/current/<release>-server-cloudimg-amd64.img -P /var/lib/vz/template/iso/
+for i in 900 901 902 903; do
+  qm importdisk $i /var/lib/vz/template/iso/<release>-server-cloudimg-amd64.img local
+  qm set $i --scsihw virtio-scsi-pci --scsi0 local:vm-$i-disk-1      # attach the imported disk as boot disk
+  qm set $i --boot order=scsi0
+  qm set $i --ide2 local:cloudinit                                   # cloud-init drive
+  qm set $i --ciuser poc --sshkeys ~/.ssh/id_ed25519.pub             # deploy user + key auth (matches M0's ssh-as-poc rule)
+  qm set $i --cipassword "$(openssl rand -hex 8)"                    # throwaway; SSH-key auth is the real path
+  qm set $i --hostname vm-xa                                         # per VM: 900=vm-xa 901=vm-xb 902=vm-llm-wiki 903=vm-hindsight
+  qm reboot $i                                                       # re-boot into the installed disk
+done
+```
+
+**Path B — ISO + manual install:** upload an Ubuntu ISO to `local` (`ISO Images → Upload` in the PVE web UI or `qm importdisk`-equivalent `pvesm`), then per VM:
+
+```bash
+qm set <vmid> --ide2 local:iso/<ubuntu-iso>.iso,media=cdrom --boot order=ide2
+qm start <vmid>
+# open the console (noVNC), walk the installer: hostname as above, user 'poc'
+# (add to sudo group), erase-disk install onto the 20/40G virtio disk
+qm set <vmid> --ide2 none,media=cdrom                               # eject the ISO after install
+```
+
+Either path lands you at the same state the post-boot block below assumes: Ubuntu booted on the VM, a `poc` user present (cloud-init path creates it for you — skip the `useradd` in the post-boot block if so), ready for hostname/netplan/chrony. The static IPs you set via netplan **must be the same ones you write into `deploy/m0/hosts.env` (NETPLAN_IP_*) and your name-resolution mechanism** — see `deploy/m0/hosts.env.example` for the worked example and that rule.
+
+Post-boot on each VM:
 
 ```bash
 sudo hostname vm-xa                      # per VM

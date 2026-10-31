@@ -43,6 +43,28 @@ procedures/TP-M<n>`) must be signed **before** the next install script is
 started. The scripts probe this for you (M0_DONE etc.) — but the *sign-off*
 is the human's job.
 
+## Owner must hand you these (before you touch any script)
+
+*The POC needs inputs only the owner can supply. Collect them FIRST — every
+milestone below assumes they exist, and hunting for them mid-install is how a
+junior run stalls.* If any item is missing, stop and ask before starting M0.
+
+- [ ] **M3: GitHub App + private key** — the App ID + the key file, to be
+      placed at `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never
+      in git). Needed by `deploy/m3/issue-token.sh`.
+- [ ] **Available Agent List repo + read token** — the repo the agent index is
+      read from, plus a read-only token the gateway can use.
+- [ ] **M4 content settings: `CONTENT_REPO` + `LLMWIKI_READ_TOKEN`** — the
+      LLM-Wiki content repo and its read token (vm-llm-wiki).
+- [ ] **`EMBEDDING_PROVIDER` + API key** — which embedding backend the POC
+      uses and its key (same model for ingest and query in M4).
+- [ ] **TTL / cap configuration values** — `POC_TTL_DEFAULT` and the team cap
+      (agents per team / concurrent-run limits) the M2 reaper and M5 manager
+      enforce.
+- [ ] **Network facts** — the PVE LAN IP pool to draw the four static VM IPs
+      from, and the decision on name resolution (PVE DNS vs `/etc/hosts`) to
+      record in `deploy/m0/decision-log.md`.
+
 ## First time on this POC? Do these once, then start at M0.
 
 On the **build workstation**:
