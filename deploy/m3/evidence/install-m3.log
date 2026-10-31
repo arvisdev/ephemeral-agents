@@ -1,3 +1,6 @@
 [m3 01:44:53] === M3 executor install start (check-only=1 no-gate=0) ===
 [m3 01:44:53] §0 — prereq checks (M2 gate)
 [m3 01:44:53] FAIL: lifecycle/worker not running on vm-xb — run M2 install first
+[m3 01:53:46] === M3 executor install start (check-only=1 no-gate=0) ===
+[m3 01:53:46] §0 — prereq checks (M2 gate)
+[m3 01:53:46] FAIL: lifecycle/worker not running on vm-xb — run M2 install first

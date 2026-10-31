@@ -49,6 +49,11 @@ is the human's job.
 milestone below assumes they exist, and hunting for them mid-install is how a
 junior run stalls.* If any item is missing, stop and ask before starting M0.
 
+- [ ] **The four VMs, pre-provisioned** — clean Ubuntu 26.04 LTS, all updates
+      applied, SSH enabled and allowed through UFW (owner baseline,
+      2026-10-30). Everything else on the VMs (hostname/netplan, chrony, the
+      `poc` user, Docker, UFW service-port rules) is M0's job — see M0 §1a's
+      baseline note.
 - [ ] **M3: GitHub App + private key** — the App ID + the key file, to be
       placed at `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never
       in git). Needed by `deploy/m3/issue-token.sh`.

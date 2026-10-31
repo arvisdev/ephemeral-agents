@@ -1,3 +1,6 @@
 [m1 01:44:52] === M1 adapter install start (check-only=1 no-gate=0) ===
 [m1 01:44:53] §0 — prereq checks (M0 gate)
 [m1 01:44:53] FAIL: temporal CLI not found on build host (install per M0 §4)
+[m1 01:53:45] === M1 adapter install start (check-only=1 no-gate=0) ===
+[m1 01:53:45] §0 — prereq checks (M0 gate)
+[m1 01:53:45] FAIL: temporal CLI not found on build host (install per M0 §4)
