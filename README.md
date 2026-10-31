@@ -95,6 +95,8 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   ├── delivery plans/               One delivery plan per milestone (work packages, deliverables, acceptance criteria)
 │   ├── installation-deployment/      One full install/deploy instruction set per milestone — each section carries a "why" rationale
 │   └── test procedures/              One gate test procedure per milestone (TP-M0 … TP-M5)
+├── schemas/                          Versioned inter-zone contracts
+│   └── message-v1.json               The task message envelope (authoritative per D-msg-v1; owned by the M1 delivery plan)
 ├── deploy/                           The executable layer
 │   ├── README.md                     Operator entry point: step sequence, gate rule, first-time setup, failure routing
 │   ├── m0/install.sh … m5/install.sh Six complete install scripts (idempotent; --check-only; gate tests; evidence to deploy/mN/evidence/)

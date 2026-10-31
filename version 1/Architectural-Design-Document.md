@@ -62,8 +62,8 @@ A human Software Engineer (human-in-the-loop, Hermes Desktop, outside the compan
 
 1. **Request in.** Engineer → Gateway (vm-xa).
 2. **Resolve.** Manager Agent looks up the agent index in the Available Agent List repo; selects persona/skills/tool set; obtains repo location + markdown folder + Behavioral Specification.
-3. **Publish.** Manager → topic (`tasks.dev.*`, routing key per task type). Two-way: the response returns on a reply routing/correlation when one is needed.
-4. **Bridge.** Topic-bridge consumes, validates `message-v1.json`, starts exactly one Temporal workflow per message (idempotency key = message id; ack-after-workflow-start → no loss, no duplicates' second workflow).
+3. **Publish.** Manager → topic exchange `agent.tasks` with routing key `agent.tasks.<capability>` (binding pattern `agent.tasks.#`; DLQ `agent.tasks.dlq`; responses on `agent.tasks.response`). Two-way: the response returns on the same `task_id` when one is needed (D-msg-v1).
+4. **Bridge.** Topic-bridge consumes, validates `message-v1.json`, starts exactly one Temporal workflow per message (idempotency key = `task_id`; ack-after-workflow-start → no loss, no duplicates' second workflow).
 5. **Orchestrate.** Temporal workflow runs the "execute activity," which calls the lifecycle manager.
 6. **Spawn + hydrate.** Lifecycle manager `docker run`s the needed executor containers (pre-pulled images, no pull at activity time), injecting: repo location + markdown folder, Behavioral Specification, per-run scoped credentials, TTL. Executors hydrate:
    - Available Agent List repo → full persona/skill markdowns;
@@ -76,7 +76,7 @@ A human Software Engineer (human-in-the-loop, Hermes Desktop, outside the compan
 ## 5. Contracts
 
 ### 5.1 Message envelope — `message-v1.json`
-The inter-zone contract. Fields: `message_id` (idempotency key, UUID), `task_type` (routing key), `payload` (request text + task params), `repo_location`, `repo_folder`, `behavioral_spec_ref`, `agent_selection`, `ttl_s` (optional, manager-written only), `created_at`, `correlation_id` (response routing). Versioned at the top level (`$schema`) so V2 changes don't break the bridge. **Status: not yet written — owned by the M1 delivery plan.**
+The inter-zone contract: [`schemas/message-v1.json`](../schemas/message-v1.json) (written by the M1 delivery plan, WP-1.1). Required fields: `task_id` (unique, **the idempotency key** — the Temporal workflow ID is `task_id`), `agent_ref` (repo location + folder with the agent's markdown), `behavioral_spec`, `repo_target`, `requester`. One optional field: `ttl_s` (integer seconds; manager is the only writer; absent ⇒ M2 applies `POC_TTL_DEFAULT`, the reaper is authoritative either way). There is **no `correlation_id`**: `task_id` is the single identifier — the two-way response path correlates on `task_id` (M2 response publisher → M5 manager consume). Versioned at the top level (`$schema`) so V2 changes don't break the bridge.
 
 ### 5.2 Service APIs
 - **Hindsight R/W API** (`services/hindsight-api`): session-scoped read/write of memory records; pgvector substrate; contract fixed early (R6) so the executor entrypoints are stable.
@@ -110,7 +110,7 @@ Invariants: teardown is safe to re-run; after M runs, zero leaked containers (TP
 | Failure | Design answer |
 |---|---|
 | Leaked/hung container (R1) | Lifecycle manager idempotent teardown + TTL reaper + Temporal activity timeouts; M2 gate proves the crash path. |
-| Message loss / duplicate workflow (R2) | Durable consumer, ack after workflow start, idempotency key on `message_id`; M1 gate T1–T5. |
+| Message loss / duplicate workflow (R2) | Durable consumer, ack after workflow start, idempotency key on `task_id`; M1 gate TC-M1-01…06. |
 | N coders on one repo (R3) | Branch/worktree per coder (locked M3); cap in team config. |
 | Credential exposure (R4) | Short-lived branch-limited tokens per run; no long-lived owner secret in any container; M5 credential scan is the gate. |
 | Slow/unsupported Hermes boot persona load (R5) | M3a spike first; fallback = hydration sidecar fills the container before the agent starts. TTL sized from measured boot p50. |
@@ -150,6 +150,8 @@ These resolutions (or explicit deferrals) form the **Version 2 open-items list**
 | D-lang | All Temporal SDK code is Golang | 2026-10-24 |
 | D-rmq | RabbitMQ kept deliberately as the V2 ingestion boundary | 2026-10-29 |
 | D-ttl | Hybrid TTL: manager-written optional `ttl_s`, lifecycle default 900 s, reaper authoritative | 2026-10-29 |
+| D-msg-v1 | Message contract resolved: `schemas/message-v1.json` is authoritative. Fields: `task_id` (THE idempotency key / workflow ID), `agent_ref`, `behavioral_spec`, `repo_target`, `requester`, optional `ttl_s` (manager-only writer). **No `message_id`, no `correlation_id`** — `task_id` is the single identifier; the response path correlates on `task_id`. §5.1 rewritten to match. | 2026-10-30 |
+| D-routing | Topic namespace resolved: exchange `agent.tasks`, routing key `agent.tasks.<capability>`, binding `agent.tasks.#`, DLQ `agent.tasks.dlq`, responses `agent.tasks.response`. The ADD's earlier `tasks.dev.*` was a pre-decision placeholder — retired, not reconciled; nothing implements it. `agent.tasks.#` serves the D-rmq ingestion-boundary rationale (V2 publishers land in the same durable queue with no re-binding). §4 flow rewritten to match. | 2026-10-30 |
 | D-n1 | Needs-based counts, parallel for parallel requests, team-config hard cap (≤5 POC thumb) | 2026-10-25 |
 | D-stores | Hindsight = long-term memory (R/W); LLM-Wiki = standards/best practices; Available Agent List repo = everything agents load | 2026-10-24 |
 

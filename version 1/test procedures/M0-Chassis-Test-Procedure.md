@@ -27,14 +27,14 @@
 | TC-M0-05 | Temporal service | Install §4: compose healthy; `temporal operator cluster health`; `temporal operator namespace list` | members HEALTHY; `default` listed | both true |
 | TC-M0-06 | **Go SDK smoke (language gate)** | Install §4b: `go run . -addr vm-xb:7233` in `deploy/m0/go-sdk-smoke/` | prints `hello from greet` — a **Go** workflow completed | must PASS for the language decision to hold |
 | TC-M0-07 | Network matrix | Install §5: ssh-22 pairwise all 4 VMs; `curl -sI https://github.com` from vm-xa/vm-xb; `nc` 7233/5672 on vm-xb | matrix 100% | zero failed probes (recorded) |
-| TC-M0-08 | Idempotent re-deploy | Re-run `deploy/m0/deploy.sh` against the live chassis | all services still healthy; no data loss (RabbitMQ queue + Temporal PG intact) | exit 0; healthchecks green |
+| TC-M0-08 | Idempotent re-deploy | Re-run `deploy/m0/install.sh` against the live chassis | all services still healthy; no data loss (RabbitMQ queue + Temporal PG intact) | exit 0; healthchecks green |
 
 ## Evidence to file (`deploy/m0/evidence/`)
 
 - `tp-m0-results.md` — the result table (case, PASS/FAIL, timestamp, operator)
 - `network-matrix.txt` — raw matrix output (install §5)
 - `go-sdk-smoke.log` — the TC-M0-06 run output
-- `decision-log.md` entry — VM naming scheme **(b)** + **Go language decision** (install §6)
+- `decision-log.md` entry — VM naming scheme **(a)** + hostname mapping **(b)** + **Go language decision (c)** (install §6)
 
 ## Gate decision
 

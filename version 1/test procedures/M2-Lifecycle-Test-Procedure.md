@@ -25,7 +25,7 @@
 | TC-M2-03 | Timeout path | `./tests/run-task.sh '{"task_id":"t003","inject":"hang","ttl_s":15}'` | reaper/timeout reaps at ~15 s; error surfaced | reaped within TTL + interval; zero survivors |
 | TC-M2-04 | **Crash recovery** | start t004 (hang, ttl 120) → `docker kill worker` → wait 1 reaper interval → `docker start worker` | reaper (in `lifecycle`) reaps t004's container; workflow retries the activity; final state clean | **no orphan** at the `docker ps -a` check; zero survivors at end |
 | TC-M2-05 | 10 mixed runs, zero survivors | `./tests/mixed-runs.sh 10` (5 success, 3 failure, 2 timeout) | all 10 lifecycle events logged; teardown idempotent | zero survivors; 10/10 events in logs |
-| TC-M2-06 | No-pull rule | re-deploy via `deploy/m2/deploy.sh` with the pinned image **deleted** from the local store first, then restored; inspect the happy-path activity logs | deploy gate refuses to serve without the pinned image; no activity log ever contains an image pull | gate fires; zero pulls in logs |
+| TC-M2-06 | No-pull rule | re-deploy via `deploy/m2/install.sh` with the pinned image **deleted** from the local store first, then restored; inspect the happy-path activity logs | deploy gate refuses to serve without the pinned image; no activity log ever contains an image pull | gate fires; zero pulls in logs |
 
 ## Informational (record, do not gate)
 

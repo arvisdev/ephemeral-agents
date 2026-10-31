@@ -23,7 +23,7 @@ price of owning that boundary — M1's job is to prove the price is manageable.
   - `agent_ref` — repo location + repo folder containing the agent's markdown (persona, skill and tools) — per the diagram's Note 1 ("the agent will pass the repo location, and repo folder that contains all the markdowns")
   - `behavioral_spec` — the Behavioral Specification passed by the manager (Note 1)
   - `repo_target` — Project Repo to write code to
-  - `requester` / correlation data for the response path (the two-way Manager ↔ RabbitMQ variant)
+  - `requester` — who asked; carries the response path. There is no separate `correlation_id`: the two-way Manager ↔ RabbitMQ response correlates on `task_id` (the single identifier for request and response).
 - One optional field: `ttl_s` (integer seconds) — the manager is the only writer of it; when absent, M2's lifecycle applies its config default (`POC_TTL_DEFAULT`). The reaper stays authoritative regardless (R1).
 - Deliverable: `schemas/message-v1.json` + one example message + a short schema-rationale note (including the `ttl_s` ownership rule).
 

@@ -44,8 +44,8 @@ services:
 1. `git clone --depth 1` the Available Agent List (read token).
 2. Search `index.json` for the agent matching the request (by role/capability in the request payload).
 3. Locate the folder: full persona + skill and tools + the folder containing all the markdowns + the Behavioral Specification.
-4. Compose the M1 task message: `{task_id, agent_ref, repo_location + repo_folder, behavioral_spec, repo_target, requester, correlation_id, ttl_s}` → publish to `agent.tasks` (topic). **`ttl_s` is set by the manager (the only writer): `max(3 × B1 boot-time p50, brief estimate)`; absent ⇒ M2 applies `POC_TTL_DEFAULT` (900s). The reaper is authoritative regardless.**
-5. Consume `agent.tasks.response` filtered by `correlation_id` → write the human report (outcome + artifact pointer: `task/<id>` branch / commit) to `/reports/<task_id>.json` → surface it to the engineer's desktop (the two-way Manager ↔ RabbitMQ path, owner-confirmed).
+4. Compose the M1 task message: `{task_id, agent_ref, behavioral_spec, repo_target, requester, ttl_s}` → publish to `agent.tasks` (topic). **`ttl_s` is set by the manager (the only writer): `max(3 × B1 boot-time p50, brief estimate)`; absent ⇒ M2 applies `POC_TTL_DEFAULT` (900s). The reaper is authoritative regardless.**
+5. Consume `agent.tasks.response` filtered by `task_id` → write the human report (outcome + artifact pointer: `task/<id>` branch / commit) to `/reports/<task_id>.json` → surface it to the engineer's desktop (the two-way Manager ↔ RabbitMQ path, owner-confirmed).
 
 ## 2. Engineer's desktop (external actor)
 
@@ -61,7 +61,7 @@ services:
 Idempotent, stage-gated (each stage's healthcheck must pass before the next; any failure halts + prints the stage):
 
 ```
-S1 chassis     : M0 deploy.sh (idempotent re-run)
+S1 chassis     : M0 install.sh (idempotent re-run)
 S2 adapter     : M1 compose up + consumer-healthy check
 S3 lifecycle   : M2 compose up + deploy gate (pinned images present) + worker registered check
 S4 executors   : M3 images load-verified on vm-xb; token issuance dry-run (issue + verify + revoke)

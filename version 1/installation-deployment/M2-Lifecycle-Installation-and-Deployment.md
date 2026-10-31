@@ -37,7 +37,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 **1c. Worker (Go — mandatory)** — Temporal worker registered on `default` namespace; activity `executes_activity(taskCfg)`:
 `spawn → poll status until complete/failed/TTL → reap → publish result → return result`.
-- **Response publisher (worker):** on completion (success or failure), publish `{task_id, correlation_id, status, artifact}` to the `agent.tasks.response` queue (declared in M0 §3) — the M5 manager's consume side of the two-way Manager ↔ RabbitMQ path. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
+- **Response publisher (worker):** on completion (success or failure), publish `{task_id, status, artifact}` to the `agent.tasks.response` queue (declared in M0 §3) — the M5 manager's consume side of the two-way Manager ↔ RabbitMQ path; the response correlates on `task_id`. The queue has **no exchange binding** — publish to the **default exchange** (empty exchange name, queue name as the routing key); M0 §3 deliberately declares it unbound. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
 
 ```bash
 docker build -f deploy/m2/Dockerfile.services -t poc/lifecycle:1.0.0 -t poc/worker:1.0.0 services/lifecycle
@@ -65,7 +65,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
       - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)
     restart: unless-stopped
-    # deploy gate (deploy/m2/deploy.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
+    # deploy gate (deploy/m2/install.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
     # on boot and refuses to serve until the pinned image exists locally (the no-pull rule, enforced).
   worker:
     image: poc/worker:1.0.0
@@ -135,5 +135,5 @@ docker ps -a --filter label=poc.owner=lifecycle | xargs -r docker rm -f   # manu
 | `cannot connect to Docker daemon` | socket not mounted or `DOCKER_HOST` unset; check `deploy/m2/compose.yaml` volume line |
 | Reaper reaps healthy containers | `poc.expires` label missing on spawn (label added only in 1b spawn — verify `docker inspect`), or clock skew between containers on vm-xb (`chrony`) |
 | Activity stuck, no error | start-to-close timeout not set; check the workflow's activity options |
-| `No such image` at spawn time | deploy gate bypassed — re-run `deploy/m2/deploy.sh` (the gate refuses to serve without the pinned image) |
+| `No such image` at spawn time | deploy gate bypassed — re-run `deploy/m2/install.sh` (the gate refuses to serve without the pinned image) |
 | Container leaks after worker kill | reaper interval too long vs. TTL, or reaper query filter mismatched (`poc.owner=lifecycle` — exact match) |

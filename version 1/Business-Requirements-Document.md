@@ -93,7 +93,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 - **FR-G4 (BO-7):** The outcome — artifact pointer or error — shall be reported back to the human; no outcome is silently dropped.
 
 **FR-A Adapter (M1)**
-- **FR-A1 (BO-2):** The adapter shall start **exactly one** Temporal workflow per valid message, keyed on `message_id` (idempotency key).
+- **FR-A1 (BO-2):** The adapter shall start **exactly one** Temporal workflow per valid message, keyed on `task_id` (idempotency key).
 - **FR-A2 (BO-2):** Redelivered/duplicate messages shall not start a second workflow.
 - **FR-A3 (BO-2):** No message shall be lost across a consumer restart (durable consumer, ack-after-workflow-start).
 - **FR-A4 (BO-2, FR-A1..3):** All adapter code shall be Go (owner language mandate).

@@ -19,7 +19,7 @@
 
 | ID | Title | Procedure (install §) | Expected result | Pass criteria |
 |---|---|---|---|---|
-| TC-M5-01 | Front-of-house | §3 S6 + §1: gateway `/healthz` up on vm-xa; manager consuming; engineer desktop sends `{title, agent_capability, task_brief}` | request lands as exactly 1 new `TaskWorkflow` (Temporal CLI) | 1 workflow, correlation_id visible in the message |
+| TC-M5-01 | Front-of-house | §3 S6 + §1: gateway `/healthz` up on vm-xa; manager consuming; engineer desktop sends `{title, agent_capability, task_brief}` | request lands as exactly 1 new `TaskWorkflow` (Temporal CLI) | 1 workflow, `task_id` visible in the message (per `schemas/message-v1.json`; no correlation_id) |
 | TC-M5-02 | **E2E acceptance run** | §4 E1: one real request, human to human | the full artifact chain exists | (a) temporal trace shows the run; (b) container labels seen alive, **zero survivors** after; (c) commit on `origin/task/<id>`; (d) `GET /gateway/reports/<task_id>` returns the report JSON (branch + commit + status) |
 | TC-M5-03 | Failure injections F1–F4 | §5 runbook: pause LLM-Wiki / block catalog 443 / `pkill -9` agent / TTL too short — one task each | each: clean reap (zero survivors) + **human-visible error** in the report with the reason | 4/4 clean + reported; policy (error vs. degrade) recorded |
 | TC-M5-04 | Credential hardening | §6: trivy secret scan across all 10 deployed images (the full §6a loop set); `docker inspect` env sweep on every running container; token lifecycle re-check (M3 TC-M3-05) | no long-lived owner secret anywhere; issued tokens dead post-reap | all three clean |

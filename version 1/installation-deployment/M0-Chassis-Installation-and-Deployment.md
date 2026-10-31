@@ -85,7 +85,7 @@ cd deploy/m0/rabbitmq && docker compose up -d
 BASE=http://127.0.0.1:15672; AUTH="poc:$RABBITMQ_PASS"
 curl -s -u "$AUTH" -XPOST "$BASE/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
 curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
-curl -s -u "$AUTH" -XPOST "$BASE/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.durable"}'
+curl -s -u "$AUTH" -XPOST "$BASE/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.#"}'   # per D-routing: wildcard binding — V2 publishers need no re-binding
 curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'   # for M1 poison pills
 curl -s -u "$AUTH" -XPOST "$BASE/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'  # M5 manager consumes; M2 worker publishes results
 ```
@@ -169,7 +169,7 @@ For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-llm
 
 ## 6. Record the VM naming decision (D-8) + lock language + repo layout
 
-*Why:* the language decision is the open item that, left open, gets re-litigated at every later milestone — locking it now costs ten minutes; locking it at M5 costs a re-hardening pass. VM naming (D-8) was resolved by the owner 2026-10-25 (labels are POC discussion devices, not commitments); this section just *records* that plus the POC's concrete hostnames. The repo layout is fixed here so the chassis is proven scriptable — `deploy.sh` exists to make "wipe and re-run" the recovery path.
+*Why:* the language decision is the open item that, left open, gets re-litigated at every later milestone — locking it now costs ten minutes; locking it at M5 costs a re-hardening pass. VM naming (D-8) was resolved by the owner 2026-10-25 (labels are POC discussion devices, not commitments); this section just *records* that plus the POC's concrete hostnames. The repo layout is fixed here so the chassis is proven scriptable — `install.sh` exists to make "wipe and re-run" the recovery path.
 
 - Record in `deploy/m0/decision-log.md` (and note the resolutions in the open-items section of `../Initial-Foundation-Design-Document.md` §7): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames, mapped to their labels: `vm-xa`→VM-Xa, `vm-xb`→VM-Xb, `vm-llm-wiki`→VM-2 (LLM-Wiki), `vm-hindsight`→VM-3 (Hindsight); (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
@@ -179,11 +179,11 @@ deploy/
   m0/
     rabbitmq/compose.yaml   temporal/compose.yaml
     image-tags.env          .env.example
-    deploy.sh               # idempotent: creates everything from zero, safe to re-run
+    install.sh              # idempotent: creates everything from zero, safe to re-run
     evidence/network-matrix.txt
 ```
 
-`deploy.sh` runs steps 2–5 in order with `set -euo pipefail` and a healthcheck gate after each service.
+`install.sh` runs steps 2–5 in order with `set -euo pipefail` and a healthcheck gate after each service (re-runs skip what's already done).
 
 ## 7. Acceptance checks (the M0 gate)
 
@@ -199,7 +199,7 @@ deploy/
 
 ## 8. Troubleshooting
 
-*Why:* the chassis must be proven **rebuildable** — this table exists so "wipe the VMs and re-run `deploy.sh`" is a documented recovery path, not a last resort. Each row pre-diagnoses a symptom so the operator goes straight to the fix.
+*Why:* the chassis must be proven **rebuildable** — this table exists so "wipe the VMs and re-run `install.sh`" is a documented recovery path, not a last resort. Each row pre-diagnoses a symptom so the operator goes straight to the fix.
 
 | Symptom | Cause / fix |
 |---|---|
@@ -207,4 +207,4 @@ deploy/
 | Temporal pod not ready | Postgres healthcheck failing → check `${TEMPORAL_DB_PASS}` in `.env`; first start can be slow (schema init) |
 | Rabbit healthcheck flapping | memory alarm — bump `vm-xb` RAM or set a memory limit; check `rabbitmq-diagnostics` |
 | Clock skew warnings in logs | `chrony` not enabled on all VMs (see §1) |
-| Rebuild needed | `docker compose down -v` + wipe VM disks, re-run `deploy/m0/deploy.sh` — that's the point of the scriptable chassis |
+| Rebuild needed | `docker compose down -v` + wipe VM disks, re-run `deploy/m0/install.sh` — that's the point of the scriptable chassis |

@@ -63,8 +63,8 @@ assert "probe hits the NAMED exchange resource (not the collection)" \
   "/api/exchanges/%2F/agent.tasks" \
   "$(grep -o '"path": "/api/exchanges/[^"]*"' "$WORK/requests.jsonl" | head -1 | sed 's/.*path": "//; s/"//')"
 assert "5 POSTs declared" "5" "$(grep -c '"method": "POST"' "$WORK/requests.jsonl")"
-assert "binding posted via /q/<queue> path with routing_key" "1" \
-  "$(grep -c 'bindings/%2F/e/agent.tasks/q/agent.tasks.durable.*routing_key' "$WORK/requests.jsonl")"
+assert "binding posted via /q/<queue> path with routing_key"  "1" \
+  "$(grep -c 'bindings/%2F/e/agent.tasks/q/agent.tasks.durable.*routing_key.\{0,6\}agent\.tasks\.#' "$WORK/requests.jsonl")"
 assert "response queue declared" "1" "$(grep -c 'agent.tasks.response' "$WORK/requests.jsonl")"
 assert "auth on every line" "6" "$(grep -c '"auth": "Basic [A-Za-z0-9+/=]*"' "$WORK/requests.jsonl")"
 assert "auth decodes to poc:<password>" "1" \

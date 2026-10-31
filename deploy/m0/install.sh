@@ -33,7 +33,6 @@
 # Assets required in the repo (produced by the M0 delivery plan; checked first):
 #   deploy/m0/rabbitmq/compose.yaml   deploy/m0/temporal/compose.yaml
 #   deploy/m0/go-sdk-smoke/  (a minimal Go program: greet workflow + worker)
-#   deploy/m0/deploy.sh  (idempotent re-run subset — §6 of the doc)
 #   deploy/m0/.env.example
 #
 # Secrets: generated once into gitignored deploy/m0/{rabbitmq,temporal}/.env
@@ -93,7 +92,6 @@ check_assets() {
     "$M0/rabbitmq/compose.yaml" \
     "$M0/temporal/compose.yaml" \
     "$M0/go-sdk-smoke" \
-    "$M0/deploy.sh" \
     "$M0/.env.example"
   do
     [ -e "$f" ] || missing+=("$f")
@@ -219,7 +217,7 @@ set -e
 cfg=$(cat /tmp/rmq-cfg)
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.durable"}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.#"}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'
 printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'
 rm -f /tmp/rmq-cfg

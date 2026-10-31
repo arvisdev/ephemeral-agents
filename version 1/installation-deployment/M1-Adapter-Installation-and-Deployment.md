@@ -35,7 +35,7 @@ The consumer must do, in order (this is the correctness contract — M2+ assumes
 
 1. `QoS(prefetch=1)`, **manual ack**.
 2. Consume `agent.tasks.durable` bound to topic exchange `agent.tasks`.
-3. On message: validate against `schemas/message-v1.json` → **invalid: publish to `agent.tasks.dlq` with the reason as property, then ack** (never requeue invalid messages). The schema's fields: `task_id`, `agent_ref`, `behavioral_spec`, `repo_target`, `requester`/correlation data, plus one **optional field `ttl_s`** (integer seconds) — the manager is the only writer of it; when absent, M2's lifecycle applies its config default (`POC_TTL_DEFAULT`, 900s). The reaper stays authoritative either way (R1 backstop intact).
+3. On message: validate against `schemas/message-v1.json` → **invalid: publish to `agent.tasks.dlq` with the reason as property, then ack** (never requeue invalid messages). The schema's fields: `task_id`, `agent_ref`, `behavioral_spec`, `repo_target`, `requester` (the response path correlates on `task_id` — no separate correlation field), plus one **optional field `ttl_s`** (integer seconds) — the manager is the only writer of it; when absent, M2's lifecycle applies its config default (`POC_TTL_DEFAULT`, 900s). The reaper stays authoritative either way (R1 backstop intact).
 4. Valid: `client.StartWorkflow(ctx, StartWorkflowOptions{ WorkflowID: msg.TaskID, WorkflowIDReusePolicy: AllowDuplicate }, TaskWorkflow, msg)` → on `ErrWorkflowExecutionAlreadyExists` **ack** (idempotent duplicate) → otherwise **ack only after start confirmed**.
 
 ## 2. Package as an image — `deploy/m1/Dockerfile`
@@ -90,7 +90,7 @@ docker compose ps && docker logs -f topic-bridge        # expect: consumer start
 
 ## 4. Verification run (the M1 gate tests)
 
-*Why:* T1–T5 each corresponds to a failure mode the POC must survive later — duplicates (T2), a crash mid-flight (T3), poison messages (T4), engine restart (T5). They *are* the M1 gate: all five must pass before M2's installation begins, and the evidence file is what `TP-M1` signs.
+*Why:* T1–T5 each corresponds to a failure mode the POC must survive later — N→N (T1), duplicates (T2), a crash mid-flight (T3), poison messages (T4), engine restart (T5). **T1–T5 are this script's own block labels, not the gate numbering** — the authoritative gate is TP-M1's six mandatory cases (TC-M1-01…06); the mapping is: T1→TC-02, T2→TC-03, T3→TC-04, T4→TC-01, T5→TC-05, and the rollback/re-deploy block → TC-06. All six must pass before M2's installation begins, and the evidence file is what `TP-M1` signs.
 
 Test harness: `deploy/m1/tests/publish.sh` + `assert.sh` (plain scripts, committed with the repo).
 

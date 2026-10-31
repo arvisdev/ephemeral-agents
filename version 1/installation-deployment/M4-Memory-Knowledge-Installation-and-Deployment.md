@@ -166,6 +166,7 @@ docker volume rm hindsight-pg-data llmwiki-pg-data   # only on a true re-do
 
 | Symptom | Cause / fix |
 |---|---|
+| Poor retrieval quality (TC-M4-03: wrong top hits) | chunking granularity or embedding-dim mismatch between the ingest and query paths — same embedding model, same dims, same chunk size on both sides of the pgvector store; fix and **re-run the ingest**, not just the query |
 | `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (§1a image pin) |
 | API 500 on write | embedding provider key missing/rate-limited — check `EMBEDDINGS` env + provider quota (rate-limit note from the owner's standing conventions) |
 | Hydration slow | embedding calls in the hot path — POC-scale: precompute nothing, but check provider latency and `k`; record actuals (§4 G5) |
