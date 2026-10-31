@@ -105,9 +105,33 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 └── LICENSE
 ```
 
-Deliberately **not in git** (see `.gitignore`): `*.env` secret files and
-`_quarantine/` (install scripts of unverified provenance, held for owner
-review), and any personal credential file.
+Deliberately **not in git** (see `.gitignore`): `*.env` secret files, gate
+evidence (`deploy/m*/evidence/`, created at run), build artifacts, and any
+personal credential file.
+
+## Versioning conventions (V1 → V2 readiness)
+
+The repo is structured so a Version 2 iteration can start without a
+reorganization debate:
+
+- **`version 1/` is the V1 design record, and it is closed to new content.**
+  The baseline rule: nothing is added to, or merged into, a version's doc set
+  after its content is baselined — each iteration gets its own folder. V2
+  design docs go in `version 2/` when that iteration starts, never into
+  `version 1/`.
+- **`deploy/`, `services/`, and `schemas/` serve the *current* iteration**
+  (there is only ever one live executable layer). At V2 kickoff, `deploy/`
+  freezes as the V1 evidence trail — its gate runs and evidence outputs are
+  the proof record — and V2 gets its own parallel deploy/services trees.
+  That placement decision is recorded in the V2 open-items list at kickoff,
+  not in advance.
+- **`schemas/` holds the live inter-zone contracts**, versioned by filename
+  (`message-v1.json` → `message-v2.json`). A V2 contract is added alongside;
+  the V1 contract file is retired only when no V1 consumer remains, and every
+  schema copy (see the M1 drift guard) is compared to its authoritative file.
+- **Decision rows are per-version.** V1 decisions live in the V1 docs'
+  decision logs; a V2 decision never re-litigates a resolved V1 row — it
+  cites it and supersedes it in V2's own log.
 
 ## How to run the POC
 
