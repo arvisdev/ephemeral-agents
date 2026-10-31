@@ -4,3 +4,7 @@ github-pac.txt
 
 # Quarantined material pending owner review — not part of the POC doc set
 _quarantine/
+
+# run artifacts — evidence is created at run time, never committed
+deploy/m*/evidence/
+deploy/m0/go-sdk-smoke/go-sdk-smoke

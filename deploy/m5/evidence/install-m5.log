@@ -1,6 +1,0 @@
-[m5 01:44:53] === M5 e2e+hardening install start (check-only=1 no-gate=0) ===
-[m5 01:44:53] §0 — prereq: TP-M0..TP-M4 all signed
-[m5 01:44:53] FAIL: M1: topic-bridge missing on vm-xb — earlier gate not passed
-[m5 01:53:46] === M5 e2e+hardening install start (check-only=1 no-gate=0) ===
-[m5 01:53:46] §0 — prereq: TP-M0..TP-M4 all signed
-[m5 01:53:46] FAIL: M1: topic-bridge missing on vm-xb — earlier gate not passed
