@@ -124,7 +124,13 @@ check_assets() {
     printf '  %s\n' "${missing[@]}"
     die "asset check failed — build the assets, then re-run"
   fi
-  ok "assets present"
+  # drift guard: services/topic-bridge/schemas/message-v1.json is a copy of the
+  # authoritative schemas/message-v1.json — a silent divergence breaks validation
+  # semantics while both files still exist. Compare at every check, not on trust.
+  if ! cmp -s "$REPO_ROOT/schemas/message-v1.json" "$REPO_ROOT/services/topic-bridge/schemas/message-v1.json"; then
+    die "schemas/message-v1.json and services/topic-bridge/schemas/message-v1.json diverge — re-copy the authoritative schema (cp schemas/message-v1.json services/topic-bridge/schemas/)"
+  fi
+  ok "assets present (schema copy matches the authoritative schema)"
 }
 
 # ---------------------------------------------------------------- §1 language check
