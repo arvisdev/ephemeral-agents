@@ -94,6 +94,7 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   ├── Technical-Feasibility-POC-Milestones.md     The M0–M5 plan: goals, done-when, gate rule, and links to every companion doc
 │   ├── delivery plans/               One delivery plan per milestone (work packages, deliverables, acceptance criteria)
 │   ├── installation-deployment/      One full install/deploy instruction set per milestone — each section carries a "why" rationale
+│   ├── NFR-1-Gap-Closure-Plan.md                   Gap inventory + 4-phase plan to satisfy the verbatim NFR-1 requirement (junior dev completes full install+test unaided)
 │   └── test procedures/              One gate test procedure per milestone (TP-M0 … TP-M5)
 ├── schemas/                          Versioned inter-zone contracts
 │   └── message-v1.json               The task message envelope (authoritative per D-msg-v1; owned by the M1 delivery plan)
