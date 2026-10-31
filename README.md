@@ -90,6 +90,7 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   ├── Initial-Foundation-Design-Document.md       Detailed diagram baseline + confirmed items + the D-8 naming decision
 │   ├── Architectural-Design-Document.md            Full buildable design: components, contracts, lifecycle state machine, failure modes, open items
 │   ├── Business-Requirements-Document.md           BRD: business objectives BO-1..7, stakeholders, FR/NFR requirements, business rules, acceptance criteria
+│   ├── Available-Agent-List-Repository.md          Contract for the external agent-catalog repo: decision (D-catalog), layout, index.json shape, change rules
 │   ├── Technical-Feasibility-Analysis.md           Component ratings (Proven/Feasible/Needs-build/To-verify), risk register, verdict
 │   ├── Technical-Feasibility-POC-Milestones.md     The M0–M5 plan: goals, done-when, gate rule, and links to every companion doc
 │   ├── delivery plans/               One delivery plan per milestone (work packages, deliverables, acceptance criteria)

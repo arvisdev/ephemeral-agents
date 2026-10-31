@@ -1,0 +1,10 @@
+[
+  {
+    "ref": "agents/backend-coder",
+    "name": "Backend Coder",
+    "role": "backend-coder",
+    "folder": "agents/backend-coder",
+    "skills": ["go", "rest-apis", "postgres"],
+    "spec_ref": "agents/backend-coder/behavioral-spec.md"
+  }
+]
