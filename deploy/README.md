@@ -22,6 +22,55 @@ Each `install.sh` does three things, in order:
    what's already done).
 3. **Run the milestone's gate tests** and record results in `evidence/`.
 
+## Zero → done: the full path, in order
+
+This is the walk-through for someone starting from an empty desk. Do the
+steps **in order**; each names exactly what to read and what to run.
+
+**Stage A — before you touch anything (half a day)**
+1. Read this file top to bottom (it is the map; the milestone docs are the
+   terrain).
+2. Collect the owner-inputs below ("Owner must hand you these") — all of
+   them, before starting. Missing item ⇒ stop and ask; do not improvise.
+3. Confirm the four VMs exist with the owner baseline (clean Ubuntu 26.04,
+   updated, SSH through UFW — see M0 doc §1a's baseline note).
+4. `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill it (ssh
+   aliases + the four static IPs; same IPs in netplan/DNS — the file's own
+   comments explain the rule).
+5. `bash deploy/check-workstation.sh` — fix everything it flags (tools,
+   SSH key auth as `poc`, passwordless sudo) until it is quiet.
+
+**Stage B — M0, the chassis (day 1)**
+6. Read `version 1/installation-deployment/M0-Chassis-Installation-and-Deployment.md`
+   §0–§8 once. It is the only milestone where you create infrastructure.
+7. `bash deploy/m0/install.sh --check-only` → then `bash deploy/m0/install.sh`.
+8. Run TP-M0's 8 cases, sign it. **Nothing else starts until TP-M0 is signed.**
+
+**Stage C — M1…M4, the components (the bulk of the work)**
+For each milestone in order (M1 adapter → M2 lifecycle → M3 executors →
+M4 memory/knowledge):
+9. Read that milestone's install doc fully, then its delivery plan if you
+   need the *why* behind a choice.
+10. `bash deploy/m<n>/install.sh --check-only` → `bash deploy/m<n>/install.sh`.
+11. Run that milestone's TP cases; sign before the next milestone.
+Pacing notes: M2's V4 (crash recovery) is the load-bearing test — if it
+cannot pass, STOP (the script tells you too). M3 needs the owner's GitHub
+App; M4 needs `CONTENT_REPO`/`LLMWIKI_READ_TOKEN`/`EMBEDDING_PROVIDER`.
+
+**Stage D — M5, end-to-end (the finale)**
+12. Read the M5 install doc; `--check-only` → run it. It brings up the
+    front-of-house, runs the ordered bring-up (S1–S7), one real E2E task,
+    four failure injections, and the hardening scans.
+13. Run TP-M5 and sign it.
+
+**Stage E — declare completion**
+14. Check the five conditions in "The POC is complete when" below. All five
+    ⇒ the POC is done; hand the evidence trail to the owner.
+
+Rule of thumb for the whole journey: **read before you run, `--check-only`
+before you run for real, sign before you move on, and when anything fails,
+the "When a step fails" section below tells you where the fix lives.**
+
 ## The sequence (this is the whole POC, in one picture)
 
 | Step | Do | Result you need before the next step |
