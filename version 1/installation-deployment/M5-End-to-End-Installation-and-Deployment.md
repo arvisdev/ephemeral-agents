@@ -128,8 +128,10 @@ Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
 - [ ] LLM-Wiki curation owner + cadence (from M4)
-- [ ] **Per-project memory scoping in Hindsight** — with multiple project pairs (own VM-Xa/VM-Xb each, per D-mp-shared) hitting the shared Hindsight VM, session/task scoping must grow a project dimension (or per-project namespaces/databases) so project A's memory is never readable by project B's agents
+- [x] **Per-project memory scoping in Hindsight** — resolved 2026-10-30 (D-proj-id): every project has a unique **project-id** identifying its provisioned space in Hindsight; all reads/writes carry it, so no project sees another's memory. V2 implements the project-id dimension (the POC's session/task scoping is the seed).
 - [ ] **Shared-VM capacity + firewall governance** — the shared Hindsight/LLM-Wiki VMs serve every project pair: aggregate the per-project ≤5-container caps for sizing, and govern each project's UFW allow-list entry (the POC's `UFW_POC_CIDR` rule is the single-project seed)
+- [ ] **LLM-Wiki content taxonomy** — D-wiki-truth sets the split: per-project reference area keyed by project-id + shared enterprise area (company design specifications and the like); what remains open is the curation owner + cadence (from M4) and the per-project onboarding flow
+- [x] **Wiki-vs-repo boundary** — resolved 2026-10-30 (D-wiki-truth/D-repo-truth): development- and business-related items relevant to the deliverables → the project repo (GitHub/ADO, per project); **reference material → the LLM-Wiki**. Agents apply this rule when deciding where a document lives.
 
 Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: move resolved items out of "open", add the **Version 2 open items list** (LLM-Wiki curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency).
 
