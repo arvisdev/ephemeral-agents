@@ -1,0 +1,34 @@
+# M4 — LLM-Wiki (content + retrieval API + ingest) on vm-llm-wiki
+# Source: version 1/installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md §2b
+services:
+  llmwiki-pg:
+    image: "pgvector/pgvector:pg16"        # separate instance (same rule as M0: never share DBs across VMs)
+    environment:
+      POSTGRES_DB: llmwiki
+      POSTGRES_USER: llmwiki
+      POSTGRES_PASSWORD: ${LLMWIKI_DB_PASS}
+    volumes: ["llmwiki-pg-data:/var/lib/postgresql/data"]
+  llmwiki-api:
+    image: "poc/llmwiki-api:1.0.0"         # Go service: retrieval + ingest endpoints
+    environment:
+      DB_DSN: "postgres://llmwiki:***@llmwiki-pg:5432/llmwiki"
+      EMBEDDINGS: ${EMBEDDING_PROVIDER}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
+      LISTEN: "0.0.0.0:8080"
+    ports: ["8080"]
+    depends_on:
+      llmwiki-pg:
+        condition: service_healthy
+  llmwiki-ingest:
+    image: "poc/llmwiki-api:1.0.0"
+    command: ["ingest"]                  # one-shot: clone llmwiki-content (depth 1), chunk, embed, upsert
+    environment:
+      DB_DSN: "postgres://llmwiki:***@llmwiki-pg:5432/llmwiki"
+      # token auth over HTTPS — git@ SSH ignores GITHUB_TOKEN
+      CONTENT_REPO: "https://x-access-token:${LLMWIKI_READ_TOKEN}@github.com/<owner>/llmwiki-content.git"
+      GITHUB_TOKEN: ${LLMWIKI_READ_TOKEN}
+      EMBEDDINGS: ${EMBEDDING_PROVIDER}
+    # no data-volume mount: ingest inserts over the network via DB_DSN —
+    # two writers on the same PG data dir is unsafe
+volumes:
+  llmwiki-pg-data: {}

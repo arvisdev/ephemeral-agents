@@ -1,0 +1,28 @@
+# M4 — Hindsight (Postgres+pgvector + Go API) on vm-hindsight
+# Source: version 1/installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md §1a
+services:
+  hindsight-pg:
+    image: "pgvector/pgvector:pg16"        # Postgres + pgvector extension in one image (pin)
+    environment:
+      POSTGRES_DB: hindsight
+      POSTGRES_USER: hindsight
+      POSTGRES_PASSWORD: ${HINDSIGHT_DB_PASS}
+    volumes:
+      - "hindsight-pg-data:/var/lib/postgresql/data"
+      - "./initdb.sql:/docker-entrypoint-initdb.d/01-init.sql:ro"   # CREATE EXTENSION vector; tables below
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hindsight"]
+      interval: 10s
+  hindsight-api:
+    image: "poc/hindsight-api:1.0.0"       # small Go service (built in §1b)
+    environment:
+      DB_DSN: "postgres://hindsight:***@hindsight-pg:5432/hindsight"
+      LISTEN: "0.0.0.0:8081"
+      EMBEDDINGS: ${EMBEDDING_PROVIDER}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}   # provider key — without it every write 500s
+    depends_on:
+      hindsight-pg:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  hindsight-pg-data: {}

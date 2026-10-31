@@ -1,0 +1,24 @@
+# M1 — topic-bridge deployment on vm-xb
+# Source: version 1/installation-deployment/M1-Adapter-Installation-and-Deployment.md §3
+services:
+  topic-bridge:
+    image: "poc/topic-bridge:1.0.0"
+    environment:
+      # substitute the real password from deploy/m0/rabbitmq/.env (gitignored) —
+      # same compose network as M0's rabbitmq, so the short service name resolves;
+      # M5's manager runs on vm-xa and uses the routable host name vm-xb:5672 instead
+      RABBITMQ_URL: "amqp://poc:***@rabbitmq:5672/"
+      TEMPORAL_ADDR: "temporal:7233"
+      TEMPORAL_NAMESPACE: default
+      TASKS_EXCHANGE: agent.tasks
+      TASKS_QUEUE: agent.tasks.durable
+      DLQ_QUEUE: agent.tasks.dlq
+    # NOTE: rabbitmq/temporal are M0 compose projects, NOT services in this file —
+    # depends_on cannot reach across projects. The bridge reconnects on start
+    # (restart: unless-stopped); M1 §0's prereq checks are the real gate.
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

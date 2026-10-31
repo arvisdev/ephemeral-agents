@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# =============================================================================
+# M3 gate test B1 — executor boot-time measurement
+# =============================================================================
+# M3 install doc §4: "B1 boot-time (3 runs): spawn via M2 with a stub task;
+# time: container start -> self-report.json ready.  Record p50; decide the
+# acceptance bound, then re-run to pass."
+#
+# Usage: boot-time.sh <executor> <runs>      e.g. boot-time.sh hermes 3
+# Env: VM_XB (default vm-xb), RUN_TASK (default deploy/m2/tests/run-task.sh)
+#
+# Output: a markdown table (per-run seconds + p50) on stdout — install.sh tees
+# it to deploy/m3/evidence/boot-time-table.txt.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+RUN_TASK="${RUN_TASK:-$REPO_ROOT/deploy/m2/tests/run-task.sh}"
+EXEC="${1:-hermes}"; RUNS="${2:-3}"
+[ "$RUNS" -ge 1 ] 2>/dev/null || { echo "usage: boot-time.sh <executor> <runs>" >&2; exit 64; }
+VM_XB="${VM_XB:-vm-xb}"
+
+echo "# B1 boot-time — executor=$EXEC runs=$RUNS — $(date -u)"
+echo "| run | task_id | boot_s (spawn -> self-report.json) |"
+echo "|---|---|---|"
+
+times=()
+for i in $(seq 1 "$RUNS"); do
+  id="b1-$(date +%H%M%S)-$i"
+  start="$(date +%s)"
+  bash "$RUN_TASK" "{\"task_id\":\"$id\",\"agent_ref\":\"$EXEC\",\"brief\":\"boot-time probe\"}" &
+  runpid=$!
+  # poll for /work/self-report.json on the spawned container (poc.task label)
+  boot=""
+  for _ in $(seq 1 120); do
+    sleep 2
+    if ssh "$VM_XB" "cid=\$(docker ps -aq --filter label=poc.task='$id'); [ -n \"\$cid\" ] && docker exec \"\$cid\" test -f /work/self-report.json 2>/dev/null"; then
+      boot=$(( $(date +%s) - start ))
+      break
+    fi
+  done
+  [ -n "$boot" ] || boot="n/a"
+  [ -n "$boot" ] && times+=("$boot")
+  wait "$runpid" || true
+  echo "| $i | $id | $boot |"
+done
+
+# p50 of the measured boot times
+p50="$(printf '%s\n' "${times[@]:-0}" | sort -n | awk '{a[NR]=$1} END{print (NR%2)?a[(NR+1)/2]:int((a[NR/2]+a[NR/2+1])/2)}')"
+echo ""
+echo "p50 boot time: ${p50}s — record the acceptance bound, re-run to pass (M3 §4 B1)"
+echo "This p50 feeds M5's ttl_s sizing: ttl_s = max(3 x B1 p50, brief estimate) (M5 §1.4)."

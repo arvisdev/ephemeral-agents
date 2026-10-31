@@ -1,0 +1,12 @@
+# M4 — hindsight-api image (small Go service over pgvector)
+# Source: version 1/installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md §1b
+# (the doc does not print this Dockerfile inline — transcribed to the M1 Dockerfile pattern)
+FROM golang:1.25 AS build
+WORKDIR /src
+COPY . .
+RUN go build -o /out/hindsight-api .
+
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/hindsight-api /usr/local/bin/hindsight-api
+ENTRYPOINT ["hindsight-api"]

@@ -1,0 +1,19 @@
+# M0 — RabbitMQ (Topic) on vm-xb
+# Source: version 1/installation-deployment/M0-Chassis-Installation-and-Deployment.md §3
+# Secrets come from .env (gitignored, generated: openssl rand -hex 16) — never committed.
+services:
+  rabbitmq:
+    image: "rabbitmq:4-management-alpine"   # pin exact tag in image-tags.env
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"                        # AMQP must be reachable cross-VM (M5 manager on vm-xa publishes here)
+      - "127.0.0.1:15672:15672"            # mgmt UI loopback-only — no management plane on the LAN
+    environment:
+      RABBITMQ_DEFAULT_USER: poc
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}   # from .env (gitignored, generated: openssl rand -hex 16)
+    volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+volumes:
+  rabbitmq-data: {}

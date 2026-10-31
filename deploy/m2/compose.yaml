@@ -1,0 +1,26 @@
+# M2 — lifecycle + worker deployment on vm-xb
+# Source: version 1/installation-deployment/M2-Lifecycle-Installation-and-Deployment.md §2
+services:
+  lifecycle:
+    image: "poc/lifecycle:1.0.0"
+    environment:
+      DOCKER_HOST: "unix:///var/run/docker.sock"
+      LISTEN: "0.0.0.0:8090"                  # compose-network only (loopback would lock the worker out)
+      REAPER_INTERVAL: "30s"
+      POC_TTL_DEFAULT: "900s"                  # TTL default when the message carries no ttl_s (owner-settled hybrid). Units: the lifecycle config takes a Go duration string ("900s"); message ttl_s is integer seconds
+      POC_IMAGE: "poc/executor-stub:1.0.0"     # pinned — no pulls at activity time
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
+      - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)
+    restart: unless-stopped
+    # deploy gate (deploy/m2/install.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
+    # on boot and refuses to serve until the pinned image exists locally (the no-pull rule, enforced).
+  worker:
+    image: "poc/worker:1.0.0"
+    environment:
+      TEMPORAL_ADDR: "temporal:7233"
+      LIFECYCLE_API: "http://lifecycle:8090"     # same compose project; expose the API to this network
+      # response publisher (M2 §1c) — declare agent.tasks.response (M0 §3)
+      RABBITMQ_URL: "amqp://poc:***@rabbitmq:5672/"
+    depends_on: [lifecycle]
+    restart: unless-stopped

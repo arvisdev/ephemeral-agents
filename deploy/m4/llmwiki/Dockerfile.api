@@ -1,0 +1,12 @@
+# M4 — llmwiki-api image (Go service: retrieval + ingest endpoints)
+# Source: version 1/installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md §2b
+# (the doc does not print this Dockerfile inline — transcribed to the M1 Dockerfile pattern)
+FROM golang:1.25 AS build
+WORKDIR /src
+COPY . .
+RUN go build -o /out/llmwiki-api .
+
+FROM debian:trixie-slim
+RUN apt-get update && apt-get install -y ca-certificates git && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/llmwiki-api /usr/local/bin/llmwiki-api
+ENTRYPOINT ["llmwiki-api"]

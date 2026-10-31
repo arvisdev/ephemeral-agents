@@ -1,0 +1,25 @@
+# M5 — front-of-house on vm-xa: Gateway + Manager Agent
+# Source: version 1/installation-deployment/M5-End-to-End-Installation-and-Deployment.md §1
+services:
+  gateway:
+    image: "poc/gateway:1.0.0"
+    # Hermes Agent Gateway: tall narrow bar in the diagram — the request entry point
+    ports: ["8080"]
+    environment:
+      LISTEN: "0.0.0.0:8080"
+      MANAGER_API: "http://manager:8086"
+    depends_on:
+      manager:
+        condition: service_started
+    restart: unless-stopped
+  manager:
+    image: "poc/manager:1.0.0"
+    # persistent Hermes Agent (Docker Container) hosting the Manager Agent — survives across tasks
+    environment:
+      RABBITMQ_URL: "amqp://poc:***@vm-xb:5672"
+      AGENT_LIST_REPO: "git@github.com:<owner>/available-agent-list.git"
+      GITHUB_READ_TOKEN: ${AGENT_LIST_READ_TOKEN}
+      TASKS_EXCHANGE: agent.tasks
+      RESPONSE_QUEUE: agent.tasks.response
+    volumes: ["/opt/poc/reports:/reports"]     # human-report artifacts land here
+    restart: unless-stopped
