@@ -9,7 +9,7 @@ told to "run the install."**
 ```
 deploy/
 ├── README.md                      <- you are here
-├── m0/..m5/
+├── m0/ … m5/                      <- one directory per milestone
 │   ├── install.sh                 <- the install script for that milestone
 │   ├── evidence/                  <- where gate results land (created at run)
 │   └── *.env / compose files      <- per-milestone config (gitignored where secret)
@@ -27,7 +27,8 @@ Each `install.sh` does three things, in order:
 This is the walk-through for someone starting from an empty desk. Do the
 steps **in order**; each names exactly what to read and what to run.
 
-**Stage A — before you touch anything (half a day)**
+### Stage A — before you touch anything (half a day)
+
 1. Read this file top to bottom (it is the map; the milestone docs are the
    terrain).
 2. Collect the owner-inputs below ("Owner must hand you these") — all of
@@ -40,32 +41,38 @@ steps **in order**; each names exactly what to read and what to run.
 5. `bash deploy/check-workstation.sh` — fix everything it flags (tools,
    SSH key auth as `poc`, passwordless sudo) until it is quiet.
 
-**Stage B — M0, the chassis (day 1)**
-6. Read `version 1/installation-deployment/M0-Chassis-Installation-and-Deployment.md`
-   §0–§8 once. It is the only milestone where you create infrastructure.
-7. `bash deploy/m0/install.sh --check-only` → then `bash deploy/m0/install.sh`.
-8. Run TP-M0's 8 cases, sign it. **Nothing else starts until TP-M0 is signed.**
+### Stage B — M0, the chassis (day 1)
 
-**Stage C — M1…M4, the components (the bulk of the work)**
+1. Read `version 1/installation-deployment/M0-Chassis-Installation-and-Deployment.md`
+   §0–§8 once. It is the only milestone where you create infrastructure.
+2. `bash deploy/m0/install.sh --check-only` → then `bash deploy/m0/install.sh`.
+3. Run TP-M0's 8 cases, sign it. **Nothing else starts until TP-M0 is signed.**
+
+### Stage C — M1…M4, the components (the bulk of the work)
+
 For each milestone in order (M1 adapter → M2 lifecycle → M3 executors →
 M4 memory/knowledge):
-9. Read that milestone's install doc fully, then its delivery plan if you
+
+1. Read that milestone's install doc fully, then its delivery plan if you
    need the *why* behind a choice.
-10. `bash deploy/m<n>/install.sh --check-only` → `bash deploy/m<n>/install.sh`.
-11. Run that milestone's TP cases; sign before the next milestone.
+2. `bash deploy/m<n>/install.sh --check-only` → `bash deploy/m<n>/install.sh`.
+3. Run that milestone's TP cases; sign before the next milestone.
+
 Pacing notes: M2's V4 (crash recovery) is the load-bearing test — if it
 cannot pass, STOP (the script tells you too). M3 needs the owner's GitHub
 App; M4 needs `CONTENT_REPO`/`LLMWIKI_READ_TOKEN`/`EMBEDDING_PROVIDER`.
 
-**Stage D — M5, end-to-end (the finale)**
-12. Read the M5 install doc; `--check-only` → run it. It brings up the
-    front-of-house, runs the ordered bring-up (S1–S7), one real E2E task,
-    four failure injections, and the hardening scans.
-13. Run TP-M5 and sign it.
+### Stage D — M5, end-to-end (the finale)
 
-**Stage E — declare completion**
-14. Check the five conditions in "The POC is complete when" below. All five
-    ⇒ the POC is done; hand the evidence trail to the owner.
+1. Read the M5 install doc; `--check-only` → run it. It brings up the
+   front-of-house, runs the ordered bring-up (S1–S7), one real E2E task,
+   four failure injections, and the hardening scans.
+2. Run TP-M5 and sign it.
+
+### Stage E — declare completion
+
+Check the five conditions in "The POC is complete when" below. All five
+⇒ the POC is done; hand the evidence trail to the owner.
 
 Rule of thumb for the whole journey: **read before you run, `--check-only`
 before you run for real, sign before you move on, and when anything fails,
@@ -137,7 +144,7 @@ On the **build workstation**:
 - docker (+ buildx), go, the `temporal` CLI, `gh` (logged in), rsync,
   an SSH keypair → authorize the public half for the `poc` user on PVE + the
   4 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
-  `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 §2.
+  `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 §2).
 - `ssh -o StrictHostKeyChecking=accept-new poc@PVE_HOST` once per host —
   known_hosts gets seeded for you.
 - `mkdir -p /opt/poc/deploy/m1 /opt/poc/deploy/m2 /opt/poc/deploy/m3
@@ -184,7 +191,7 @@ one — each script is scoped to its own milestone.
 1. E2E run passed, **zero** surviving POC containers
 2. All four failure injections clean + reported to the human
 3. Security scans pass; no long-lived owner secret reachable from any container
-4. The four Version 2 open items are *listed* (not solved)
+4. The Version 2 open items are *listed* (not solved)
 5. `TP-M5` is signed
 
 When those hold, the feasibility-analysis verdict is confirmed **by evidence,
