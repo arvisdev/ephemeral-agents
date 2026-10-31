@@ -306,6 +306,26 @@ gate_tests() {
   fi
 }
 
+# ---------------------------------------------------------------- firewall
+# The scripts own the POC's cross-VM port openings (owner baseline = SSH only).
+open_firewall() {
+  local cidr="${UFW_POC_CIDR:-}"
+  [ -n "$cidr" ] || cidr="${NETPLAN_IP_2%.*}.0/24"
+  [ -n "$cidr" ] && [ "$cidr" != ".0/24" ] || { log "fw   no NETPLAN_IP_2/UFW_POC_CIDR — skipping UFW setup"; return 0; }
+  if [ "$CHECK_ONLY" = "1" ]; then log "check-only: would open UFW 8080 on $VM_2, 8081 on $VM_3 from $cidr"; return 0; fi
+  local spec
+  for spec in "$VM_2 8080" "$VM_3 8081"; do
+    set -- $spec; local host="$1" p="$2"
+    if ssh "$host" "sudo -n ufw status 2>/dev/null | grep -q 'Status: active'"; then
+      ssh "$host" "sudo -n ufw allow from $cidr to any port $p proto tcp" \
+        || die "fw   ufw rule failed on $host"
+      ok "fw   UFW: $p open on $host from $cidr"
+    else
+      log "fw   UFW not active on $host — skipped"
+    fi
+  done
+}
+
 # ---------------------------------------------------------------- main
 main() {
   log "=== M4 memory+knowledge install start (check-only=$CHECK_ONLY no-gate=$NO_GATE) ==="
@@ -313,6 +333,7 @@ main() {
   check_assets
   confirm "M4: deploy hindsight + llmwiki, wire M2, gate-test"
   build_apis
+  open_firewall
   deploy_hindsight
   deploy_llmwiki
   wire_hydration

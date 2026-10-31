@@ -35,7 +35,7 @@ for i in 900 901 902 903; do qm start $i; done
 
 ### 1a. Install the OS (the `qm create` disks start EMPTY)
 
-> **Owner-provisioned baseline (2026-10-30):** if the four VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (§2), or the UFW service-port rules (add them in the post-boot block — default-deny UFW blocks the POC's cross-VM ports, and SSH-only is not enough).
+> **Owner-provisioned baseline (2026-10-30):** if the four VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (§2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 §2a, m4, m5), so nothing needs hand-editing.
 
 *Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets four unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given).
 
@@ -78,14 +78,14 @@ sudo hostname vm-xa                      # per VM
 sudo apt install -y chrony && sudo systemctl enable --now chrony
 # create the deploy user + ssh keys (skip useradd if cloud-init already created poc):
 sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
-# UFW: SSH is already allowed (owner baseline). The POC's cross-VM service ports are NOT —
-# with default-deny UFW every one of these would silently time out at the next milestone:
-#   vm-xb: 5672 (AMQP — M5 manager on vm-xa publishes) + 7233 (Temporal — M5 manager + M1 build host)
-#   vm-llm-wiki: 8080 (LLM-Wiki API — M2 executors on vm-xb query it)
-#   vm-hindsight: 8081 (Hindsight API — M2 executors on vm-xb read/write it)
-#   vm-xa: 8080 (gateway — the engineer's desktop hits it at M5)
-# Scope each rule to the POC LAN (the same pool as netplan/hosts.env), never to 0.0.0.0/0;
-# the RabbitMQ mgmt UI stays loopback-only (§3) — no UFW rule for 15672 anywhere.
+# UFW: SSH is already allowed (owner baseline). **The install scripts open the
+# POC's cross-VM service ports themselves** — m0 §2a opens 5672/7233 on vm-xb,
+# the M4 script opens 8080/8081 on vm-llm-wiki/vm-hindsight, the M5 script
+# opens 8080 (gateway) on vm-xa — all scoped to the POC LAN derived from
+# hosts.env's NETPLAN_IP_* (override with UFW_POC_CIDR; the gateway's source
+# is GATEWAY_ALLOW_CIDR since the engineer's desktop is often outside the
+# LAN). Nothing to hand-edit here; the manual fallback (if you must run
+# without the scripts) is the four rules below:
 sudo ufw allow from <poc-lan-cidr> to any port 5672 proto tcp   # vm-xb only
 sudo ufw allow from <poc-lan-cidr> to any port 7233 proto tcp   # vm-xb only
 sudo ufw allow from <poc-lan-cidr> to any port 8080 proto tcp   # vm-llm-wiki + vm-xa

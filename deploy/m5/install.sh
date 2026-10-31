@@ -363,6 +363,24 @@ poc_complete_summary() {
   ok "M5 install complete"
 }
 
+# ---------------------------------------------------------------- firewall
+# The scripts own the POC's port openings (owner baseline = SSH only). The
+# gateway on vm-xa:8080 is hit by the engineer's desktop — often OUTSIDE the
+# POC LAN, so its source is GATEWAY_ALLOW_CIDR (defaults to the POC LAN).
+open_firewall() {
+  local cidr="${GATEWAY_ALLOW_CIDR:-${UFW_POC_CIDR:-}}"
+  [ -n "$cidr" ] || cidr="${NETPLAN_IP_XA%.*}.0/24"
+  [ -n "$cidr" ] && [ "$cidr" != ".0/24" ] || { log "fw   no NETPLAN_IP_XA/GATEWAY_ALLOW_CIDR — skipping UFW setup"; return 0; }
+  if [ "$CHECK_ONLY" = "1" ]; then log "check-only: would open UFW 8080 on $VM_XA from $cidr"; return 0; fi
+  if ssh "$VM_XA" "sudo -n ufw status 2>/dev/null | grep -q 'Status: active'"; then
+    ssh "$VM_XA" "sudo -n ufw allow from $cidr to any port 8080 proto tcp" \
+      || die "fw   ufw rule failed on $VM_XA"
+    ok "fw   UFW: 8080 (gateway) open on $VM_XA from $cidr"
+  else
+    log "fw   UFW not active on $VM_XA — skipped"
+  fi
+}
+
 # ---------------------------------------------------------------- main
 main() {
   log "=== M5 e2e+hardening install start (check-only=$CHECK_ONLY no-gate=$NO_GATE) ==="
@@ -370,6 +388,7 @@ main() {
   check_assets
   confirm "M5: front-of-house + bring-up + E2E + injections + hardening + docs closeout"
   build_and_deploy_front_of_house
+  open_firewall
   full_stack_bringup
   e2e_acceptance_run
   failure_injections

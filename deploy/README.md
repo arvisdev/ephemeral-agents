@@ -52,8 +52,8 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
 - [ ] **The four VMs, pre-provisioned** — clean Ubuntu 26.04 LTS, all updates
       applied, SSH enabled and allowed through UFW (owner baseline,
       2026-10-30). Everything else on the VMs (hostname/netplan, chrony, the
-      `poc` user, Docker, UFW service-port rules) is M0's job — see M0 §1a's
-      baseline note.
+      `poc` user, Docker) is M0's job; the UFW service-port rules are opened
+      automatically by the install scripts (m0 §2a / m4 / m5).
 - [ ] **M3: GitHub App + private key** — the App ID + the key file, to be
       placed at `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never
       in git). Needed by `deploy/m3/issue-token.sh`.
@@ -71,6 +71,14 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
       record in `deploy/m0/decision-log.md`.
 
 ## First time on this POC? Do these once, then start at M0.
+
+> **Operating via an AI agent (Hermes Desktop):** the intended junior-operator
+> path is to work with an AI agent on the operator's Hermes Desktop, which
+> runs these same scripts over SSH — nothing in this POC is hand-typed into
+> the VMs. The agent needs exactly what's listed below (SSH key auth as
+> `poc`, passwordless sudo on the VMs) and should run each script with
+> `--check-only` first; the scripts print their owning doc section on any
+> failure, which is what the agent follows to recover.
 
 On the **build workstation**:
 

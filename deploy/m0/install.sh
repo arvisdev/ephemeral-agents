@@ -200,6 +200,25 @@ install_docker() {
   ok "§2 docker on all 4 VMs"
 }
 
+# ---------------------------------------------------------------- §2a firewall
+# The scripts own the POC's cross-VM port openings (the owner baseline opens
+# SSH only; default-deny UFW would make every later cross-VM call time out).
+# Scoped to the POC LAN (/24 derived from NETPLAN_IP_* unless UFW_POC_CIDR is
+# set); the RabbitMQ mgmt UI stays loopback-only — never opened here.
+open_firewall() {
+  local cidr="${UFW_POC_CIDR:-}"
+  [ -n "$cidr" ] || cidr="${NETPLAN_IP_XB%.*}.0/24"
+  [ -n "$cidr" ] && [ "$cidr" != ".0/24" ] || { log "§2a   no NETPLAN_IP_XB/UFW_POC_CIDR — skipping UFW setup"; return 0; }
+  if [ "$CHECK_ONLY" = "1" ]; then log "check-only: would open UFW ports on $VM_XB: 5672,7233 from $cidr"; return 0; fi
+  if ! ssh "$VM_XB" "sudo -n ufw status 2>/dev/null | grep -q 'Status: active'"; then
+    log "§2a   UFW not active on $VM_XB — nothing to open"
+    return 0
+  fi
+  ssh "$VM_XB" "sudo -n ufw allow from $cidr to any port 5672 proto tcp && sudo -n ufw allow from $cidr to any port 7233 proto tcp" \
+    || die "§2a   ufw rules failed on $VM_XB (passwordless sudo required — deploy/README)"
+  ok "§2a   UFW: 5672 (AMQP) + 7233 (Temporal) open on $VM_XB from $cidr"
+}
+
 # ---------------------------------------------------------------- §3 rabbitmq
 declare_topology() {
   local base="http://127.0.0.1:15672"
@@ -417,6 +436,7 @@ main() {
   confirm "M0: provision/verify 4 VMs + base OS + Docker + RabbitMQ + Temporal (idempotent)"
   provision_vms
   install_docker
+  open_firewall
   deploy_rabbitmq
   deploy_temporal
   go_sdk_smoke
