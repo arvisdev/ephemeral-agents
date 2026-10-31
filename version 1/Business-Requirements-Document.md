@@ -131,7 +131,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 
 | # | Requirement | Target |
 |---|---|---|
-| NFR-1 | **Operability** — a junior developer can execute the POC end-to-end from this repo alone | Step sequence, failure routing, and evidence locations documented; scripts idempotent and re-runnable |
+| NFR-1 | **Operability** — The installation needs to be clear enough so that a junior developer can complete the full installation and testing without any other help | Step sequence, failure routing, and evidence locations documented; scripts idempotent and re-runnable |
 | NFR-2 | **Durability** — task state survives orchestrator/process restarts | Temporal workflow history is the record; adapter acks only after workflow start |
 | NFR-3 | **Latency** — executor boot cost is bounded and known | Boot time measured at M3 (B1 p50); TTL default sized from it (900 s) |
 | NFR-4 | **Security** — least privilege by construction | Short-lived scoped tokens; secrets at 0600; credential scan gate |
