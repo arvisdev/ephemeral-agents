@@ -21,6 +21,16 @@
 
 ## 1. Provision the VMs (PVE shell, on the host)
 
+> **Sizing: minimum vs. recommended.** The `qm create` lines below are the *minimum* POC baseline. Recommended if real executor images (M3/M5) or ≥2 concurrent executors will run:
+>
+> | VM | Minimum (below) | Recommended | Reason |
+> |---|---|---|---|
+> | `vm-xa` (gateway + manager) | 4 GB / 2 cores / 20 GB | 4 GB / 2 cores / 20 GB (unchanged) | Two small Go services, idle most of the time |
+> | `vm-xb` (RabbitMQ, Temporal+PG, topic-bridge, lifecycle, Docker host) | 8 GB / 4 cores / 40 GB | **12–16 GB / 6–8 cores / 60–80 GB** | Counts ~2 GB RAM per concurrent executor container (cap 5) on top of the chassis; disk also holds the pre-pulled pinned images (no-pull rule) |
+> | `vm-hindsight` (Postgres+pgvector + API) | 4 GB / 2 cores / 20 GB | 4–8 GB / 2–4 cores / 40 GB | pgvector wants RAM for the index; 20 GB fills over a multi-day POC with embeddings |
+>
+> The documented 2/4/8 GB table is fine through the M0–M2 gates (stub executor); size `vm-xb` up **before** M3/M5. RabbitMQ memory alarms under pressure are the known failure mode (see the troubleshooting table).
+
 *Why:* stable VMIDs + hostnames are what every later script and doc references; **chrony is a hard dependency** — RabbitMQ and Temporal both misbehave under clock skew, and M2's reaper logic compares `poc.expires` timestamps across containers. The `poc` user is the single account all install scripts use.
 
 ```bash

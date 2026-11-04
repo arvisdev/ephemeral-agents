@@ -11,6 +11,8 @@
 
 ## 1. Hindsight on vm-hindsight
 
+> **Sizing note:** the M0 baseline for this VM (4 GB / 2 cores / 20 GB) is a minimum. Recommended: 4–8 GB RAM (pgvector wants RAM for the index) and 40 GB disk (20 GB fills over a multi-day POC with embeddings). See the sizing table in M0 section 1.
+
 *Why:* Hindsight is the diagram's "R/W memory" made concrete — a small Go API over Postgres+pgvector (one image, so the `vector` extension can't be missing). Its Postgres instance is **separate from Temporal's by rule** (M0 section 4), so a memory failure can never take down the workflow engine, and vice versa. That isolation is re-verified at every M4 gate (TC-M4-07).
 
 **1a. Stack — `deploy/m4/hindsight/compose.yaml`:**
