@@ -236,12 +236,22 @@ func ResponseMatches(resp TaskResponse, taskID string) bool {
 // BuildReport turns the worker's response into the human report written to
 // /reports/<task_id>.json (outcome + artifact pointer; failure carries the
 // reason the engineer can see).
+//
+// Status vocabulary: the M2 lifecycle publishes complete|failed|timed-out
+// (taskconfig state machine); the human report uses success|failure. Both
+// vocabularies are accepted and mapped — complete→success, failed|timed-out
+// →failure (a timed-out task is a failure to the engineer, with the reason).
 func BuildReport(resp TaskResponse, reason string) (HumanReport, error) {
 	if resp.TaskID == "" {
 		return HumanReport{}, fmt.Errorf("response has no task_id")
 	}
-	status := resp.Status
-	if status != "success" && status != "failure" {
+	var status string
+	switch resp.Status {
+	case "success", "complete":
+		status = "success"
+	case "failure", "failed", "timed-out":
+		status = "failure"
+	default:
 		return HumanReport{}, fmt.Errorf("unknown status %q", resp.Status)
 	}
 	r := HumanReport{

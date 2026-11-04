@@ -45,7 +45,9 @@ func (p *AMQP) channel() (*amqp.Channel, error) {
 		return nil, err
 	}
 	// Declare idempotently (M0 owns topology; this keeps publish self-healing).
-	if _, err := ch.QueueDeclare(QueueName, false, false, false, false, nil); err != nil {
+	// durable=true matches M0 §3's declaration — a durability mismatch would
+	// make this re-declare fail with a PRECONDITION_FAILED channel error.
+	if _, err := ch.QueueDeclare(QueueName, true, false, false, false, nil); err != nil {
 		_ = conn.Close()
 		return nil, err
 	}

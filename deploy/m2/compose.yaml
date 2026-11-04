@@ -21,6 +21,6 @@ services:
       TEMPORAL_ADDR: "temporal:7233"
       LIFECYCLE_API: "http://lifecycle:8090"     # same compose project; expose the API to this network
       # response publisher (M2 §1c) — declare agent.tasks.response (M0 §3)
-      RABBITMQ_URL: "amqp://poc:***@rabbitmq:5672/"
+      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/"
     depends_on: [lifecycle]
     restart: unless-stopped

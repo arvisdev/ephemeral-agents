@@ -19,8 +19,9 @@ so that a junior developer can execute the POC end-to-end from this repo alone.
 ## The core idea
 
 > A **durable orchestrator** (Temporal) drives **ephemeral, git-provisioned
-> executor containers**, with knowledge split across a shared RAG wiki, a
-> vector long-term memory, and a git-hosted agent catalog.
+> executor containers**, with knowledge split across a git-hosted reference
+> wiki (shallow-cloned from a git repo), a vector long-term memory, and a
+> git-hosted agent catalog.
 
 One flow, read from the source diagram (full connection map in
 [version 1/ARCHITECTURE.md](version%201/ARCHITECTURE.md)):
@@ -36,8 +37,10 @@ One flow, read from the source diagram (full connection map in
    concurrent. The team sets a hard limit in configuration; the POC rule of
    thumb is **max 5**, tuned to the VM's configuration (not an absolute).
 4. The agents hydrate: agent personas/skills from the **Available Agent List
-   (GitHub repo)**, design standards & best practices from the **LLM-Wiki**
-   (`vm-llm-wiki`), and long-term memory from **Hindsight**
+   (GitHub repo)**, design standards & best practices from the **llm-wiki
+   git repo** (per D-wiki-git, 2026-11-04: no wiki VM/service — the wiki is
+   the private git repo `github.com/arvisdev/llm-wiki`, shallow-cloned at
+   executor boot; no retrieval API), and long-term memory from **Hindsight**
    (`vm-hindsight`, Postgres + pgvector).
 5. The coder agent **writes source code to the Project Repo** with a scoped,
    short-lived credential.
@@ -48,12 +51,12 @@ One flow, read from the source diagram (full connection map in
 
 | Decision | Content |
 |---|---|
-| **Store-content model** | Hindsight = long-term memory (R/W). LLM-Wiki = design standards + dev/business best practices. Git repo (Available Agent List) = everything the agents load (skills / personas). |
+| **Store-content model** | Hindsight = long-term memory (R/W). llm-wiki git repo = design standards + dev/business best practices (D-wiki-git, 2026-11-04: RAG service removed; plain git repo, shallow-cloned). Git repo (Available Agent List) = everything the agents load (skills / personas). |
 | **Manager ↔ RabbitMQ** | Two-way (double-headed): responses return to the manager when needed. |
 | **RabbitMQ stays (owner decision 2026-10-29)** | The broker is kept **deliberately**, not by default: it is the V2 ingestion boundary — other (non-Temporal) systems will publish tasks into the topic alongside the manager, which a direct SDK start cannot serve. The M1 adapter's idempotency/loss machinery (TC-M1-03..06) is the cost of owning that boundary, and M1 is the milestone that proves it is manageable. |
 | **Language mandate** | **All Temporal SDK code is Golang** — workflows, workers, activities, adapters, CLI samples (owner instruction: speed + size). Every install doc carries this. |
 | **TTL ownership (owner-settled 2026-10-29)** | Hybrid: `ttl_s` is optional in `message-v1.json`, written **only** by the manager (sized from M3 B1 boot-time p50); when absent, M2's lifecycle applies `POC_TTL_DEFAULT=900s`; the reaper is authoritative either way (R1 backstop intact). |
-| **VM naming (D-8)** | `VM-Xa / VM-Xb / VM-2 / VM-3` are **discussion labels, not commitments**. Each project defines its own names; this POC uses `vm-xa`, `vm-xb`, `vm-llm-wiki`, `vm-hindsight` (legend in [`deploy/m0/hosts.env.example`](deploy/m0/hosts.env.example)). |
+| **VM naming (D-8)** | `VM-Xa / VM-Xb / VM-2 / VM-3` are **discussion labels, not commitments**. Each project defines its own names; this POC uses `vm-xa`, `vm-xb`, `vm-hindsight` (legend in [`deploy/m0/hosts.env.example`](deploy/m0/hosts.env.example); D-wiki-git, 2026-11-04: `vm-llm-wiki` dropped — 3-VM topology). |
 
 ## Feasibility status
 
@@ -71,11 +74,11 @@ test procedure must PASS before the next milestone's installation begins.**
 
 | # | Milestone | Proves | Gate test procedure |
 |---|---|---|---|
-| M0 | Chassis | 4 VMs + Docker + RabbitMQ topic + Temporal reachable; Go SDK smoke | [TP-M0](version%201/test%20procedures/M0-Chassis-Test-Procedure.md) |
+| M0 | Chassis | 3 VMs + Docker + RabbitMQ topic + Temporal reachable; Go SDK smoke | [TP-M0](version%201/test%20procedures/M0-Chassis-Test-Procedure.md) |
 | M1 | RabbitMQ → Temporal adapter | Exactly one workflow per message; idempotent; no loss | [TP-M1](version%201/test%20procedures/M1-Adapter-Test-Procedure.md) |
 | M2 | Container lifecycle manager | Spawn/timeout/reap state machine; crash-safe reaper; no-pull deploy gate | [TP-M2](version%201/test%20procedures/M2-Lifecycle-Test-Procedure.md) |
 | M3 | Executor spikes | Hermes boots with persona/skills (point of last cheap exit); headless Claude Code makes a real commit | [TP-M3](version%201/test%20procedures/M3-Executors-Test-Procedure.md) |
-| M4 | Memory + knowledge | Hindsight & LLM-Wiki APIs; hydration wired in; **cross-task read-back** | [TP-M4](version%201/test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
+| M4 | Memory + knowledge | Hindsight API + llm-wiki git clone (D-wiki-git); hydration wired in; **cross-task read-back** | [TP-M4](version%201/test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
 | M5 | End-to-end + hardening | Human-to-human E2E run, four failure injections, credential hardening, docs closed | [TP-M5](version%201/test%20procedures/M5-End-to-End-Test-Procedure.md) |
 
 The full sequence, done-when criteria, risk register (R1–R9), and every
@@ -91,7 +94,7 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   ├── Architectural-Design-Document.md            Full buildable design: components, contracts, lifecycle state machine, failure modes, open items
 │   ├── Business-Requirements-Document.md           BRD: business objectives BO-1..7, stakeholders, FR/NFR requirements, business rules, acceptance criteria
 │   ├── Available-Agent-List-Repository.md          Contract for the external agent-catalog repo: decision (D-catalog), layout, index.json shape, change rules
-│   ├── Store-Usage-Rules.md                        What goes where: Hindsight (memory) vs LLM-Wiki (reference) vs git (exact artifacts) — the go/not-go rules per store
+│   ├── Store-Usage-Rules.md                        What goes where: Hindsight (memory) vs llm-wiki git repo (reference, D-wiki-git) vs git (exact artifacts) — the go/not-go rules per store
 │   ├── Technical-Feasibility-Analysis.md           Component ratings (Proven/Feasible/Needs-build/To-verify), risk register, verdict
 │   ├── Technical-Feasibility-POC-Milestones.md     The M0–M5 plan: goals, done-when, gate rule, and links to every companion doc
 │   ├── delivery plans/               One delivery plan per milestone (work packages, deliverables, acceptance criteria)
@@ -152,7 +155,8 @@ written. At that point the feasibility verdict is confirmed by evidence.
 ## What this POC deliberately does not decide
 
 Concurrency execution model, message-shape contract, ephemeral isolation
-level, and LLM-Wiki curation ownership are resolved **at** their owning
+level, and llm-wiki curation ownership (D-wiki-git: curation = markdown
+commits to the wiki repo) are resolved **at** their owning
 milestones (M3–M5) and recorded in decision logs — they are not pre-decided
 here. The concurrency *semantics* were set by owner input (2026-10-25):
 needs-based container counts, parallel containers for parallel requests, a

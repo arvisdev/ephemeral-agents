@@ -9,6 +9,8 @@
 
 **Rating scale**
 
+> **2026-11-04 D-wiki-git addendum:** the LLM-Wiki serving layer (R7's To-verify pipeline) was removed after this assessment — the wiki is now the git repo `github.com/arvisdev/llm-wiki` consumed by shallow clone; `vm-llm-wiki` is dropped (3-VM topology: vm-xa, vm-xb, vm-hindsight). RAG/VM-2 references below are historical.
+
 - **Proven** — off-the-shelf, widely used, low risk.
 - **Feasible** — clearly doable with known technology; effort, not uncertainty.
 - **Needs-build** — no off-the-shelf piece; a custom glue/adapter must be written.
@@ -18,7 +20,7 @@
 
 ## 1. System under analysis (Version 1, one flow)
 
-A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up **ephemeral Docker containers as needed** (a Hermes Agent for agent-type work, a Claude Code Agent when coding occurs — the "(N+1)" label means variable count, not a fixed two; concurrent requests run concurrent containers, team-config capped, POC rule of thumb ≤5 per VM sizing) → they hydrate from **LLM-Wiki (VM-2)**, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
+A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up **ephemeral Docker containers as needed** (a Hermes Agent for agent-type work, a Claude Code Agent when coding occurs — the "(N+1)" label means variable count, not a fixed two; concurrent requests run concurrent containers, team-config capped, POC rule of thumb ≤5 per VM sizing) → they hydrate from **LLM-Wiki (VM-2)** *[D-wiki-git, 2026-11-04: superseded — the wiki is now the git repo `github.com/arvisdev/llm-wiki`, shallow-cloned; vm-llm-wiki dropped]*, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
 
 The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemeral, git-provisioned executor containers**, with knowledge split across a shared RAG wiki, a vector memory, and a git-hosted agent-catalog.
 
@@ -35,7 +37,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | **Hermes Agent (Ephemeral)** | **To-verify** | Containerized Hermes is plausible. **Spike required:** confirm a container can boot Hermes and load persona + skills (markdown) from a git repo **at startup**, quickly, statelessly. |
 | **Claude Code Agent (N+1)** | **To-verify** | Headless Claude Code in a container is plausible. **Spike required:** repo checkout + toolchain, scoped git/API credentials, and reliable "write source code to Project Repo." **Risk:** N parallel coders writing the same repo → conflicts. |
 | **Hindsight — Long-Term Memory (VM-3)** | **Feasible** | Postgres + pgvector memory is proven. **To-verify:** expose an **API** that ephemeral agents can **R/W** at session time. |
-| **LLM-Wiki (VM-2)** | **Feasible** | Shared RAG / standards store is proven. **To-verify:** curation/indexing pipeline that keeps design standards + best practices current. |
+| **LLM-Wiki (VM-2)** | **Feasible** | Shared RAG / standards store is proven. **To-verify:** curation/indexing pipeline that keeps design standards + best practices current. *[D-wiki-git, 2026-11-04: superseded — serving layer removed; the wiki is the git repo `github.com/arvisdev/llm-wiki`, shallow-cloned by executors.]* |
 | **GitHub repos (Available Agent List, Project Repo)** | **Proven** | Git + GHA/API. **Security:** ephemeral agents need **scoped/ephemeral** credentials (short-lived PAT / GITHUB_TOKEN, branch-limited) — not the owner's long-lived token. |
 | **Ephemeral teardown (destroy agent + container)** | **Feasible / Needs-build** | Docker lifecycle + Temporal on-complete/cleanup; needs **reliable teardown + error handling** so failed runs don't leak containers. |
 | **Software Engineer / Hermes Desktop (external)** | **Proven** | The user's desktop is the initiator/report sink. |

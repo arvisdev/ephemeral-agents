@@ -85,7 +85,7 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
   README.md
 ```
 
-**2b. Consumption:** hydrate-time `git clone --depth 1` of the repo (read access via the same short-lived-token mechanism as the catalog/`GITHUB_READ_TOKEN` pattern). Nothing to install on any VM for this.
+**2b. Consumption:** hydrate-time `git clone --depth 1` of the repo. Read access uses a **distinct static `LLM_WIKI_READ_TOKEN`** — a fine-grained personal access token granting `contents:read` on `arvisdev/llm-wiki` only (not a GitHub App installation token, and not the catalog's `GITHUB_READ_TOKEN`). Nothing to install on any VM for this.
 
 - **Open item (recorded, not solved):** the hydration/retrieval shape is undecided — the interim default is a **full shallow clone at executor boot**; agents read the markdown directly. A curated index / README-per-topic retrieval aid may be added later (V2).
 - Curation for POC = markdown committed to the repo; every clone made after the push sees it (no reindex step — the ingest pipeline is gone).
@@ -95,8 +95,8 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
 *Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL` and the llm-wiki repo URL ride into every spawned container as env, and the M2 Go worker hydrates (read + clone) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
 
 1. **Names:** ensure `vm-hindsight` resolves on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism). No wiki hostname exists (D-wiki-git).
-2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLMWIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + read token) → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLMWIKI_*`).
-3. **Hydrate step** (lifecycle worker): before task work, fan out the llm-wiki **shallow clone** (`git clone --depth 1 $LLMWIKI_REPO_URL`) + `memory/read` → pass results into the agent's task payload; record per-source latency.
+2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLM_WIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + `LLM_WIKI_READ_TOKEN`) → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLM_WIKI_*`).
+3. **Hydrate step** (lifecycle worker): before task work, fan out the llm-wiki **shallow clone** (`git clone --depth 1 $LLM_WIKI_REPO_URL`) + `memory/read` → pass results into the agent's task payload; record per-source latency.
 4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the §1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.
 
@@ -109,7 +109,7 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
 curl -s "$HINDSIGHT_URL/memory/read?task_id=t1&scope=cross-task" ; curl -s -XPOST "$HINDSIGHT_URL/memory/write" -d '{...}'
 # G2 cross-task read-back: task t1 writes {learning:"use X for Y"}; task t2's hydrate fetches it
 # G3 llm-wiki clone + read: from a spawned agent container (D-wiki-git — replaces the former wiki-query check):
-git clone --depth 1 "$LLMWIKI_REPO_URL" /tmp/llm-wiki && ls /tmp/llm-wiki/design-standards/
+git clone --depth 1 "$LLM_WIKI_REPO_URL" /tmp/llm-wiki && ls /tmp/llm-wiki/design-standards/
 # → 3 canned lookups (a standard, a skill, a business practice) each find the right doc file/section in the clone (record in evidence)
 # G4 catalog regression: M3's self-report still correct with the two new sources live
 # G5 latency: hydration per-source + total recorded (clone + memory read); total < M2 TTL headroom (measure 3 runs)
@@ -119,13 +119,13 @@ Evidence → `deploy/m4/evidence/` (read-back rows, query results with hits, lat
 
 ## 5. Rollback / re-do
 
-*Why:* named volumes keep rollback **non-destructive by default** (`down` keeps data; only a true re-do removes volumes). And because executors tolerate empty `HINDSIGHT_URL`/`LLMWIKI_URL` (hydrate skips missing sources), pulling M4 back **degrades** hydration rather than breaking the flow — the resilience property, stated.
+*Why:* named volumes keep rollback **non-destructive by default** (`down` keeps data; only a true re-do removes volumes). And because executors tolerate empty `HINDSIGHT_URL`/`LLM_WIKI_*` (hydrate skips missing sources), pulling M4 back **degrades** hydration rather than breaking the flow — the resilience property, stated.
 
 ```bash
 # services: down per-VM compose project; data lives in named volumes:
 docker compose down                     # keeps hindsight-pg-data
 docker volume rm hindsight-pg-data      # only on a true re-do
-# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINDSIGHT_URL/LLMWIKI_* (hydrate skips missing sources)
+# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINDSIGHT_URL/LLM_WIKI_* (hydrate skips missing sources)
 ```
 
 ## 6. Troubleshooting
@@ -134,7 +134,7 @@ docker volume rm hindsight-pg-data      # only on a true re-do
 
 | Symptom | Cause / fix |
 |---|---|
-| llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLMWIKI_REPO_URL` + token scope (read-only is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
+| llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLM_WIKI_REPO_URL` + `LLM_WIKI_READ_TOKEN` scope (`contents:read` on arvisdev/llm-wiki is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
 | Wrong doc found by an agent (G3 content miss) | with a plain clone there is no retrieval layer — content navigation is the repo's own README/directory layout; if lookups miss, fix the repo's index/README (the V2 curated-index open item), not the executor |
 | `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (§1a image pin) |
 | API 500 on write | embedding provider key missing/rate-limited — check `EMBEDDINGS` env + provider quota (rate-limit note from the owner's standing conventions) |

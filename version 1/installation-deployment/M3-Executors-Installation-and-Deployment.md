@@ -66,11 +66,11 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 1. `git clone --depth 1` the Available Agent List (auth: the read token from §1c) into `/work/agents`; remove the token from env when done.
 2. Resolve `AGENT_REF` via `index.json` → load `persona.md` + `skill-and-tools.md` + `behavioral-spec.md` for that agent's folder.
-3. **Self-report** (gate before task work): write `/work/self-report.json` `{task_id, role, skills[], spec_received, sources{agent_repo, llmwiki, hindsight}}` — the harness asserts on this file.
+3. **Self-report** (gate before task work): write `/work/self-report.json` `{task_id, role, skills[], spec_received, sources{agent_repo, llm-wiki, hindsight}}` — the harness asserts on this file (key name `llm-wiki` per `deploy/m3/hermes-ephemeral/entrypoint.sh`; the entrypoint shallow-clones the llm-wiki git repo at boot).
 4. Missing repo / malformed persona / index miss → write `self-report.json` with `error` and exit 2 (M2 surfaces + reaps).
 5. Launch the Hermes agent runtime with persona + spec; on completion write a task report, exit 0.
 
-Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLMWIKI_URL`, `TTL_S`. (`GITHUB_READ_TOKEN` is a **read-only** credential for catalog/repo clones; the coder's separate scoped write token is issued as `GITHUB_TOKEN` per §1c — two different tokens, two different scopes.)
+Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLM_WIKI_REPO_URL`, `LLM_WIKI_READ_TOKEN`, `TTL_S`. (`GITHUB_READ_TOKEN` is a **read-only** credential for catalog/repo clones; the coder's separate scoped write token is issued as `GITHUB_TOKEN` per §1c — two different tokens, two different scopes. The llm-wiki is **not an HTTP service** (D-wiki-git): the Hermes entrypoint shallow-clones the git repo at boot via `LLM_WIKI_REPO_URL` (default `https://github.com/arvisdev/llm-wiki`) using the static `LLM_WIKI_READ_TOKEN` (fine-grained PAT, `contents:read` on arvisdev/llm-wiki only); absent token → clone skipped, hydration degrades gracefully.)
 
 **2b. Claude Code coder** — `deploy/m3/claude-coder/`:
 

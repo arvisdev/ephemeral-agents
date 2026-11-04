@@ -28,7 +28,7 @@
 qm list
 qm create 900 --name vm-xa --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 qm create 901 --name vm-xb --ostype l26 --memory 8192 --cores 4 --virtio0 local:40 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
+qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1   # D-wiki-git 2026-11-04: DO NOT create — VM-2 dropped (3-VM topology; wiki = git repo arvisdev/llm-wiki)
 qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 for i in 900 901 902 903; do qm start $i; done
 ```
@@ -52,7 +52,7 @@ for i in 900 901 902 903; do
   qm set $i --ide2 local:cloudinit                                   # cloud-init drive
   qm set $i --ciuser poc --sshkeys ~/.ssh/id_ed25519.pub             # deploy user + key auth (matches M0's ssh-as-poc rule)
   qm set $i --cipassword "$(openssl rand -hex 8)"                    # throwaway; SSH-key auth is the real path
-  qm set $i --hostname vm-xa                                         # per VM: 900=vm-xa 901=vm-xb 902=vm-llm-wiki 903=vm-hindsight
+  qm set $i --hostname vm-xa                                         # per VM: 900=vm-xa 901=vm-xb 903=vm-hindsight (902/vm-llm-wiki dropped, D-wiki-git 2026-11-04)
   qm reboot $i                                                       # re-boot into the installed disk
 done
 ```
@@ -89,7 +89,7 @@ sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
 # without the scripts) is the four rules below:
 sudo ufw allow from <poc-lan-cidr> to any port 5672 proto tcp   # vm-xb only
 sudo ufw allow from <poc-lan-cidr> to any port 7233 proto tcp   # vm-xb only
-sudo ufw allow from <poc-lan-cidr> to any port 8080 proto tcp   # vm-llm-wiki + vm-xa
+sudo ufw allow from <poc-lan-cidr> to any port 8080 proto tcp   # vm-xa only (D-wiki-git 2026-11-04: vm-llm-wiki dropped — no wiki VM/service exists)
 sudo ufw allow from <poc-lan-cidr> to any port 8081 proto tcp   # vm-hindsight only
 ```
 
@@ -206,8 +206,8 @@ Note: this Postgres belongs to Temporal only. VM-3's Hindsight gets its **own** 
 Run from each VM; record results in `deploy/m0/evidence/network-matrix.txt`:
 
 ```bash
-# pairwise L3 reachability (VM-2/VM-3 have no services yet — probe ssh 22):
-for h in vm-xa vm-xb vm-llm-wiki vm-hindsight; do ssh -o ConnectTimeout=5 $h true && echo "$h OK"; done
+# pairwise L3 reachability (VM-3 has no services yet — probe ssh 22):  # D-wiki-git 2026-11-04: VM-2 dropped — 3-VM topology
+for h in vm-xa vm-xb vm-hindsight; do ssh -o ConnectTimeout=5 $h true && echo "$h OK"; done
 # outbound Internet (needed for GitHub in later milestones):
 for h in vm-xa vm-xb; do ssh $h 'curl -sI https://github.com | head -1'; done
 # service ports on vm-xb:

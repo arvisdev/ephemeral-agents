@@ -1,5 +1,7 @@
-// Command worker is the M2 Temporal worker: registers the executes_activity
-// activity on the default namespace. The activity spawns an ephemeral
+// Command worker is the M2 Temporal worker: registers the TaskWorkflow
+// workflow (M1 — one task message -> one executes_activity invocation with
+// RetryOptions{MaximumAttempts: 2}) and the executes_activity activity on the
+// default namespace. The activity spawns an ephemeral
 // executor via the lifecycle API, polls until complete/failed/TTL, reaps,
 // publishes {task_id, status, artifact} to agent.tasks.response, and returns.
 //
@@ -11,8 +13,8 @@
 //	POC_TTL_DEFAULT=900s      (worker-side fallback; the lifecycle TTL is authoritative)
 //	POC_POLL_INTERVAL=2s
 //
-// Retry policy note: Temporal Go sets activity RetryOptions workflow-side
-// (M1's TaskWorkflow). The M1 workflow should schedule executes_activity with
+// Retry policy note: Temporal Go sets activity RetryOptions workflow-side —
+// TaskWorkflow (internal/workflow) schedules executes_activity with
 // RetryOptions{MaximumAttempts: 2} and a StartToClose timeout derived from
 // the task's ttl_s (plus spawn/publish headroom); the reaper backstop owns
 // any container whose activity is lost.
@@ -30,6 +32,7 @@ import (
 	"github.com/ephemeral-agents/poc/services/lifecycle/internal/activity"
 	"github.com/ephemeral-agents/poc/services/lifecycle/internal/apiclient"
 	"github.com/ephemeral-agents/poc/services/lifecycle/internal/publisher"
+	workflowpkg "github.com/ephemeral-agents/poc/services/lifecycle/internal/workflow"
 )
 
 const taskQueue = "poc-tasks"
@@ -74,6 +77,9 @@ func main() {
 	}
 
 	w := worker.New(c, taskQueue, worker.Options{})
+	// TaskWorkflow: workflow name defaults to the function name — exactly the
+	// type the M1 topic-bridge starts (WorkflowID = task_id).
+	w.RegisterWorkflow(workflowpkg.TaskWorkflow)
 	w.RegisterActivityWithOptions(act.Execute, sdkactivity.RegisterOptions{Name: "executes_activity"})
 
 	log.Info("worker starting", "temporal", temporalAddr, "task_queue", taskQueue, "lifecycle_api", apiBase)

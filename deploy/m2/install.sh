@@ -151,6 +151,11 @@ deploy_lifecycle() {
   if [ "$CHECK_ONLY" = "1" ]; then return 0; fi
   ssh "$VM_XB" "mkdir -p /opt/poc/deploy/m2"
   rsync -az "$M2/compose.yaml" "$VM_XB:/opt/poc/deploy/m2/compose.yaml"
+  # RABBITMQ_PASS feeds compose interpolation (${RABBITMQ_PASS} in compose.yaml);
+  # sourced from the M0 rabbitmq .env — one password, one source of truth.
+  local rmp; rmp="$(grep '^RABBITMQ_PASS=' "$REPO_ROOT/deploy/m0/rabbitmq/.env" | cut -d= -f2)"
+  [ -n "$rmp" ] || die "RABBITMQ_PASS missing — run deploy/m0/install.sh §3 first"
+  printf '%s\n' "RABBITMQ_PASS=$rmp" | ssh "$VM_XB" 'umask 077; cat > /opt/poc/deploy/m2/.env && chmod 600 /opt/poc/deploy/m2/.env'   # stdin + 600: secret not in argv/logs
   ssh "$VM_XB" "cd /opt/poc/deploy/m2 && docker compose up -d"
   # no-pull deploy gate: pinned image must exist locally before serving
   ssh "$VM_XB" "docker image inspect poc/executor-stub:$IMAGE_TAG >/dev/null" \

@@ -146,9 +146,14 @@ build_and_deploy_front_of_house() {
   docker save "poc/gateway:$IMAGE_TAG" "poc/manager:$IMAGE_TAG" | ssh "$VM_XA" "docker load"
   ssh "$VM_XA" "mkdir -p /opt/poc/deploy/m5 /opt/poc/reports"
   rsync -az "$M5/compose.yaml" "$VM_XA:/opt/poc/deploy/m5/compose.yaml"
-  if [ -n "${AGENT_LIST_READ_TOKEN:-}" ]; then
-    printf '%s\n' "AGENT_LIST_READ_TOKEN=$AGENT_LIST_READ_TOKEN" | ssh "$VM_XA" 'umask 077; cat > /opt/poc/deploy/m5/.env && chmod 600 /opt/poc/deploy/m5/.env'   # stdin + 600: secret not in argv/logs
-  fi
+  # .env: RABBITMQ_PASS always (compose interpolation); AGENT_LIST_READ_TOKEN when provided.
+  local rmp; rmp="$(grep '^RABBITMQ_PASS=' "$REPO_ROOT/deploy/m0/rabbitmq/.env" | cut -d= -f2)"
+  [ -n "$rmp" ] || die "RABBITMQ_PASS missing — run deploy/m0/install.sh §3 first"
+  {
+    printf '%s\n' "RABBITMQ_PASS=$rmp"
+    [ -n "${AGENT_LIST_READ_TOKEN:-}" ] && printf '%s\n' "AGENT_LIST_READ_TOKEN=$AGENT_LIST_READ_TOKEN"
+  } | ssh "$VM_XA" 'umask 077; cat > /opt/poc/deploy/m5/.env && chmod 600 /opt/poc/deploy/m5/.env'   # stdin + 600: secret not in argv/logs
+  [ -n "${AGENT_LIST_READ_TOKEN:-}" ] || warn "AGENT_LIST_READ_TOKEN not set — manager cannot clone the catalog until it is"
   ssh "$VM_XA" "cd /opt/poc/deploy/m5 && docker compose up -d"
   local i
   for i in $(seq 1 40); do

@@ -16,7 +16,7 @@ services:
   hindsight-api:
     image: "poc/hindsight-api:1.0.0"       # small Go service (built in §1b)
     environment:
-      DB_DSN: "postgres://hindsight:***@hindsight-pg:5432/hindsight"
+      DB_DSN: "postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight"
       LISTEN: "0.0.0.0:8081"
       EMBEDDINGS: ${EMBEDDING_PROVIDER}
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}   # provider key — without it every write 500s

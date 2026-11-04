@@ -4,10 +4,11 @@ services:
   topic-bridge:
     image: "poc/topic-bridge:1.0.0"
     environment:
-      # substitute the real password from deploy/m0/rabbitmq/.env (gitignored) —
+      # password interpolated from .env (RABBITMQ_PASS, written by install §3 /
+      # copied from deploy/m0/rabbitmq/.env — same password everywhere) —
       # same compose network as M0's rabbitmq, so the short service name resolves;
       # M5's manager runs on vm-xa and uses the routable host name vm-xb:5672 instead
-      RABBITMQ_URL: "amqp://poc:***@rabbitmq:5672/"
+      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/"
       TEMPORAL_ADDR: "temporal:7233"
       TEMPORAL_NAMESPACE: default
       TASKS_EXCHANGE: agent.tasks
