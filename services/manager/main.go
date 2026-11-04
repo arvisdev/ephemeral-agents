@@ -27,30 +27,72 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // pending tracks tasks this manager published, awaiting the correlated
-// response on agent.tasks.response.
+// response on agent.tasks.response. Entries are persisted as
+// <reports_dir>/<task_id>.pending (the originating request, JSON) so a
+// manager restart does not lose them: newPending reloads the directory at
+// boot, and take() deletes the file when the report is (or becomes)
+// written. Memory stays the serving cache; the files are the record.
 type pending struct {
 	mu      sync.Mutex
+	dir     string
 	waiting map[string]TaskRequest // task_id -> originating request
 }
 
-func newPending() *pending { return &pending{waiting: map[string]TaskRequest{}} }
+func newPending(dir string) *pending {
+	p := &pending{dir: dir, waiting: map[string]TaskRequest{}}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return p // reports dir unreadable: run memory-only
+	}
+	for _, e := range entries {
+		if filepath.Ext(e.Name()) != ".pending" {
+			continue
+		}
+		id := strings.TrimSuffix(e.Name(), ".pending")
+		b, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			log.Printf("pending: read %s: %v", e.Name(), err)
+			continue
+		}
+		var req TaskRequest
+		if err := json.Unmarshal(b, &req); err != nil {
+			log.Printf("pending: unparsable %s — removing", e.Name())
+			_ = os.Remove(filepath.Join(dir, e.Name()))
+			continue
+		}
+		p.waiting[id] = req
+	}
+	if n := len(p.waiting); n > 0 {
+		log.Printf("pending: reloaded %d task(s) from %s", n, dir)
+	}
+	return p
+}
 
 func (p *pending) add(id string, req TaskRequest) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.waiting[id] = req
+	if b, err := json.Marshal(req); err == nil {
+		if err := writeAtomic(filepath.Join(p.dir, id+".pending"), b); err != nil {
+			log.Printf("pending: persist %s: %v (memory-only until restart)", id, err)
+		}
+	}
 }
 
 func (p *pending) take(id string) (TaskRequest, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	req, ok := p.waiting[id]
-	delete(p.waiting, id)
+	if ok {
+		delete(p.waiting, id)
+		_ = os.Remove(filepath.Join(p.dir, id+".pending"))
+	}
 	return req, ok
 }
 
@@ -120,24 +162,13 @@ func main() {
 	if err := os.MkdirAll(cfg.reportsDir, 0o755); err != nil {
 		log.Fatalf("reports dir %s: %v", cfg.reportsDir, err)
 	}
-	s := &server{cfg: cfg, pending: newPending(), amqpCancel: make(chan struct{})}
+	s := &server{cfg: cfg, pending: newPending(cfg.reportsDir), amqpCancel: make(chan struct{})}
 
-	conn, ch, err := s.connectAMQP()
-	if err != nil {
-		log.Fatalf("rabbitmq: %v", err)
-	}
-	defer conn.Close()
-	defer ch.Close()
-	// The response queue is declared by M0 §3 (no exchange binding); the
-	// manager only consumes it — publishing responses is M2's job, on the
-	// default exchange.
-	if _, err := ch.QueueDeclarePassive(cfg.responseQueue, true, false, false, false, nil); err != nil {
-		log.Printf("warn: passive declare of %s failed (%v) — declaring durable", cfg.responseQueue, err)
-		if _, err := ch.QueueDeclare(cfg.responseQueue, true, false, false, false, nil); err != nil {
-			log.Fatalf("declare %s: %v", cfg.responseQueue, err)
-		}
-	}
-	go s.consumeResponses(ch)
+	// The response consumer runs in its own reconnect loop: a broker drop or
+	// channel close no longer silences reporting for the process's lifetime.
+	// The queue is declared (durable, matching M0 §3) inside the loop so a
+	// fresh broker is self-healing too.
+	go s.consumeLoop()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -304,22 +335,54 @@ func (s *server) connectAMQP() (*amqp.Connection, *amqp.Channel, error) {
 	return conn, ch, nil
 }
 
-// consumeResponses is step 5: consume agent.tasks.response, filter by the
-// task_ids this manager published, write /reports/<task_id>.json.
-func (s *server) consumeResponses(ch *amqp.Channel) {
+// consumeLoop keeps step 5 alive for the process's lifetime: consume
+// agent.tasks.response, filter by this manager's task_ids, write
+// /reports/<task_id>.json. Any consumer error (broker restart, channel
+// close, network drop) is logged and retried after a 5s backoff —
+// reconnection is the default, not a fatal path.
+func (s *server) consumeLoop() {
+	for {
+		err := s.consumeOnce()
+		if err == nil {
+			return // canceled
+		}
+		log.Printf("response consumer ended (%v) — reconnecting in 5s", err)
+		select {
+		case <-s.amqpCancel:
+			return
+		case <-time.After(5 * time.Second):
+		}
+	}
+}
+
+// consumeOnce runs one consume session against one connection.
+func (s *server) consumeOnce() error {
+	conn, ch, err := s.connectAMQP()
+	if err != nil {
+		return fmt.Errorf("rabbitmq dial: %w", err)
+	}
+	defer conn.Close()
+	defer ch.Close()
+	// The response queue is declared by M0 §3 (no exchange binding); the
+	// manager only consumes it — publishing responses is M2's job, on the
+	// default exchange. Passive first, durable re-declare as fallback.
+	if _, err := ch.QueueDeclarePassive(s.cfg.responseQueue, true, false, false, false, nil); err != nil {
+		log.Printf("warn: passive declare of %s failed (%v) — declaring durable", s.cfg.responseQueue, err)
+		if _, err := ch.QueueDeclare(s.cfg.responseQueue, true, false, false, false, nil); err != nil {
+			return fmt.Errorf("declare %s: %w", s.cfg.responseQueue, err)
+		}
+	}
 	deliveries, err := ch.Consume(s.cfg.responseQueue, "", true, false, false, false, nil)
 	if err != nil {
-		log.Printf("consume %s: %v", s.cfg.responseQueue, err)
-		return
+		return fmt.Errorf("consume %s: %w", s.cfg.responseQueue, err)
 	}
 	for {
 		select {
 		case <-s.amqpCancel:
-			return
+			return nil
 		case d, ok := <-deliveries:
 			if !ok {
-				log.Printf("response delivery channel closed")
-				return
+				return fmt.Errorf("delivery channel closed")
 			}
 			var resp TaskResponse
 			if err := json.Unmarshal(d.Body, &resp); err != nil {

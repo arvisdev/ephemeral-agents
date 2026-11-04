@@ -17,7 +17,7 @@
 #   §1  Build + deploy gateway + manager on vm-xa
 #   §3  Ordered full-stack bring-up (e2e-deploy.sh S1–S7, stage-gated)
 #   §4  E2E acceptance run (one real request, human to human)
-#   §5  Failure injections F1–F4
+#   §5  Failure injections F1–F5
 #   §6  Credential hardening (trivy sweep, env review, token 401)
 #   §7  Lock the open items + close the docs
 #
@@ -225,7 +225,7 @@ e2e_acceptance_run() {
 
 # ---------------------------------------------------------------- §5 failure injections
 failure_injections() {
-  log "§5 — failure-injection runbook F1–F4 (each: clean reap + human-visible error)"
+  log "§5 — failure-injection runbook F1–F5 (each: clean reap + human-visible error)"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip injections"; return 0; fi
   local f _f3pid cid
   {
@@ -257,12 +257,28 @@ failure_injections() {
     log "F4 — task with TTL_S smaller than work time (reaper path with real agents)"
     f="$(run_one_task_short_ttl)"
     assert_clean_reap "F4" "$f"
+    # F5: manager restart mid-task (response-consumer reconnect + pending persistence)
+    log "F5 — docker restart manager mid-task; report must still be written after restart"
+    _before="$(ssh "$VM_XA" "ls /opt/poc/reports/*.json 2>/dev/null | wc -l")"
+    run_one_task >/dev/null &
+    _f5pid=$!
+    sleep 10
+    ssh "$VM_XA" "cd /opt/poc/deploy/m5 && docker compose restart manager"
+    wait "$_f5pid" || true
+    sleep 45   # reaper margin + consumer reconnect + pending reload + report write
+    _after="$(ssh "$VM_XA" "ls /opt/poc/reports/*.json 2>/dev/null | wc -l")"
+    survivors="$(ssh "$VM_XB" "docker ps -a --filter label=poc.owner=lifecycle -q | wc -l")"
+    if [ "$survivors" = "0" ] && [ "$_after" -gt "$_before" ]; then
+      echo "F5 manager-restart: report written after restart ($_before -> $_after reports), zero survivors : PASS"
+    else
+      echo "F5 manager-restart: survivors=$survivors reports=$_before->$_after : FAIL"
+    fi
   } | tee "$EVIDENCE/failure-injections.txt"
   if grep -q ": FAIL" "$EVIDENCE/failure-injections.txt"; then
     warn "§5 injection FAILURES above — remediate in the owning milestone (M2 §3 for reaping), re-run."
     if [ "$NO_GATE" != "1" ]; then exit 1; fi
   else
-    ok "§5 F1–F4 clean + reported"
+    ok "§5 F1–F5 clean + reported"
   fi
 }
 

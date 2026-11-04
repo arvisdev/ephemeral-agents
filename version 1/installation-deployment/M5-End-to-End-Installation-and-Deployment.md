@@ -92,7 +92,7 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 
 ## 5. Failure-injection runbook (each injection: assert clean reap + human-visible error)
 
-*Why:* four injections are the POC's claim that "ephemeral" survives real failure: a source goes down (F1), the catalog is unreachable (F2), the agent process dies (F3), the TTL is exceeded (F4). Each one asserts the same two properties — **zero surviving containers** and an **error the human can see** — which is the resilience result, not the hope.
+*Why:* five injections are the POC's claim that "ephemeral" survives real failure: a source goes down (F1), the catalog is unreachable (F2), the agent process dies (F3), the TTL is exceeded (F4), and the manager itself restarts mid-task (F5). Each one asserts the same two properties — **zero surviving containers** and an **error the human can see** (F5: the report is still written after the restart) — which is the resilience result, not the hope.
 
 | # | Injection | Command | Expected |
 |---|---|---|---|
@@ -100,6 +100,7 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 | F2 | agent catalog unreachable | block vm-xb→GitHub 443 for the read token (nftables) | manager/spawn fails fast; no container leak |
 | F3 | agent crash | `docker exec <agent-cid> pkill -9 <agent pid>` | timeout → force-reap; report = failure |
 | F4 | TTL exceeded | task with `TTL_S` smaller than work time | reaper path (M2 V3, now with real agents) |
+| F5 | manager restart mid-task | start a task; ~10s in: `docker compose restart manager` on vm-xa (§1) | restarted manager reloads its pending set from `/opt/poc/reports` and reconnects its consumer → the report is still written; zero survivors |
 
 After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, and the engineer's report shows the error. Record results in `deploy/m5/evidence/failure-injections.txt`.
 
