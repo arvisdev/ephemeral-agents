@@ -120,7 +120,7 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}
 
 ## 7. Lock the last open items + close the docs
 
-*Why:* the open items (message shapes, concurrency, isolation level, curation owner, wiki hydration shape, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
+*Why:* the open items (message shapes, concurrency, isolation level, curation owner, wiki hydration shape, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list is pre-written at [`../Version-2-Open-Items.md`](../Version-2-Open-Items.md) (created 2026-11-04 with the four carry-overs: isolation level, knowledge-promotion flows, multi-project scale on shared stores, the RabbitMQ boundary's other side) — §7 confirms or extends it with live-deployment findings rather than drafting from scratch.
 
 Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items section of `../Initial-Foundation-Design-Document.md` §7):
 
@@ -136,7 +136,7 @@ Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items
 - [ ] **Multi-host git support** — the design is host-agnostic (repos are URLs; `repo_target`/catalog/llm-wiki clone the same way), but credential issuance is currently GitHub-only (`deploy/m3/issue-token.sh`: GitHub App JWT → installation token). A second host (ADO, Bitbucket) needs its own short-lived-token issuer behind the same FR-S1 contract. Trigger: any adopting project whose repos live outside GitHub; motivation to consolidate hosts instead is a client/org choice, not an architecture requirement.
 - [x] **Wiki-vs-repo boundary** — resolved 2026-10-30 (D-wiki-truth/D-repo-truth): development- and business-related items relevant to the deliverables → the project repo (GitHub/ADO, per project); **reference material → the llm-wiki repo**. Agents apply this rule when deciding where a document lives. (2026-11-04, D-wiki-git: the wiki is the git repo github.com/arvisdev/llm-wiki.)
 
-Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: move resolved items out of "open", add the **Version 2 open items list** (llm-wiki curation ownership, Hindsight→llm-wiki promotion, wiki hydration/retrieval shape, long-term queue shape, multi-flow concurrency).
+Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: move resolved items out of "open", and confirm/extend the **Version 2 open items list** (`../Version-2-Open-Items.md` — four carry-overs: isolation level, knowledge-promotion flows, multi-project scale on shared stores, RabbitMQ ingestion boundary's other side).
 
 ## 8. Rollback
 

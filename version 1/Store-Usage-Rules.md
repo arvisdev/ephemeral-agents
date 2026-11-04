@@ -64,10 +64,9 @@ Never goes in:
 Truth chain: **the repo itself** (git, byte-exact, reviewed) is the source of
 truth — there is no serving layer to keep in sync (D-wiki-truth, now
 trivially). Correcting content means editing the repo; every clone made after
-the push sees it. Interim hydration default: a full shallow clone at executor
-boot (see the V2 open item on hydration/retrieval shape — a curated
-index/README-per-topic retrieval aid may be added later). Curation cadence
-and ownership are tracked in the repo's CHANGELOG.md.
+the push sees it. Hydration shape is RESOLVED (D-hydrate, 2026-11-04): a full
+shallow clone at executor boot, revisit trigger recorded there. Curation
+owner (HITL) and cadence are tracked in the repo's CHANGELOG.md (D-curation).
 
 ## Git (the hosting platform — outside this architecture's operations, D-repo-ops)
 

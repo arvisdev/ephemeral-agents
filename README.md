@@ -147,10 +147,11 @@ reorganization debate:
    **only then** start the next milestone.
 
 **The POC is complete when** (M5 install doc §9): the E2E run passed with
-**zero** surviving POC containers; all four failure injections ended clean
+**zero** surviving POC containers; all five failure injections ended clean
 and were reported to the human; credential scans show no long-lived owner
 secret reachable from any container; and the Version 2 open-items list is
-written. At that point the feasibility verdict is confirmed by evidence.
+written ([`version 1/Version-2-Open-Items.md`](version%201/Version-2-Open-Items.md)).
+At that point the feasibility verdict is confirmed by evidence.
 
 ## What this POC deliberately does not decide
 
