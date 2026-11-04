@@ -3,7 +3,7 @@ Date: 2026-10-30 · Requirement: BRD NFR-1 (verbatim, commit b1c91e4) · Baselin
 
 ## The requirement, operationalized
 A junior developer, given only this repo and the owner-supplied inputs, must be able to:
-1. create the four VMs and the PVE chassis (M0),
+1. create the three VMs (four before D-wiki-git dropped the wiki VM) and the PVE chassis (M0),
 2. deploy every component and container (M0–M5),
 3. run and pass every gate test (TP-M0…TP-M5),
 without asking anyone anything the repo doesn't answer.
@@ -25,7 +25,7 @@ Only M0's test harness (`declare-topology-test.sh`, `rmq-stub.py`) is committed.
 
 **G3 — VM creation has a boot-media hole.** `qm create --virtio0` makes empty disks; the only OS-install guidance is "ISO/cloud-init per the estate's existing pattern" — estate knowledge the junior doesn't have. A literal follower gets four unbootable VMs.
 
-**G4 — No worked network example.** Netplan is "10.0.90.x style from the PVE LAN pool"; `hosts.env.example` has no example IP set; netplan/hosts.env/DNS must agree silently across 4 VMs and every later script.
+**G4 — No worked network example.** Netplan is "10.0.90.x style from the PVE LAN pool"; `hosts.env.example` has no example IP set; netplan/hosts.env/DNS must agree silently across the three VMs (four before D-wiki-git dropped the wiki VM) and every later script.
 
 **G5 — Owner-supplied inputs are scattered.** GitHub App + key (M3), Available Agent List repo + read token, `CONTENT_REPO` + `LLMWIKI_READ_TOKEN` (M4), `EMBEDDING_PROVIDER` + key, TTL/cap config values — each mentioned only inside its own milestone doc; nothing tells the junior to collect them before starting.
 
@@ -39,7 +39,7 @@ Only M0's test harness (`declare-topology-test.sh`, `rmq-stub.py`) is committed.
 1. M0 section 1: add the boot step — attach the estate's Ubuntu cloud-init template (`qm set <vmid> --ide2 local:iso/<template>.iso` or `qm importdisk` + `ciuser=poc` + SSH key via cloud-init), matching the existing `poc` user/chrony/netplan steps. Optionally add a `provision` sub-step to `install.sh`'s `provision_vms`.
 2. `hosts.env.example`: add a commented worked example (4 concrete IPs from a sample pool) and the rule "same IPs in netplan, hosts.env, and DNS/hosts".
 3. `deploy/README.md`: add an "Owner must hand you these" checklist (G5's six items) before the first-time setup section.
-4. Add `deploy/check-workstation.sh` (G6): verifies docker/buildx/go/temporal CLI/gh/rsync, SSH key auth as `poc` to PVE + 4 VMs, passwordless sudo, and `--check-only` per-milestone pass.
+4. Add `deploy/check-workstation.sh` (G6): verifies docker/buildx/go/temporal CLI/gh/rsync, SSH key auth as `poc` to PVE + the three VMs (four before D-wiki-git), passwordless sudo, and `--check-only` per-milestone pass.
 5. Ship a `decision-log.md` template in `deploy/m0/` (G7).
 Exit: every doc gap that is fixable by editing text is closed; `bash -n` + M0 harness re-run.
 

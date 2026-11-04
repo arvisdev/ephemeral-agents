@@ -14,7 +14,7 @@
 *Why:* pinning these up front is what makes the chassis **reproducible from the repo** — a rebuild is a scripted re-run, not tribal knowledge. Secrets live in gitignored per-VM `.env` files so they never enter compose files or git, and image pins in `image-tags.env` make every deployment byte-for-byte repeatable.
 
 - VMs run **Ubuntu 26.04 LTS** (matches the running Proxmox estate; use 24.04 if 26.04 images are unavailable).
-- Hostnames: `vm-xa`, `vm-xb`, `vm-hindsight`; SSH key auth with user `poc`. *(2026-11-04, D-wiki-git: `vm-llm-wiki` is no longer provisioned; the command blocks below predate the decision — create only vm-xa, vm-xb, vm-hindsight, i.e. skip VMID 902 and any step naming vm-llm-wiki.)*
+- Hostnames: `vm-xa`, `vm-xb`, `vm-hindsight`; SSH key auth with user `poc`. *(2026-11-04, D-wiki-git: `vm-llm-wiki` is not provisioned — the command blocks below create only the three VMs; VMID 902 is retired.)*
 - All compose files, scripts, and generated `.env` (secrets) live in the POC repo under `deploy/m0/` — the chassis must be **reproducible from the repo**, not hand-built.
 - Secrets (RabbitMQ/Postgres passwords) go in per-VM `.env` files, **gitignored** — never in compose files.
 - Pin every image tag at deploy time and record the pins in `deploy/m0/image-tags.env`.
@@ -34,20 +34,19 @@
 *Why:* stable VMIDs + hostnames are what every later script and doc references; **chrony is a hard dependency** — RabbitMQ and Temporal both misbehave under clock skew, and M2's reaper logic compares `poc.expires` timestamps across containers. The `poc` user is the single account all install scripts use.
 
 ```bash
-# check existing VMIDs first, pick a free block (900-903 shown)
+# check existing VMIDs first, pick a free block (900, 901, 903 shown — 902 retired by D-wiki-git)
 qm list
 qm create 900 --name vm-xa --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
 qm create 901 --name vm-xb --ostype l26 --memory 8192 --cores 4 --virtio0 local:40 --net0 virtio,bridge=vmbr0 --agent enabled=1
-qm create 902 --name vm-llm-wiki  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1   # D-wiki-git 2026-11-04: DO NOT create — VM-2 dropped (3-VM topology; wiki = git repo arvisdev/llm-wiki)
 qm create 903 --name vm-hindsight  --ostype l26 --memory 4096  --cores 2 --virtio0 local:20 --net0 virtio,bridge=vmbr0 --agent enabled=1
-for i in 900 901 902 903; do qm start $i; done
+for i in 900 901 903; do qm start $i; done
 ```
 
 ### 1a. Install the OS (the `qm create` disks start EMPTY)
 
 > **Owner-provisioned baseline (2026-10-30):** if the three VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (section 2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 section 2a, m4, m5), so nothing needs hand-editing.
 
-*Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given). *(Three VMs only per D-wiki-git — the blocks still show 900–903; skip 902.)*
+*Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given). *(Three VMs only per D-wiki-git — VMID 902 is retired and never created.)*
 
 **Path A — cloud-init template (preferred):** on the PVE host, attach the estate's Ubuntu cloud-init image/template to each VM and seed the `poc` user + SSH key + hostname via cloud-init:
 
@@ -55,7 +54,7 @@ for i in 900 901 902 903; do qm start $i; done
 # once, if no template exists yet: download + import the Ubuntu cloud image into local storage
 # (matches the estate's Ubuntu 26.04 LTS assumption; 24.04 image if 26.04 is unavailable)
 wget https://cloud-images.ubuntu.com/<release>/current/<release>-server-cloudimg-amd64.img -P /var/lib/vz/template/iso/
-for i in 900 901 902 903; do
+for i in 900 901 903; do
   qm importdisk $i /var/lib/vz/template/iso/<release>-server-cloudimg-amd64.img local
   qm set $i --scsihw virtio-scsi-pci --scsi0 local:vm-$i-disk-1      # attach the imported disk as boot disk
   qm set $i --boot order=scsi0
@@ -99,7 +98,7 @@ sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
 # without the scripts) is the four rules below:
 sudo ufw allow from <poc-lan-cidr> to any port 5672 proto tcp   # vm-xb only
 sudo ufw allow from <poc-lan-cidr> to any port 7233 proto tcp   # vm-xb only
-sudo ufw allow from <poc-lan-cidr> to any port 8080 proto tcp   # vm-xa only (D-wiki-git 2026-11-04: vm-llm-wiki dropped — no wiki VM/service exists)
+sudo ufw allow from <poc-lan-cidr> to any port 8080 proto tcp   # vm-xa only
 sudo ufw allow from <poc-lan-cidr> to any port 8081 proto tcp   # vm-hindsight only
 ```
 
@@ -216,7 +215,7 @@ Note: this Postgres belongs to Temporal only. VM-3's Hindsight gets its **own** 
 Run from each VM; record results in `deploy/m0/evidence/network-matrix.txt`:
 
 ```bash
-# pairwise L3 reachability (VM-3 has no services yet — probe ssh 22):  # D-wiki-git 2026-11-04: VM-2 dropped — 3-VM topology
+# pairwise L3 reachability (3-VM topology per D-wiki-git; VM-3 has no services yet — probe ssh 22):
 for h in vm-xa vm-xb vm-hindsight; do ssh -o ConnectTimeout=5 $h true && echo "$h OK"; done
 # outbound Internet (needed for GitHub in later milestones):
 for h in vm-xa vm-xb; do ssh $h 'curl -sI https://github.com | head -1'; done
@@ -250,7 +249,7 @@ deploy/
 
 | # | Check | Command / where |
 |---|---|---|
-| 1 | 4 VMs, Docker runs on each | `docker run --rm alpine echo ok` on all |
+| 1 | 3 VMs, Docker runs on each | `docker run --rm alpine echo ok` on all |
 | 2 | Cross-VM topic publish/consume | section 3 last block |
 | 3 | Temporal healthy, `default` ns, **Go SDK smoke completes** | section 4 + section 4b |
 | 4 | Network matrix 100% | section 5, recorded |

@@ -13,7 +13,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 ---
 
 ## M0 – Infrastructure Foundation
-**Goal:** Proxmox 9.x + VMs (VM-Xa, VM-Xb, VM-2, VM-3) with Docker; RabbitMQ (Topic) and Temporal (Server + Worker) standing up and reachable. *(D-wiki-git, 2026-11-04: 3-VM topology — VM-2/vm-llm-wiki is dropped; the wiki is the git repo github.com/arvisdev/llm-wiki, shallow-cloned at executor boot.)*
+**Goal:** Proxmox 9.x + VMs (VM-Xa, VM-Xb, VM-3; VM-2 dropped per D-wiki-git) with Docker; RabbitMQ (Topic) and Temporal (Server + Worker) standing up and reachable. *(D-wiki-git, 2026-11-04: 3-VM topology — VM-2/vm-llm-wiki is dropped; the wiki is the git repo github.com/arvisdev/llm-wiki, shallow-cloned at executor boot.)*
 **Done-when:**
 - VMs provisioned; Docker pulls/runs a hello-container on each.
 - RabbitMQ topic reachable from VM-Xa (publish) and VM-Xb (consume).
