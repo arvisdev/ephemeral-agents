@@ -1,4 +1,4 @@
-# M4 Delivery Plan — Memory + Knowledge (Hindsight + llm-wiki + Agent Catalog)
+# M4 Delivery Plan — Agent Memory & Knowledge Access (Hindsight + llm-wiki + Agent Catalog)
 
 | | |
 |---|---|

@@ -1,4 +1,4 @@
-# M1 Installation & Deployment — RabbitMQ → Temporal Adapter
+# M1 Installation & Deployment — Message-to-Workflow Bridge
 
 **Companion:** `../delivery plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md` · this file: **how to install and deploy it**.
 

@@ -1,4 +1,4 @@
-# M2 Installation & Deployment — Container Lifecycle Manager
+# M2 Installation & Deployment — Container Spawn & Reap System
 
 **Companion:** `../delivery plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md` · this file: **how to install and deploy it**.
 

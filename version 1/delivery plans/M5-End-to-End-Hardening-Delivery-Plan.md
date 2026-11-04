@@ -1,4 +1,4 @@
-# M5 Delivery Plan — End-to-End Single Flow + Hardening
+# M5 Delivery Plan — Full System Integration Test
 
 | | |
 |---|---|

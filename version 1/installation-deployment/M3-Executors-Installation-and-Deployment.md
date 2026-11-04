@@ -1,4 +1,4 @@
-# M3 Installation & Deployment — Executor Spikes (Hermes Ephemeral + Claude Code)
+# M3 Installation & Deployment — Agent Executor Proofs (Hermes Ephemeral + Claude Code)
 
 **Companion:** `../delivery plans/M3-Executor-Spikes-Delivery-Plan.md` · this file: **how to install and deploy it**.
 

@@ -1,4 +1,4 @@
-# M5 Test Procedure — End-to-End + Hardening Gate (TP-M5)
+# M5 Test Procedure — Full System Integration Test Gate (TP-M5)
 
 **The final gate: POC complete.** No milestone follows M5 — all cases below must PASS to convert the feasibility verdict from analysis to **evidence**. Evidence in `deploy/m5/evidence/`.
 

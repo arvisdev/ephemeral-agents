@@ -1,4 +1,4 @@
-# M4 Test Procedure — Memory + Knowledge Gate (TP-M4)
+# M4 Test Procedure — Agent Memory & Knowledge Access Gate (TP-M4)
 
 **Gates progression to M5.** Before the M5 installation (`../installation-deployment/M5-End-to-End-Installation-and-Deployment.md`) begins, every **mandatory** case below must PASS. Evidence in `deploy/m4/evidence/`.
 

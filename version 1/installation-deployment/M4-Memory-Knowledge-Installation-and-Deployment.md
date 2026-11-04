@@ -1,4 +1,4 @@
-# M4 Installation & Deployment — Memory + Knowledge (Hindsight + llm-wiki)
+# M4 Installation & Deployment — Agent Memory & Knowledge Access (Hindsight + llm-wiki)
 
 **Companion:** `../delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md` · this file: **how to install and deploy it**.
 

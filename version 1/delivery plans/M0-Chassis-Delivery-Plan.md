@@ -1,4 +1,4 @@
-# M0 Delivery Plan — Chassis
+# M0 Delivery Plan — Infrastructure Foundation
 
 | | |
 |---|---|

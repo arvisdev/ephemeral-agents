@@ -1,4 +1,4 @@
-# M0 Installation & Deployment — Chassis
+# M0 Installation & Deployment — Infrastructure Foundation
 
 **Companion:** `../delivery plans/M0-Chassis-Delivery-Plan.md` (what to deliver) · this file: **how to install and deploy it**.
 

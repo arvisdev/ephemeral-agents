@@ -1,4 +1,4 @@
-# M5 Installation & Deployment — End-to-End Single Flow + Hardening
+# M5 Installation & Deployment — Full System Integration Test
 
 **Companion:** `../delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md` · this file: **how to install and deploy it**.
 

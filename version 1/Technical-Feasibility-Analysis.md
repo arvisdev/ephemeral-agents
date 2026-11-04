@@ -97,11 +97,11 @@ If §5 spikes pass, the Version 1 POC is buildable with standard tooling.
 Full plan in `Technical-Feasibility-POC-Milestones.md`. Order by what de-risks the most:
 
 1. **M0** Proxmox + VMs + Docker + RabbitMQ + Temporal standing up (the chassis).
-2. **M1** RabbitMQ→Temporal adapter (proves the decoupling path).
-3. **M2** Container lifecycle manager (spawn / hydrate / teardown) — the core custom piece.
-4. **M3** The two executor spikes (Hermes ephemeral, Claude Code headless) wired into the lifecycle.
-5. **M4** Memory + knowledge (Hindsight API, LLM-Wiki) wired in.
-6. **M5** End-to-end single flow + teardown; credential scoping + concurrency model locked.
+2. **M1** Message-to-Workflow Bridge (the RabbitMQ→Temporal adapter; proves the decoupling path).
+3. **M2** Container Spawn & Reap System (spawn / hydrate / teardown) — the core custom piece.
+4. **M3** Agent Executor Proofs — the two executor spikes (Hermes ephemeral, Claude Code headless) wired into the lifecycle.
+5. **M4** Agent Memory & Knowledge Access (Hindsight API, LLM-Wiki) wired in.
+6. **M5** Full System Integration Test — end-to-end single flow + teardown; credential scoping + concurrency model locked.
 
 ## 8. Assumptions (stated, not verified)
 

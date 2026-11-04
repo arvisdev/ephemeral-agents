@@ -1,4 +1,4 @@
-# M1 Delivery Plan — RabbitMQ → Temporal Adapter
+# M1 Delivery Plan — Message-to-Workflow Bridge
 
 | | |
 |---|---|

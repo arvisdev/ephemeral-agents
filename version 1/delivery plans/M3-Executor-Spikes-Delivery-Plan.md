@@ -1,4 +1,4 @@
-# M3 Delivery Plan — Executor Spikes (Hermes Ephemeral + Claude Code Headless)
+# M3 Delivery Plan — Agent Executor Proofs (Hermes Ephemeral + Claude Code Headless)
 
 | | |
 |---|---|

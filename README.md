@@ -74,12 +74,12 @@ test procedure must PASS before the next milestone's installation begins.**
 
 | # | Milestone | Proves | Gate test procedure |
 |---|---|---|---|
-| M0 | Chassis | 3 VMs + Docker + RabbitMQ topic + Temporal reachable; Go SDK smoke | [TP-M0](version%201/test%20procedures/M0-Chassis-Test-Procedure.md) |
-| M1 | RabbitMQ → Temporal adapter | Exactly one workflow per message; idempotent; no loss | [TP-M1](version%201/test%20procedures/M1-Adapter-Test-Procedure.md) |
-| M2 | Container lifecycle manager | Spawn/timeout/reap state machine; crash-safe reaper; no-pull deploy gate | [TP-M2](version%201/test%20procedures/M2-Lifecycle-Test-Procedure.md) |
-| M3 | Executor spikes | Hermes boots with persona/skills (point of last cheap exit); headless Claude Code makes a real commit | [TP-M3](version%201/test%20procedures/M3-Executors-Test-Procedure.md) |
-| M4 | Memory + knowledge | Hindsight API + llm-wiki git clone (D-wiki-git); hydration wired in; **cross-task read-back** | [TP-M4](version%201/test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
-| M5 | End-to-end + hardening | Human-to-human E2E run, four failure injections, credential hardening, docs closed | [TP-M5](version%201/test%20procedures/M5-End-to-End-Test-Procedure.md) |
+| M0 | Infrastructure Foundation | 3 VMs + Docker + RabbitMQ topic + Temporal reachable; Go SDK smoke | [TP-M0](version%201/test%20procedures/M0-Chassis-Test-Procedure.md) |
+| M1 | Message-to-Workflow Bridge | Exactly one workflow per message; idempotent; no loss | [TP-M1](version%201/test%20procedures/M1-Adapter-Test-Procedure.md) |
+| M2 | Container Spawn & Reap System | Spawn/timeout/reap state machine; crash-safe reaper; no-pull deploy gate | [TP-M2](version%201/test%20procedures/M2-Lifecycle-Test-Procedure.md) |
+| M3 | Agent Executor Proofs | Hermes boots with persona/skills (point of last cheap exit); headless Claude Code makes a real commit | [TP-M3](version%201/test%20procedures/M3-Executors-Test-Procedure.md) |
+| M4 | Agent Memory & Knowledge Access | Hindsight API + llm-wiki git clone (D-wiki-git); hydration wired in; **cross-task read-back** | [TP-M4](version%201/test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
+| M5 | Full System Integration Test | Human-to-human E2E run, four failure injections, credential hardening, docs closed | [TP-M5](version%201/test%20procedures/M5-End-to-End-Test-Procedure.md) |
 
 The full sequence, done-when criteria, risk register (R1–R9), and every
 cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical-Feasibility-POC-Milestones.md).

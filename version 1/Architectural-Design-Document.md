@@ -122,12 +122,12 @@ Invariants: teardown is safe to re-run; after M runs, zero leaked containers (TP
 
 | Milestone | Proves the design element | Gate |
 |---|---|---|
-| M0 Chassis | §2, §7 — VMs, Docker, topic, Temporal, Go SDK smoke, network matrix | TP-M0 (8 cases) |
-| M1 Adapter | §4.4, §5.1 — exactly-one-workflow, idempotent, no loss | TP-M1 (6 cases) |
-| M2 Lifecycle | §6 — spawn/timeout/reap state machine, crash-safe, no-pull gate | TP-M2 (6 cases) |
-| M3 Executors | §3 executors, §5.3 — Hermes boot-time persona load (point of last cheap exit); headless Claude Code real commit; lock execution model + cap | TP-M3 (7 cases) |
-| M4 Memory/knowledge | §5.2 — Hindsight R/W, wiki-via-git hydration (llm-wiki clone), git hydration, cross-task read-back | TP-M4 (7 cases) |
-| M5 E2E + hardening | §4 end-to-end, four failure injections, credential hardening, V2 open-items list | TP-M5 |
+| M0 – Infrastructure Foundation | §2, §7 — VMs, Docker, topic, Temporal, Go SDK smoke, network matrix | TP-M0 (8 cases) |
+| M1 – Message-to-Workflow Bridge | §4.4, §5.1 — exactly-one-workflow, idempotent, no loss | TP-M1 (6 cases) |
+| M2 – Container Spawn & Reap System | §6 — spawn/timeout/reap state machine, crash-safe, no-pull gate | TP-M2 (6 cases) |
+| M3 – Agent Executor Proofs | §3 executors, §5.3 — Hermes boot-time persona load (point of last cheap exit); headless Claude Code real commit; lock execution model + cap | TP-M3 (7 cases) |
+| M4 – Agent Memory & Knowledge Access | §5.2 — Hindsight R/W, wiki-via-git hydration (llm-wiki clone), git hydration, cross-task read-back | TP-M4 (7 cases) |
+| M5 – Full System Integration Test | §4 end-to-end, four failure injections, credential hardening, V2 open-items list | TP-M5 |
 
 **POC exit condition (M5 §9):** E2E passed with zero surviving POC containers; four failure injections clean and human-reported; no long-lived owner secret reachable from any container; Version-2 open items listed; TP-M5 signed — confirming the feasibility verdict *by evidence, not by analysis*.
 

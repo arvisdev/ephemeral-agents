@@ -1,4 +1,4 @@
-# M2 Test Procedure — Container Lifecycle Manager Gate (TP-M2)
+# M2 Test Procedure — Container Spawn & Reap System Gate (TP-M2)
 
 **Gates progression to M3.** Before the M3 installation (`../installation-deployment/M3-Executors-Installation-and-Deployment.md`) begins, every **mandatory** case below must PASS. Evidence in `deploy/m2/evidence/`.
 

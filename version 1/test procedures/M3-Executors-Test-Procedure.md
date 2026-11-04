@@ -1,4 +1,4 @@
-# M3 Test Procedure — Executor Spikes Gate (TP-M3)
+# M3 Test Procedure — Agent Executor Proofs Gate (TP-M3)
 
 **Gates progression to M4.** Before the M4 installation (`../installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md`) begins, every **mandatory** case below must PASS. Evidence in `deploy/m3/evidence/`.
 

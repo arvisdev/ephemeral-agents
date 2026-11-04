@@ -12,7 +12,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 
 ---
 
-## M0 — Chassis
+## M0 – Infrastructure Foundation
 **Goal:** Proxmox 9.x + VMs (VM-Xa, VM-Xb, VM-2, VM-3) with Docker; RabbitMQ (Topic) and Temporal (Server + Worker) standing up and reachable. *(D-wiki-git, 2026-11-04: 3-VM topology — VM-2/vm-llm-wiki is dropped; the wiki is the git repo github.com/arvisdev/llm-wiki, shallow-cloned at executor boot.)*
 **Done-when:**
 - VMs provisioned; Docker pulls/runs a hello-container on each.
@@ -21,7 +21,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - Cross-VM reachability (VM-Xb → VM-3, → GitHub) verified. *(D-wiki-git, 2026-11-04: VM-2 is dropped; reachability covers vm-xa/vm-xb/vm-hindsight only.)*
 **Retires:** R8 (service discovery), R9 (VM naming — recorded here; owner-resolved 2026-10-25: labels are POC discussion devices, not commitments), and the "does the chassis stand" risk.
 
-## M1 — RabbitMQ → Temporal adapter
+## M1 – Message-to-Workflow Bridge
 **Goal:** A RabbitMQ consumer that starts exactly one Temporal workflow per message (idempotent, no loss).
 **Done-when:**
 - Publish N messages → N distinct workflows start.
@@ -29,7 +29,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - No message lost on consumer restart (durable consumer + ack-after-start).
 **Retires:** R2 (bridge correctness/loss).
 
-## M2 — Container lifecycle manager
+## M2 – Container Spawn & Reap System
 **Goal:** The custom core: a Temporal activity that `docker run`s an ephemeral executor, injects per-run config/credentials, and **reliably tears down** on success **and** failure/timeout.
 **Done-when:**
 - Spawn + hydrate + teardown of a dummy container via a Temporal activity.
@@ -38,7 +38,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - Image pre-pulled (not pulled at activity time) to bound boot latency.
 **Retires:** R1 (lifecycle/leaks/crash recovery) — the biggest custom risk.
 
-## M3 — Executor spikes (the two To-verify components)
+## M3 – Agent Executor Proofs (the two To-verify components)
 **Goal:** Prove the two uncertain pieces inside the M2 lifecycle:
 - **M3a Hermes ephemeral:** boot Hermes in a container; load persona + skills markdown from a git repo at startup; correct + fast.
 - **M3b Claude Code headless:** run Claude Code in a container against a cloned repo; make + commit code with a **scoped** token.
@@ -47,7 +47,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - M3b: coder produces a real code change and a git commit using a short-lived, branch-limited token.
 **Retires:** R5 (Hermes persona-load), R3/R4 (concurrency + credential scoping at the coder).
 
-## M4 — Memory + knowledge
+## M4 – Agent Memory & Knowledge Access
 **Goal:** Wire the three hydration sources: Hindsight R/W API, **llm-wiki git repo** (shallow clone, D-wiki-git — the LLM-Wiki RAG service is removed), Available Agent List (git).
 **Done-when:**
 - An ephemeral agent **reads and writes** Hindsight per session over the network (R6).
@@ -55,7 +55,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 - Agent loads its full persona + skills markdown from the Available Agent List repo.
 **Retires:** R6, R7.
 
-## M5 — End-to-end single flow + hardening
+## M5 – Full System Integration Test
 **Goal:** The full Version 1 flow: Engineer → Gateway → Manager → Topic → Temporal → ephemeral agents → hydrate → code to Project Repo → **destroy**.
 **Done-when:**
 - One real request end-to-end, including teardown, leaving **zero** orphan containers.
@@ -81,34 +81,34 @@ Each milestone has its own delivery plan in `delivery plans/`:
 
 | Milestone | Delivery plan |
 |---|---|
-| M0 — Chassis | [delivery plans/M0-Chassis-Delivery-Plan.md](delivery%20plans/M0-Chassis-Delivery-Plan.md) |
-| M1 — RabbitMQ → Temporal adapter | [delivery plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md](delivery%20plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md) |
-| M2 — Container lifecycle manager | [delivery plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md](delivery%20plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md) |
-| M3 — Executor spikes | [delivery plans/M3-Executor-Spikes-Delivery-Plan.md](delivery%20plans/M3-Executor-Spikes-Delivery-Plan.md) |
-| M4 — Memory + knowledge | [delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md](delivery%20plans/M4-Memory-and-Knowledge-Delivery-Plan.md) |
-| M5 — End-to-end + hardening | [delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md](delivery%20plans/M5-End-to-End-Hardening-Delivery-Plan.md) |
+| M0 – Infrastructure Foundation | [delivery plans/M0-Chassis-Delivery-Plan.md](delivery%20plans/M0-Chassis-Delivery-Plan.md) |
+| M1 – Message-to-Workflow Bridge | [delivery plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md](delivery%20plans/M1-RabbitMQ-Temporal-Adapter-Delivery-Plan.md) |
+| M2 – Container Spawn & Reap System | [delivery plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md](delivery%20plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md) |
+| M3 – Agent Executor Proofs | [delivery plans/M3-Executor-Spikes-Delivery-Plan.md](delivery%20plans/M3-Executor-Spikes-Delivery-Plan.md) |
+| M4 – Agent Memory & Knowledge Access | [delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md](delivery%20plans/M4-Memory-and-Knowledge-Delivery-Plan.md) |
+| M5 – Full System Integration Test | [delivery plans/M5-End-to-End-Hardening-Delivery-Plan.md](delivery%20plans/M5-End-to-End-Hardening-Delivery-Plan.md) |
 
 Each delivery plan has a matching **full installation/deployment instruction set** in `installation-deployment/`:
 
 | Milestone | Installation & deployment |
 |---|---|
-| M0 — Chassis | [installation-deployment/M0-Chassis-Installation-and-Deployment.md](installation-deployment/M0-Chassis-Installation-and-Deployment.md) |
-| M1 — RabbitMQ → Temporal adapter | [installation-deployment/M1-Adapter-Installation-and-Deployment.md](installation-deployment/M1-Adapter-Installation-and-Deployment.md) |
-| M2 — Container lifecycle manager | [installation-deployment/M2-Lifecycle-Installation-and-Deployment.md](installation-deployment/M2-Lifecycle-Installation-and-Deployment.md) |
-| M3 — Executor spikes | [installation-deployment/M3-Executors-Installation-and-Deployment.md](installation-deployment/M3-Executors-Installation-and-Deployment.md) |
-| M4 — Memory + knowledge | [installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md](installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md) |
-| M5 — End-to-end + hardening | [installation-deployment/M5-End-to-End-Installation-and-Deployment.md](installation-deployment/M5-End-to-End-Installation-and-Deployment.md) |
+| M0 – Infrastructure Foundation | [installation-deployment/M0-Chassis-Installation-and-Deployment.md](installation-deployment/M0-Chassis-Installation-and-Deployment.md) |
+| M1 – Message-to-Workflow Bridge | [installation-deployment/M1-Adapter-Installation-and-Deployment.md](installation-deployment/M1-Adapter-Installation-and-Deployment.md) |
+| M2 – Container Spawn & Reap System | [installation-deployment/M2-Lifecycle-Installation-and-Deployment.md](installation-deployment/M2-Lifecycle-Installation-and-Deployment.md) |
+| M3 – Agent Executor Proofs | [installation-deployment/M3-Executors-Installation-and-Deployment.md](installation-deployment/M3-Executors-Installation-and-Deployment.md) |
+| M4 – Agent Memory & Knowledge Access | [installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md](installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md) |
+| M5 – Full System Integration Test | [installation-deployment/M5-End-to-End-Installation-and-Deployment.md](installation-deployment/M5-End-to-End-Installation-and-Deployment.md) |
 
 Each milestone also has a formal **test procedure** in `test procedures/` — the gate that must PASS before the next milestone's installation begins:
 
 | Milestone | Test procedure (the gate) |
 |---|---|
-| M0 — Chassis | [test procedures/M0-Chassis-Test-Procedure.md](test%20procedures/M0-Chassis-Test-Procedure.md) |
-| M1 — RabbitMQ → Temporal adapter | [test procedures/M1-Adapter-Test-Procedure.md](test%20procedures/M1-Adapter-Test-Procedure.md) |
-| M2 — Container lifecycle manager | [test procedures/M2-Lifecycle-Test-Procedure.md](test%20procedures/M2-Lifecycle-Test-Procedure.md) |
-| M3 — Executor spikes | [test procedures/M3-Executors-Test-Procedure.md](test%20procedures/M3-Executors-Test-Procedure.md) |
-| M4 — Memory + knowledge | [test procedures/M4-Memory-Knowledge-Test-Procedure.md](test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
-| M5 — End-to-end + hardening | [test procedures/M5-End-to-End-Test-Procedure.md](test%20procedures/M5-End-to-End-Test-Procedure.md) |
+| M0 – Infrastructure Foundation | [test procedures/M0-Chassis-Test-Procedure.md](test%20procedures/M0-Chassis-Test-Procedure.md) |
+| M1 – Message-to-Workflow Bridge | [test procedures/M1-Adapter-Test-Procedure.md](test%20procedures/M1-Adapter-Test-Procedure.md) |
+| M2 – Container Spawn & Reap System | [test procedures/M2-Lifecycle-Test-Procedure.md](test%20procedures/M2-Lifecycle-Test-Procedure.md) |
+| M3 – Agent Executor Proofs | [test procedures/M3-Executors-Test-Procedure.md](test%20procedures/M3-Executors-Test-Procedure.md) |
+| M4 – Agent Memory & Knowledge Access | [test procedures/M4-Memory-Knowledge-Test-Procedure.md](test%20procedures/M4-Memory-Knowledge-Test-Procedure.md) |
+| M5 – Full System Integration Test | [test procedures/M5-End-to-End-Test-Procedure.md](test%20procedures/M5-End-to-End-Test-Procedure.md) |
 
 ## Install scripts (one per milestone)
 
@@ -118,12 +118,12 @@ Each installation/deployment instruction set has a matching **complete installat
 
 | Milestone | Install script |
 |---|---|
-| M0 — Chassis | [../deploy/m0/install.sh](../deploy/m0/install.sh) |
-| M1 — RabbitMQ → Temporal adapter | [../deploy/m1/install.sh](../deploy/m1/install.sh) |
-| M2 — Container lifecycle manager | [../deploy/m2/install.sh](../deploy/m2/install.sh) |
-| M3 — Executor spikes | [../deploy/m3/install.sh](../deploy/m3/install.sh) |
-| M4 — Memory + knowledge | [../deploy/m4/install.sh](../deploy/m4/install.sh) |
-| M5 — End-to-end + hardening | [../deploy/m5/install.sh](../deploy/m5/install.sh) |
+| M0 – Infrastructure Foundation | [../deploy/m0/install.sh](../deploy/m0/install.sh) |
+| M1 – Message-to-Workflow Bridge | [../deploy/m1/install.sh](../deploy/m1/install.sh) |
+| M2 – Container Spawn & Reap System | [../deploy/m2/install.sh](../deploy/m2/install.sh) |
+| M3 – Agent Executor Proofs | [../deploy/m3/install.sh](../deploy/m3/install.sh) |
+| M4 – Agent Memory & Knowledge Access | [../deploy/m4/install.sh](../deploy/m4/install.sh) |
+| M5 – Full System Integration Test | [../deploy/m5/install.sh](../deploy/m5/install.sh) |
 
 **Common interface (all six):**
 

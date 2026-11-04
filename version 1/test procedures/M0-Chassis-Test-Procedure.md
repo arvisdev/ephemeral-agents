@@ -1,4 +1,4 @@
-# M0 Test Procedure — Chassis Gate (TP-M0)
+# M0 Test Procedure — Infrastructure Foundation Gate (TP-M0)
 
 **Gates progression to M1.** Before the M1 installation (`../installation-deployment/M1-Adapter-Installation-and-Deployment.md`) begins, every **mandatory** case below must PASS. Evidence is collected in `deploy/m0/evidence/`.
 

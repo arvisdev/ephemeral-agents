@@ -1,4 +1,4 @@
-# M1 Test Procedure — RabbitMQ → Temporal Adapter Gate (TP-M1)
+# M1 Test Procedure — Message-to-Workflow Bridge Gate (TP-M1)
 
 **Gates progression to M2.** Before the M2 installation (`../installation-deployment/M2-Lifecycle-Installation-and-Deployment.md`) begins, every **mandatory** case below must PASS. Evidence in `deploy/m1/evidence/`.
 
