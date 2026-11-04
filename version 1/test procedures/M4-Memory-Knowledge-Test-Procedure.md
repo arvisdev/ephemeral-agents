@@ -32,7 +32,7 @@
 
 | ID | Title | What to record |
 |---|---|---|
-| I-M4-01 | Curation evidence | the curation-cadence/ownership note in the llm-wiki repo's `CHANGELOG.md` (tracked there per D-wiki-git, not in the decision log) |
+| I-M4-01 | Curation evidence | the curation note in the llm-wiki repo's `CHANGELOG.md` — owner = the Human-In-The-Loop (HITL), append-only need-driven cadence (D-curation, 2026-11-04; tracked there per D-wiki-git, not in the decision log) |
 | I-M4-02 | Embedding provider cost/rate | provider chosen, model, observed rate-limit headroom at POC query volume |
 
 ## Evidence to file (`deploy/m4/evidence/`)
