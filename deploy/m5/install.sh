@@ -25,7 +25,7 @@
 #   ASSUME_YES=1  — skip interactive confirms
 #
 # Configuration (env, or deploy/m0/hosts.env — auto-loaded; deploy/m5/.env optional):
-#   VM_XA / VM_XB / VM_2 / VM_3 — ssh aliases (defaults vm-xa/vm-xb/vm-llm-wiki/vm-hindsight)
+#   VM_XA / VM_XB / VM_3 — ssh aliases (defaults vm-xa/vm-xb/vm-hindsight)
 #   GATEWAY_URL — default "http://<vm-xa-ip-or-name>:8080" (set to the reachable form)
 #   E2E_BRIEF — the task_brief for the acceptance request (default: "add a health endpoint to the POC project")
 #   E2E_TIMEOUT_S — default 600
@@ -74,7 +74,7 @@ done
 
 [ -f "$REPO_ROOT/deploy/m0/hosts.env" ] && { set -a; . "$REPO_ROOT/deploy/m0/hosts.env"; set +a; }
 [ -f "$M5/.env" ] && { set -a; . "$M5/.env"; set +a; }
-VM_XA="${VM_XA:-vm-xa}"; VM_XB="${VM_XB:-vm-xb}"
+VM_XA="${VM_XA:-vm-xa}"; VM_XB="${VM_XB:-vm-xb}"; VM_3="${VM_3:-vm-hindsight}"
 IMAGE_TAG="${IMAGE_TAG:-1.0.0}"
 GATEWAY_URL="${GATEWAY_URL:-http://$VM_XA:8080}"
 E2E_BRIEF="${E2E_BRIEF:-add a health endpoint to the POC project}"
@@ -106,8 +106,8 @@ prereqs() {
     || die "M1: topic-bridge missing on $VM_XB — earlier gate not passed"
   ssh "$VM_XB" "docker ps --format '{{.Names}}' | grep -q lifecycle" \
     || die "M2: lifecycle missing on $VM_XB — earlier gate not passed"
-  ssh "$VM_2" "curl -sf http://127.0.0.1:8080/healthz" >/dev/null 2>&1 \
-    || die "M4: llmwiki not healthy on $VM_2 — earlier gate not passed"
+  ssh "$VM_3" "curl -sf http://127.0.0.1:8081/healthz" >/dev/null 2>&1 \
+    || die "M4: hindsight not healthy on $VM_3 — earlier gate not passed"
   ok "prereqs"
 }
 
@@ -225,14 +225,14 @@ failure_injections() {
   local f _f3pid cid
   {
     echo "# M5 failure injections — $(date -u)"
-    # F1: LLM-Wiki down
-    log "F1 — pause llmwiki-api on $VM_2 during a task"
-    ssh "$VM_2" "docker pause llmwiki-api" || true
+    # F1: llm-wiki clone unreachable (block outbound HTTPS to github.com on the executor VM)
+    log "F1 — block outbound git/HTTPS to github.com on $VM_XB during a task (llm-wiki clone fails)"
+    block_github_443
     f="$(run_one_task)"
-    ssh "$VM_2" "docker unpause llmwiki-api"
+    unblock_github_443
     assert_clean_reap "F1" "$f"
     # F2: agent catalog unreachable
-    log "F2 — block vm-xb -> GitHub 443 (nftables)"
+    log "F2 — block vm-xb -> GitHub 443 (nftables; agent-repo clone path)"
     block_github_443
     f="$(run_one_task)"
     unblock_github_443
@@ -299,7 +299,7 @@ credential_hardening() {
   if [ "$CHECK_ONLY" = "1" ]; then return 0; fi
   if command -v trivy >/dev/null; then
     local img
-    for img in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api poc/gateway poc/manager; do   # ALL 10 deployed images
+    for img in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/gateway poc/manager; do   # ALL 9 deployed images
       trivy image --exit-code 1 --scanners vuln,secret "$img:$IMAGE_TAG" \
         && log "§6   trivy $img:$IMAGE_TAG : clean" \
         || die "§6   trivy: $img:$IMAGE_TAG has findings — remediate"
@@ -337,11 +337,11 @@ lock_open_items() {
 - [ ] topic/queue message shapes — schemas/message-v1.json is the contract (version it)
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (M3 §3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
-- [ ] LLM-Wiki curation owner + cadence (from M4)
+- [ ] llm-wiki repo curation owner + cadence (from M4)
 
 After locking: update version 1/ARCHITECTURE.md + Initial-Foundation-Design-Document.md
 (move resolved items out of "open") and add the Version 2 open items list
-(LLM-Wiki curation ownership, Hindsight->LLM-Wiki promotion, long-term queue shape,
+(llm-wiki repo curation ownership, long-term queue shape,
 multi-flow concurrency).
 DEC
   fi

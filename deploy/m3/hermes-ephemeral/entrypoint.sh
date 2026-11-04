@@ -7,7 +7,10 @@
 #
 # Spawn env (injected per-run by M2 spawn — never baked into the image):
 #   TASK_ID AGENT_REPO_URL AGENT_REF REPO_FOLDER BEHAVIORAL_SPEC GITHUB_READ_TOKEN
-#   HINDSIGHT_URL LLMWIKI_URL TTL_S
+#   HINDSIGHT_URL LLM_WIKI_REPO_URL LLM_WIKI_READ_TOKEN TTL_S
+#
+# The llm-wiki is a git repo (no retrieval API): shallow-cloned at boot when
+# LLM_WIKI_READ_TOKEN is present; absence degrades gracefully (rollback rule).
 #
 # On success: writes /work/self-report.json, runs the task, writes a task
 # report, exit 0. Any failure path: self-report.json with `error`, exit 2.
@@ -20,12 +23,13 @@ REPO_FOLDER="${REPO_FOLDER:-}"
 BEHAVIORAL_SPEC="${BEHAVIORAL_SPEC:-}"
 GITHUB_READ_TOKEN="${GITHUB_READ_TOKEN:-}"
 HINDSIGHT_URL="${HINDSIGHT_URL:-}"
-LLMWIKI_URL="${LLMWIKI_URL:-}"
+LLM_WIKI_REPO_URL="${LLM_WIKI_REPO_URL:-https://github.com/arvisdev/llm-wiki}"
+LLM_WIKI_READ_TOKEN="${LLM_WIKI_READ_TOKEN:-}"
 TTL_S="${TTL_S:-900}"
 
 mkdir -p /work
 fail() { # fail <reason>  -> self-report with error, exit 2 (M2 surfaces + reaps)
-  printf '{"task_id":"%s","role":"","skills":[],"spec_received":false,"error":"%s","sources":{"agent_repo":false,"llmwiki":false,"hindsight":false}}\n' \
+  printf '{"task_id":"%s","role":"","skills":[],"spec_received":false,"error":"%s","sources":{"agent_repo":false,"llm-wiki":"not-configured","hindsight":false}}\n' \
     "$TASK_ID" "$1" > /work/self-report.json
   exit 2
 }
@@ -53,16 +57,27 @@ for f in persona.md skill-and-tools.md behavioral-spec.md; do
   [ -f "/work/agents/$folder/$f" ] || fail "malformed persona: $folder/$f missing"
 done
 
+# 2b. llm-wiki hydration: shallow-clone the git repo at boot (optional —
+# degrades gracefully when the token/repo is absent; never fails the task)
+llm_wiki_source="not-configured"
+if [ -n "$LLM_WIKI_READ_TOKEN" ]; then
+  if git clone --depth 1 \
+      "https://x-access-token:${LLM_WIKI_READ_TOKEN}@${LLM_WIKI_REPO_URL#https://}" \
+      /work/llm-wiki 2>/dev/null; then
+    llm_wiki_source="$LLM_WIKI_REPO_URL"
+  fi
+  unset LLM_WIKI_READ_TOKEN
+fi
+
 # 3. self-report (gate before task work) — the harness asserts on this file
-llmwiki_ok=false; hindsight_ok=false
-[ -n "$LLMWIKI_URL" ]   && curl -sf "$LLMWIKI_URL/wiki/query?q=$AGENT_REF&k=1" >/dev/null 2>&1 && llmwiki_ok=true
+hindsight_ok=false
 [ -n "$HINDSIGHT_URL" ] && curl -sf "$HINDSIGHT_URL/healthz" >/dev/null 2>&1 && hindsight_ok=true
-python3 - "$folder" "$llmwiki_ok" "$hindsight_ok" <<PY > /work/self-report.json
+python3 - "$folder" "$llm_wiki_source" "$hindsight_ok" <<PY > /work/self-report.json
 import json
 print(json.dumps({
   "task_id": "$TASK_ID", "role": "$folder", "skills": [],
   "spec_received": True,
-  "sources": {"agent_repo": True, "llmwiki": $llmwiki_ok, "hindsight": $hindsight_ok},
+  "sources": {"agent_repo": True, "llm-wiki": "$llm_wiki_source", "hindsight": $hindsight_ok},
 }))
 PY
 

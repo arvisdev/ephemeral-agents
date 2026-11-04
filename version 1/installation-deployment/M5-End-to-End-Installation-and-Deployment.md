@@ -65,7 +65,7 @@ S1 chassis     : M0 install.sh (idempotent re-run)
 S2 adapter     : M1 compose up + consumer-healthy check
 S3 lifecycle   : M2 compose up + deploy gate (pinned images present) + worker registered check
 S4 executors   : M3 images load-verified on vm-xb; token issuance dry-run (issue + verify + revoke)
-S5 memory/wiki : M4 compose up on vm-hindsight/vm-llm-wiki + /healthz checks
+S5 memory/wiki : M4 compose up on vm-hindsight + /healthz check; llm-wiki clone smoke (shallow-clone github.com/arvisdev/llm-wiki from a container — D-wiki-git)
 S6 front-house : M5 compose up on vm-xa + gateway /healthz
 S7 smoke       : one M2-level task with the stub executor (proves S2–S3 before real agents)
 ```
@@ -96,7 +96,7 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 
 | # | Injection | Command | Expected |
 |---|---|---|---|
-| F1 | LLM-Wiki down | `ssh vm-llm-wiki 'docker pause llmwiki-api'` (run task) → `docker unpause` | **policy: fail-fast** — hydrate error ⇒ task fails; container reaped; report = failure + reason |
+| F1 | llm-wiki unreachable | block vm-xb network access to the `github.com/arvisdev/llm-wiki` clone path (nftables rule scoped to the repo/443 for the llm-wiki read token) (run task) → remove the block | **policy: fail-fast** — hydrate error (clone failure) ⇒ task fails; container reaped; report = failure + reason |
 | F2 | agent catalog unreachable | block vm-xb→GitHub 443 for the read token (nftables) | manager/spawn fails fast; no container leak |
 | F3 | agent crash | `docker exec <agent-cid> pkill -9 <agent pid>` | timeout → force-reap; report = failure |
 | F4 | TTL exceeded | task with `TTL_S` smaller than work time | reaper path (M2 V3, now with real agents) |
@@ -105,11 +105,11 @@ After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, 
 
 ## 6. Credential hardening (R4 final)
 
-*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all ten deployed images (the full set the §6a loop iterates), an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
+*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all nine deployed images (the full set the §6a loop iterates), an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
 
 ```bash
 # 6a. negative scan across ALL deployed images:
-for i in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/llmwiki-api poc/gateway poc/manager; do   # ALL 10 deployed images
+for i in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-ephemeral poc/claude-coder poc/hindsight-api poc/gateway poc/manager; do   # ALL 9 deployed images (llmwiki-api removed per D-wiki-git)
   trivy image --exit-code 1 --scanners vuln,secret $i
 done
 # 6b. env review: no owner long-lived tokens anywhere:
@@ -119,7 +119,7 @@ ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}
 
 ## 7. Lock the last open items + close the docs
 
-*Why:* the five open items (message shapes, concurrency, isolation level, curation owner, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
+*Why:* the open items (message shapes, concurrency, isolation level, curation owner, wiki hydration shape, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list (curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) is deliberately written *now*, while the answers are fresh.
 
 Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items section of `../Initial-Foundation-Design-Document.md` §7):
 
@@ -127,14 +127,15 @@ Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items
 - [x] TTL ownership — hybrid settled 2026-10-29: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)
 - [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
-- [ ] LLM-Wiki curation owner + cadence (from M4)
+- [ ] llm-wiki curation owner + cadence — tracked in the llm-wiki repo's CHANGELOG.md (from M4; D-wiki-git removed the ingest pipeline, so curation = commits to the repo)
+- [ ] **llm-wiki hydration/retrieval shape** (D-wiki-git open item) — interim default: full shallow clone of github.com/arvisdev/llm-wiki at executor boot; a curated index/README-per-topic retrieval aid may be added later (V2)
 - [x] **Per-project memory scoping in Hindsight** — resolved 2026-10-30 (D-proj-id): every project has a unique **project-id** identifying its provisioned space in Hindsight; all reads/writes carry it, so no project sees another's memory. V2 implements the project-id dimension (the POC's session/task scoping is the seed).
-- [ ] **Shared-VM capacity + firewall governance** — the shared Hindsight/LLM-Wiki VMs serve every project pair: aggregate the per-project ≤5-container caps for sizing, and govern each project's UFW allow-list entry (the POC's `UFW_POC_CIDR` rule is the single-project seed)
-- [ ] **LLM-Wiki content taxonomy** — D-wiki-truth sets the split: per-project reference area keyed by project-id + shared enterprise area (company design specifications and the like); what remains open is the curation owner + cadence (from M4) and the per-project onboarding flow
-- [ ] **Multi-host git support** — the design is host-agnostic (repos are URLs; `repo_target`/catalog/wiki-content clone the same way), but credential issuance is currently GitHub-only (`deploy/m3/issue-token.sh`: GitHub App JWT → installation token). A second host (ADO, Bitbucket) needs its own short-lived-token issuer behind the same FR-S1 contract. Trigger: any adopting project whose repos live outside GitHub; motivation to consolidate hosts instead is a client/org choice, not an architecture requirement.
-- [x] **Wiki-vs-repo boundary** — resolved 2026-10-30 (D-wiki-truth/D-repo-truth): development- and business-related items relevant to the deliverables → the project repo (GitHub/ADO, per project); **reference material → the LLM-Wiki**. Agents apply this rule when deciding where a document lives.
+- [ ] **Shared-VM capacity + firewall governance** — the shared Hindsight VM serves every project pair: aggregate the per-project ≤5-container caps for sizing, and govern each project's UFW allow-list entry (the POC's `UFW_POC_CIDR` rule is the single-project seed)
+- [ ] **llm-wiki content taxonomy** — D-wiki-truth sets the split: per-project reference area keyed by project-id + shared enterprise area (company design specifications and the like); what remains open is the curation owner + cadence (tracked in the repo's CHANGELOG, from M4) and the per-project onboarding flow
+- [ ] **Multi-host git support** — the design is host-agnostic (repos are URLs; `repo_target`/catalog/llm-wiki clone the same way), but credential issuance is currently GitHub-only (`deploy/m3/issue-token.sh`: GitHub App JWT → installation token). A second host (ADO, Bitbucket) needs its own short-lived-token issuer behind the same FR-S1 contract. Trigger: any adopting project whose repos live outside GitHub; motivation to consolidate hosts instead is a client/org choice, not an architecture requirement.
+- [x] **Wiki-vs-repo boundary** — resolved 2026-10-30 (D-wiki-truth/D-repo-truth): development- and business-related items relevant to the deliverables → the project repo (GitHub/ADO, per project); **reference material → the llm-wiki repo**. Agents apply this rule when deciding where a document lives. (2026-11-04, D-wiki-git: the wiki is the git repo github.com/arvisdev/llm-wiki.)
 
-Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: move resolved items out of "open", add the **Version 2 open items list** (LLM-Wiki curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency).
+Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: move resolved items out of "open", add the **Version 2 open items list** (llm-wiki curation ownership, Hindsight→llm-wiki promotion, wiki hydration/retrieval shape, long-term queue shape, multi-flow concurrency).
 
 ## 8. Rollback
 

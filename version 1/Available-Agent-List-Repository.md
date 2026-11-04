@@ -67,9 +67,10 @@ M5 E2E run can resolve and dispatch against it.
 - The catalog is **owner-curated** (R7). The POC's scripts and services never
   write to it; only the owner (or a future curation flow) does.
 - **Agent specs live only here** (D-spec-source): they are never copied into
-  the LLM-Wiki. The wiki's shared enterprise area holds the *agent-design
-  standards* this catalog's curation follows — one source of truth per
-  artifact: specs → this repo; how-to-design-an-agent → the wiki.
+  the llm-wiki repo (github.com/arvisdev/llm-wiki, D-wiki-git). The llm-wiki's
+  shared enterprise area holds the *agent-design standards* this catalog's
+  curation follows — one source of truth per
+  artifact: specs → this repo; how-to-design-an-agent → the llm-wiki.
 - Never rename an agent's `folder` while a task referencing it is in flight —
   executors hydrate by path.
 - Contract changes to `index.json`'s shape belong in this document first,

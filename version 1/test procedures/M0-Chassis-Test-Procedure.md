@@ -20,13 +20,13 @@
 
 | ID | Title | Procedure (commands in the install doc) | Expected result | Pass criteria |
 |---|---|---|---|---|
-| TC-M0-01 | VMs provisioned & configured | Install §1–§2: 4 VMs boot; hostname, static IP, chrony, `poc` ssh user | `ssh poc@$VM_XA / $VM_XB / $VM_2 / $VM_3` from build host (hostnames from `deploy/m0/hosts.env`: vm-xa, vm-xb, vm-llm-wiki, vm-hindsight per the D-8 mapping); `timedatectl` shows NTP synced on all | all 4 reachable, NTP synced |
-| TC-M0-02 | Docker on all VMs | `docker run --rm alpine echo ok` + `docker compose version` on each VM | `ok` ×4; compose v2 | zero failures |
+| TC-M0-01 | VMs provisioned & configured | Install §1–§2: 3 VMs boot (D-wiki-git: vm-llm-wiki dropped); hostname, static IP, chrony, `poc` ssh user | `ssh poc@$VM_XA / $VM_XB / $VM_3` from build host (hostnames from `deploy/m0/hosts.env`: vm-xa, vm-xb, vm-hindsight per the D-8 mapping); `timedatectl` shows NTP synced on all | all 3 reachable, NTP synced |
+| TC-M0-02 | Docker on all VMs | `docker run --rm alpine echo ok` + `docker compose version` on each VM | `ok` ×3; compose v2 | zero failures |
 | TC-M0-03 | RabbitMQ service + topology | Install §3: compose healthy; mgmt-API checks for exchange `agent.tasks`, queue `agent.tasks.durable`, binding, DLQ queue | all 4 objects present; healthcheck `healthy` | objects exist; healthcheck green |
 | TC-M0-04 | Cross-VM publish/consume | From **vm-xa**, publish 1 message to `agent.tasks` → check queue depth on vm-xb | queue shows 1 message | 1 |
 | TC-M0-05 | Temporal service | Install §4: compose healthy; `temporal operator cluster health`; `temporal operator namespace list` | members HEALTHY; `default` listed | both true |
 | TC-M0-06 | **Go SDK smoke (language gate)** | Install §4b: `go run . -addr vm-xb:7233` in `deploy/m0/go-sdk-smoke/` | prints `hello from greet` — a **Go** workflow completed | must PASS for the language decision to hold |
-| TC-M0-07 | Network matrix | Install §5: ssh-22 pairwise all 4 VMs; `curl -sI https://github.com` from vm-xa/vm-xb; `nc` 7233/5672 on vm-xb | matrix 100% | zero failed probes (recorded) |
+| TC-M0-07 | Network matrix | Install §5: ssh-22 pairwise all 3 VMs (D-wiki-git); `curl -sI https://github.com` from vm-xa/vm-xb; `nc` 7233/5672 on vm-xb | matrix 100% | zero failed probes (recorded) |
 | TC-M0-08 | Idempotent re-deploy | Re-run `deploy/m0/install.sh` against the live chassis | all services still healthy; no data loss (RabbitMQ queue + Temporal PG intact) | exit 0; healthchecks green |
 
 ## Evidence to file (`deploy/m0/evidence/`)

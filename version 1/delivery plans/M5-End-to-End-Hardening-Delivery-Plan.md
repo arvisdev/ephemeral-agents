@@ -19,7 +19,7 @@
 - Evidence captured: workflow trace, container lifecycle log (spawn→reap), the actual commit, the report delivered.
 
 **WP-5.3 — Failure-injection pass**
-- Inject: agent crash mid-task, hydration source down (LLM-Wiki or Hindsight), repo unreachable, timeout. Each must end in: clean reap (zero orphans), a visible error to the human reporter with the reason, and a retryable or explicitly-terminal state (recorded).
+- Inject: agent crash mid-task, hydration source down (llm-wiki clone unreachable, or Hindsight), repo unreachable, timeout. Each must end in: clean reap (zero orphans), a visible error to the human reporter with the reason, and a retryable or explicitly-terminal state (recorded).
 
 **WP-5.4 — Credential hardening (R4 final)**
 - Scan every image layer, container env, and workflow payload: **no long-lived owner credentials anywhere**.
@@ -57,4 +57,4 @@ All five criteria ⇒ the Version 1 POC is **demonstrated feasible** and the fea
 ## Notes
 
 - M5 adds **no new infrastructure**; it composes M0–M4 and hardens. If M5 discovers a missing piece, that's a finding about the earlier milestone's gate, not a new M5 work package.
-- The Version 2 open items (from the foundation doc §7: LLM-Wiki curation ownership, Hindsight→LLM-Wiki promotion, long-term queue shape, multi-flow concurrency) are **recorded, not solved**, in this milestone.
+- The Version 2 open items (from the foundation doc §7 + the Architectural Design Document §10: llm-wiki curation ownership — tracked in the llm-wiki repo CHANGELOG, Hindsight→llm-wiki promotion, wiki hydration/retrieval shape (D-wiki-git open item; interim default = full shallow clone at executor boot), long-term queue shape, multi-flow concurrency) are **recorded, not solved**, in this milestone.

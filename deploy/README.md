@@ -33,10 +33,10 @@ steps **in order**; each names exactly what to read and what to run.
    terrain).
 2. Collect the owner-inputs below ("Owner must hand you these") — all of
    them, before starting. Missing item ⇒ stop and ask; do not improvise.
-3. Confirm the four VMs exist with the owner baseline (clean Ubuntu 26.04,
+3. Confirm the three VMs exist with the owner baseline (clean Ubuntu 26.04,
    updated, SSH through UFW — see M0 doc §1a's baseline note).
 4. `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill it (ssh
-   aliases + the four static IPs; same IPs in netplan/DNS — the file's own
+   aliases + the three static IPs; same IPs in netplan/DNS — the file's own
    comments explain the rule).
 5. `bash deploy/check-workstation.sh` — fix everything it flags (tools,
    SSH key auth as `poc`, passwordless sudo) until it is quiet.
@@ -60,7 +60,9 @@ M4 memory/knowledge):
 
 Pacing notes: M2's V4 (crash recovery) is the load-bearing test — if it
 cannot pass, STOP (the script tells you too). M3 needs the owner's GitHub
-App; M4 needs `CONTENT_REPO`/`LLMWIKI_READ_TOKEN`/`EMBEDDING_PROVIDER`.
+App; M4 needs `EMBEDDING_PROVIDER` + `LLM_WIKI_READ_TOKEN` (the llm-wiki
+git repo, https://github.com/arvisdev/llm-wiki, is owner-curated — executors
+shallow-clone it at boot; there is no llm-wiki service or retrieval API).
 
 ### Stage D — M5, end-to-end (the finale)
 
@@ -105,7 +107,7 @@ is the human's job.
 milestone below assumes they exist, and hunting for them mid-install is how a
 junior run stalls.* If any item is missing, stop and ask before starting M0.
 
-- [ ] **The four VMs, pre-provisioned** — clean Ubuntu 26.04 LTS, all updates
+- [ ] **The three VMs, pre-provisioned** — clean Ubuntu 26.04 LTS, all updates
       applied, SSH enabled and allowed through UFW (owner baseline,
       2026-10-30). Everything else on the VMs (hostname/netplan, chrony, the
       `poc` user, Docker) is M0's job; the UFW service-port rules are opened
@@ -118,14 +120,15 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
       `version 1/Available-Agent-List-Repository.md`; if the repo doesn't
       exist yet, create it from the working example
       `deploy/m5/agent-list-example/`.
-- [ ] **M4 content settings: `CONTENT_REPO` + `LLMWIKI_READ_TOKEN`** — the
-      LLM-Wiki content repo and its read token (vm-llm-wiki).
+- [ ] **M4: the llm-wiki git repo + read token** —
+      https://github.com/arvisdev/llm-wiki (owner-curated) and an
+      `LLM_WIKI_READ_TOKEN` the executors use to shallow-clone it at boot.
 - [ ] **`EMBEDDING_PROVIDER` + API key** — which embedding backend the POC
       uses and its key (same model for ingest and query in M4).
 - [ ] **TTL / cap configuration values** — `POC_TTL_DEFAULT` and the team cap
       (agents per team / concurrent-run limits) the M2 reaper and M5 manager
       enforce.
-- [ ] **Network facts** — the PVE LAN IP pool to draw the four static VM IPs
+- [ ] **Network facts** — the PVE LAN IP pool to draw the three static VM IPs
       from, and the decision on name resolution (PVE DNS vs `/etc/hosts`) to
       record in `deploy/m0/decision-log.md`.
 
@@ -143,7 +146,7 @@ On the **build workstation**:
 
 - docker (+ buildx), go, the `temporal` CLI, `gh` (logged in), rsync,
   an SSH keypair → authorize the public half for the `poc` user on PVE + the
-  4 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
+  3 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
   `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 §2).
 - `ssh -o StrictHostKeyChecking=accept-new poc@PVE_HOST` once per host —
   known_hosts gets seeded for you.
@@ -183,7 +186,7 @@ one — each script is scoped to its own milestone.
 |---|---|
 | Per-milestone gate results | `deploy/m<n>/evidence/` (created at run) |
 | Temporal history for the POC | `temporal workflow list/show` via the CLI on vm-xb, namespace `default` (no Web UI is deployed; no `poc` namespace is created) |
-| Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-llm-wiki: llmwiki; vm-xa: front-of-house at M5) |
+| Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-xa: front-of-house at M5). The llm-wiki is a git repo (no VM of its own) |
 | GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never in git) — where `issue-token.sh` runs |
 
 ## The POC is complete when (from the M5 install doc §9)

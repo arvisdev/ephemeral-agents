@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| **Installs on** | PVE host + 4 KVM VMs (vm-xa, vm-xb, vm-llm-wiki, vm-hindsight) |
+| **Installs on** | PVE host + 3 KVM VMs (vm-xa, vm-xb, vm-hindsight) — *(D-wiki-git, 2026-11-04: vm-llm-wiki / VMID 902 is dropped; the POC is a 3-VM topology, reference standards live in the git repo `github.com/arvisdev/llm-wiki`)* |
 | **Prereqs** | Proxmox 9.x host with PVE shell access; a DHCP/static IP pool; outbound Internet on the Proxmox LAN |
-| **Hosts touched** | PVE host (VM creation), all 4 VMs (OS + Docker + services) |
+| **Hosts touched** | PVE host (VM creation), all 3 VMs (OS + Docker + services) |
 | **Language (mandatory)** | All Temporal SDK code — workflows, workers, activities, adapters, CLI samples — **must be Go** (owner instruction: speed + size). No other language for Temporal code in this POC. |
 
 ## 0. Assumptions & conventions
@@ -14,7 +14,7 @@
 *Why:* pinning these up front is what makes the chassis **reproducible from the repo** — a rebuild is a scripted re-run, not tribal knowledge. Secrets live in gitignored per-VM `.env` files so they never enter compose files or git, and image pins in `image-tags.env` make every deployment byte-for-byte repeatable.
 
 - VMs run **Ubuntu 26.04 LTS** (matches the running Proxmox estate; use 24.04 if 26.04 images are unavailable).
-- Hostnames: `vm-xa`, `vm-xb`, `vm-llm-wiki`, `vm-hindsight`; SSH key auth with user `poc`.
+- Hostnames: `vm-xa`, `vm-xb`, `vm-hindsight`; SSH key auth with user `poc`. *(2026-11-04, D-wiki-git: `vm-llm-wiki` is no longer provisioned; the command blocks below predate the decision — create only vm-xa, vm-xb, vm-hindsight, i.e. skip VMID 902 and any step naming vm-llm-wiki.)*
 - All compose files, scripts, and generated `.env` (secrets) live in the POC repo under `deploy/m0/` — the chassis must be **reproducible from the repo**, not hand-built.
 - Secrets (RabbitMQ/Postgres passwords) go in per-VM `.env` files, **gitignored** — never in compose files.
 - Pin every image tag at deploy time and record the pins in `deploy/m0/image-tags.env`.
@@ -35,9 +35,9 @@ for i in 900 901 902 903; do qm start $i; done
 
 ### 1a. Install the OS (the `qm create` disks start EMPTY)
 
-> **Owner-provisioned baseline (2026-10-30):** if the four VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (§2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 §2a, m4, m5), so nothing needs hand-editing.
+> **Owner-provisioned baseline (2026-10-30):** if the three VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (§2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 §2a, m4, m5), so nothing needs hand-editing.
 
-*Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets four unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given).
+*Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given). *(Three VMs only per D-wiki-git — the blocks still show 900–903; skip 902.)*
 
 **Path A — cloud-init template (preferred):** on the PVE host, attach the estate's Ubuntu cloud-init image/template to each VM and seed the `poc` user + SSH key + hostname via cloud-init:
 
@@ -80,7 +80,8 @@ sudo apt install -y chrony && sudo systemctl enable --now chrony
 sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
 # UFW: SSH is already allowed (owner baseline). **The install scripts open the
 # POC's cross-VM service ports themselves** — m0 §2a opens 5672/7233 on vm-xb,
-# the M4 script opens 8080/8081 on vm-llm-wiki/vm-hindsight, the M5 script
+# the M4 script opens 8081 on vm-hindsight (no wiki VM since D-wiki-git,
+# 2026-11-04), the M5 script
 # opens 8080 (gateway) on vm-xa — all scoped to the POC LAN derived from
 # hosts.env's NETPLAN_IP_* (override with UFW_POC_CIDR; the gateway's source
 # is GATEWAY_ALLOW_CIDR since the engineer's desktop is often outside the
@@ -94,7 +95,7 @@ sudo ufw allow from <poc-lan-cidr> to any port 8081 proto tcp   # vm-hindsight o
 
 ## 2. Docker on every VM
 
-*Why:* every later milestone ships as containers, so Docker on all four VMs is the minimal common denominator. Adding `poc` to the docker group lets the install scripts run without sudo — the junior-operator path.
+*Why:* every later milestone ships as containers, so Docker on all three VMs is the minimal common denominator. Adding `poc` to the docker group lets the install scripts run without sudo — the junior-operator path.
 
 ```bash
 sudo apt update && sudo apt install -y docker.io docker-compose-v2
@@ -213,7 +214,7 @@ for h in vm-xa vm-xb; do ssh $h 'curl -sI https://github.com | head -1'; done
 ssh vm-xb 'nc -vz temporal 7233; nc -vz rabbitmq 5672'
 ```
 
-For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-llm-wiki/vm-hindsight (the POC-internal choice; record which in the decision log).
+For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-hindsight (the POC-internal choice; record which in the decision log). *(vm-llm-wiki is gone per D-wiki-git, 2026-11-04 — the loop above predates the decision; drop it from the host list.)*
 
 ## 6. Record the VM naming decision (D-8) + lock language + repo layout
 

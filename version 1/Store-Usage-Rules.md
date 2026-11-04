@@ -1,10 +1,13 @@
-# Store usage rules — what goes where (Hindsight, LLM-Wiki, git)
+# Store usage rules — what goes where (Hindsight, llm-wiki git repo)
 
 One-line rule for any artifact: **must be exact → git · must be recalled →
-Hindsight · must be found → LLM-Wiki.** The sections below spell out each
-store's exact use, what goes in, what never goes in, and why. These rules
-consolidate D-stores, D-proj-id, D-wiki-truth, D-repo-truth, D-repo-ops,
-D-catalog, and D-spec-source.
+Hindsight · must be found → the llm-wiki git repo.** The sections below spell
+out each store's exact use, what goes in, what never goes in, and why. These
+rules consolidate D-stores, D-proj-id, D-wiki-truth, D-repo-truth, D-repo-ops,
+D-catalog, D-spec-source, and D-wiki-git (2026-11-04: the LLM-Wiki RAG service
+was removed; the wiki is now the plain git repo `github.com/arvisdev/llm-wiki`,
+consumed by clone — D-wiki-truth is now trivially true: the content repo IS the
+whole store, no serving layer).
 
 ## Hindsight — long-term memory (vm-hindsight, shared, per project-id)
 
@@ -21,7 +24,7 @@ Goes in:
 
 Never goes in:
 - Source code, documents of record, agent specs, standards — anything
-  versionable or authoritative (those belong in git / the wiki).
+  versionable or authoritative (those belong in git / the llm-wiki repo).
 - Anything anyone will ever need to *cite* as the truth. Hindsight has no
   review, no history, no PRs — it is memory, not storage of record.
 - Anything another project should see (scope rules enforce this; TC-M4
@@ -30,10 +33,13 @@ Never goes in:
 Retrieval is semantic (pgvector top-k): suited to "have we seen this before?"
 — never the authority for a fact.
 
-## LLM-Wiki — reference documentation (vm-llm-wiki, shared)
+## llm-wiki — reference documentation (git repo, shared)
 
 **Exact use:** the *consultable reference library*. Broad knowledge an agent
-queries when relevant.
+consults when relevant. As of D-wiki-git (2026-11-04) this is a plain git
+repository — **https://github.com/arvisdev/llm-wiki** (private) — not a
+serving service: consumers shallow-clone it (`git clone --depth 1`) and read
+the markdown directly. There is no retrieval API and no database.
 
 Goes in:
 - Company/enterprise standards shared by all projects: design
@@ -45,20 +51,23 @@ Goes in:
 
 Never goes in:
 - Agent operational specs (persona/skills/tools/behavioral) — catalog only
-  (D-spec-source). The wiki describes how to design agents; it never holds
+  (D-spec-source). The repo describes how to design agents; it never holds
   the agents.
 - Source code, deliverable documents, task outcomes — project repo territory.
 - Memory/learnings — Hindsight territory.
 - **Load-bearing standards stay out of wiki-only reliance**: anything an
   agent must *always* follow is pinned into that agent's behavioral-spec.md
-  (hydrated byte-exact); the wiki serves the when-relevant long tail. When a
-  wiki standard proves load-bearing for a class of agents, promote it into
+  (hydrated byte-exact); the repo serves the when-relevant long tail. When a
+  standard proves load-bearing for a class of agents, promote it into
   their behavioral specs.
 
-Truth chain: the **wiki content repo** (git, byte-exact, reviewed) is the
-source of truth; the pgvector database is a serving layer built from it by
-the ingest job. Serving is probabilistic (top-k); correcting content means
-editing the repo and re-running ingest — never patching the database.
+Truth chain: **the repo itself** (git, byte-exact, reviewed) is the source of
+truth — there is no serving layer to keep in sync (D-wiki-truth, now
+trivially). Correcting content means editing the repo; every clone made after
+the push sees it. Interim hydration default: a full shallow clone at executor
+boot (see the V2 open item on hydration/retrieval shape — a curated
+index/README-per-topic retrieval aid may be added later). Curation cadence
+and ownership are tracked in the repo's CHANGELOG.md.
 
 ## Git (the hosting platform — outside this architecture's operations, D-repo-ops)
 
@@ -68,22 +77,22 @@ them verbatim.
 
 | Repo | Scope | Goes in | Never goes in |
 |---|---|---|---|
-| **Agent catalog** ("Available Agent List") | one, company-wide | agent specs only: index.json + per-agent folder (persona, skills, tools, behavioral-spec, constraints) — hydrated byte-exact at executor boot; manager resolves via index.json | reference docs (→ wiki), code, memory, anything not consumed at runtime |
-| **Project repo** (GitHub/ADO) | one **per project** | source code + the project's versionable documentation (design docs, specs of record, deliverables); task branches `task/<task_id>` | reference material (→ wiki per the D-repo-truth boundary: deliverables → repo, reference → wiki), agent specs, memory |
-| **Wiki content repo** | one, company-wide | the reference documents the wiki serves (enterprise + per-project reference) | anything not destined for wiki retrieval |
+| **Agent catalog** ("Available Agent List") | one, company-wide | agent specs only: index.json + per-agent folder (persona, skills, tools, behavioral-spec, constraints) — hydrated byte-exact at executor boot; manager resolves via index.json | reference docs (→ llm-wiki), code, memory, anything not consumed at runtime |
+| **Project repo** (GitHub/ADO) | one **per project** | source code + the project's versionable documentation (design docs, specs of record, deliverables); task branches `task/<task_id>` | reference material (→ llm-wiki per the D-repo-truth boundary: deliverables → repo, reference → llm-wiki), agent specs, memory |
+| **llm-wiki** (github.com/arvisdev/llm-wiki) | one, company-wide, private | the reference documents agents consult (enterprise + per-project reference): `design-standards/`, `dev-best-practices/`, `business-best-practices/`, `tools-and-skills/`, `CHANGELOG.md` | anything not destined for reference lookup; agent operational specs |
 
 All three ride the same hosting platform; per project only the project repo
 is added.
 
 ## The boundaries in one glance
 
-| Artifact | Hindsight | LLM-Wiki | Git |
+| Artifact | Hindsight | llm-wiki (git repo) | Git |
 |---|---|---|---|
 | Source code | — | — | project repo |
 | Project docs of record | — | — | project repo |
-| Enterprise standards (design specs, coding standards) | — | yes (content repo = truth) | wiki content repo holds them |
-| Per-project reference material | — | yes (project-id area) | wiki content repo holds them |
-| Agent-design standards (how to write specs) | — | yes (shared area) | wiki content repo holds them |
+| Enterprise standards (design specs, coding standards) | — | yes (the repo = truth) | the llm-wiki repo holds them |
+| Per-project reference material | — | yes (project-id area) | the llm-wiki repo holds them |
+| Agent-design standards (how to write specs) | — | yes (shared area) | the llm-wiki repo holds them |
 | Agent operational specs | — | **never** (D-spec-source) | agent catalog |
 | Task memory: tried/failed/learned | yes (project-id scoped) | — | — |
 | Task outcomes (branch + commit pointer) | pointer only | — | the artifact itself |

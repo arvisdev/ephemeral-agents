@@ -48,10 +48,10 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 **Retires:** R5 (Hermes persona-load), R3/R4 (concurrency + credential scoping at the coder).
 
 ## M4 — Memory + knowledge
-**Goal:** Wire the three hydration sources: Hindsight R/W API, LLM-Wiki RAG, Available Agent List (git).
+**Goal:** Wire the three hydration sources: Hindsight R/W API, **llm-wiki git repo** (shallow clone, D-wiki-git — the LLM-Wiki RAG service is removed), Available Agent List (git).
 **Done-when:**
 - An ephemeral agent **reads and writes** Hindsight per session over the network (R6).
-- LLM-Wiki serves a relevant design-standard/skill retrieval on a query (R7).
+- An agent shallow-clones **llm-wiki** (github.com/arvisdev/llm-wiki) and reads the relevant design-standard/skill document from the clone (R7).
 - Agent loads its full persona + skills markdown from the Available Agent List repo.
 **Retires:** R6, R7.
 

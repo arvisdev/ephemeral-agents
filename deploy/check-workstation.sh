@@ -51,7 +51,7 @@ fi
 # shellcheck disable=SC1090
 source "$HOSTS_ENV"
 
-ALL_HOSTS=("$PVE_HOST" "$VM_XA" "$VM_XB" "$VM_2" "$VM_3")
+ALL_HOSTS=("$PVE_HOST" "$VM_XA" "$VM_XB" "${VM_2:-}" "$VM_3")
 
 # --- ssh key auth as poc -----------------------------------------------------
 for host in "${ALL_HOSTS[@]}"; do

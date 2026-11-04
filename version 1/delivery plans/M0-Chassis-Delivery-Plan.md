@@ -10,14 +10,14 @@
 ## Work packages
 
 **WP-0.1 — Record the VM naming decision (D-8 resolved by owner, 2026-10-25)**
-- Decision to record: VM-Xa, VM-Xb, VM-2 (LLM-Wiki), VM-3 (Hindsight) are **POC-local discussion labels, not commitments** — in the development arena each project has its own manager-template VM and ephemeral-agent VM, and the concrete names are the team's/company's choice to meet their needs. This POC adopts the labels as drawn so the pattern can be discussed in an orderly way.
+- Decision to record: VM-Xa, VM-Xb, VM-3 (Hindsight) are **POC-local discussion labels, not commitments** — in the development arena each project has its own manager-template VM and ephemeral-agent VM, and the concrete names are the team's/company's choice to meet their needs. This POC adopts the labels as drawn so the pattern can be discussed in an orderly way. *(2026-11-04, D-wiki-git: VM-2 / vm-llm-wiki is dropped — the POC is a 3-VM topology; reference standards live in the llm-wiki git repo.)*
 - Assign hostnames + network role per VM (the POC's concrete hostnames; record which hostname maps to which label).
 - Deliverable: decision-log entry (2–4 lines) + updated docs; record the **language decision: Go for all Temporal code** (owner instruction: speed + size).
 
 **WP-0.2 — Provision VMs on Proxmox 9.x**
-- 4 KVM VMs: VM-Xa, VM-Xb, VM-2, VM-3 (Debian/Ubuntu, matching the running Proxmox estate).
+- 3 KVM VMs: VM-Xa, VM-Xb, VM-3 (Debian/Ubuntu, matching the running Proxmox estate). *(D-wiki-git, 2026-11-04: the former VM-2 / vm-llm-wiki is dropped; there is no wiki VM.)*
 - Sizing: starter VMs (2 vCPU / 4 GB is enough for POC scale); VM-Xb slightly larger (hosts queue + orchestrator + containers).
-- Network: a flat/bridged L2 or routed segment where all four VMs reach each other, plus outbound to GitHub. Record the chosen topology.
+- Network: a flat/bridged L2 or routed segment where all three VMs reach each other, plus outbound to GitHub. Record the chosen topology.
 
 **WP-0.3 — Docker on every VM**
 - Install Docker; verify `pull` + `run` of a hello-container on each VM; pin base image versions.
@@ -34,12 +34,12 @@
 - Note: VM-3 (Hindsight, M4) also runs Postgres — a **separate** instance per VM; do not share.
 
 **WP-0.6 — Network verification matrix**
-- Test and record: VM-Xa → VM-Xb (RabbitMQ, Temporal ports), VM-Xb → VM-2, VM-Xb → VM-3, VM-Xb/VM-Xa → github.com.
+- Test and record: VM-Xa → VM-Xb (RabbitMQ, Temporal ports), VM-Xb → VM-3, VM-Xb/VM-Xa → github.com (which also covers the llm-wiki repo clone path, D-wiki-git).
 - Deliverable: matrix with pass/fail + timestamps.
 
 ## Acceptance criteria (done-when)
 
-1. Four VMs up, Docker running, hello-container on each. ✔
+1. Three VMs up, Docker running, hello-container on each. ✔
 2. RabbitMQ: cross-VM publish/consume works; topic + queue names documented.
 3. Temporal: trivial workflow completes via CLI or SDK against the Postgres backend.
 4. Network matrix passes 100% (failures recorded with remediation).
@@ -51,5 +51,5 @@ M1 may start only when **all five** criteria hold (including criterion 5, the D-
 
 ## Notes
 
-- VM-2/VM-3 are provisioned in M0 but carry **placeholder** services only (M4 installs the real LLM-Wiki/Hindsight).
+- VM-3 is provisioned in M0 but carries **placeholder** services only (M4 installs the real Hindsight). Reference standards live in the llm-wiki git repo (D-wiki-git) — no wiki VM is provisioned.
 - Keep every provisioning step scriptable (one `deploy/` folder in the POC repo) so the chassis is rebuildable from scratch — the POC must be reproducible, not hand-built.

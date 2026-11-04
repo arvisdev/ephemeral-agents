@@ -63,7 +63,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | R4 | **Credential exposure** to ephemeral agents | M | H | Short-lived / scoped tokens (branch-limited, least-privilege), secrets injected per-run, no long-lived owner token in containers. |
 | R5 | **Hermes persona/skill load at boot** is slow or not supported | L | M | Spike first; fall back to sidecar that hydrates the container before the agent starts. |
 | R6 | **Hindsight R/W API** not available for agent sessions | L | M | Define the memory contract early; use a thin API wrapper; pgvector is the substrate. |
-| R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. |
+| R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. **Update (owner, 2026-11-04, D-wiki-git):** the RAG **serving layer is retired** — the wiki is now a plain git repo (`github.com/arvisdev/llm-wiki`) consumed by shallow clone, so ingest/indexing/retrieval risk is gone; the residual risk is content curation cadence/ownership, still open (tracked in the repo's CHANGELOG). |
 | R8 | **Cross-VM service discovery** (VM-Xb agents must reach VM-2, VM-3, cloud) | L | M | Flat L2/overlay network or DNS/service-catalog; fixed service endpoints per VM. |
 | R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | **Resolved by owner 2026-10-25:** the labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records the decision (M0 §6) and moves on. |
 

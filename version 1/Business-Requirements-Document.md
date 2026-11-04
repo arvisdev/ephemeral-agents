@@ -39,7 +39,7 @@ Before committing to this pattern at enterprise scale (Version 2), the business 
 | BO-2 | Establish RabbitMQ as a durable ingestion boundary usable by future non-Temporal publishers | N messages → exactly N workflows; duplicates and consumer restarts cause no loss and no duplicate work (TP-M1) |
 | BO-3 | Prove disposable execution does not leak cost or risk | After repeated runs including hung/crashed containers, no orphan containers remain; teardown is proven idempotent (TP-M2) |
 | BO-4 | De-risk the two uncertain executor components before committing budget | A containerized Hermes agent boots with the correct persona/skills from git at startup, statelessly; a headless Claude Code agent makes a real code commit with a scoped credential (TP-M3) |
-| BO-5 | Demonstrate governed knowledge hydration | An agent reads **and writes** long-term memory across tasks and retrieves the correct design standard from the shared wiki on demand (TP-M4) |
+| BO-5 | Demonstrate governed knowledge hydration | An agent reads **and writes** long-term memory across tasks and consults the correct design standard from the **llm-wiki** git repo (shallow clone, D-wiki-git) on demand (TP-M4) |
 | BO-6 | Establish a defensible security posture for agent-held credentials | Credential scans show **no long-lived owner secret reachable from any container**; all repo writes use short-lived, branch-limited tokens (M5 gate) |
 | BO-7 | Produce the decision basis for Version 2 | A written Version-2 open-items list exists, and TP-M5 is signed — the feasibility verdict confirmed **by evidence, not analysis** |
 
@@ -63,11 +63,11 @@ Before committing to this pattern at enterprise scale (Version 2), the business 
 
 ### 5.1 In scope (Version 1 POC)
 1. One **single flow**: engineer request → gateway → manager → RabbitMQ topic → Temporal → ephemeral executors → hydration → code committed to Project Repo → teardown → human-reported outcome.
-2. Four-VM Proxmox chassis (manager VM, execution VM, LLM-Wiki VM, Hindsight memory VM) with cross-VM network verification.
+2. Three-VM Proxmox chassis (manager VM, execution VM, Hindsight memory VM) with cross-VM network verification. Reference standards live in the **llm-wiki** git repo (D-wiki-git, 2026-11-04: the LLM-Wiki VM and RAG service are removed).
 3. The RabbitMQ → Temporal adapter (Go), with idempotency and no-loss guarantees.
 4. The container lifecycle manager (Go): spawn / hydrate / teardown, crash-safe reaper, TTL backstop (default 900 s).
 5. Executor spikes: containerized Hermes (persona/skills load at boot) and headless Claude Code (real commit, scoped token).
-6. Knowledge layer: Hindsight R/W API (Postgres + pgvector) and LLM-Wiki RAG API over design standards; agent hydration from all three sources (wiki, memory, Available Agent List repo).
+6. Knowledge layer: Hindsight R/W API (Postgres + pgvector) and the **llm-wiki** git repo (github.com/arvisdev/llm-wiki, consumed by shallow clone) over design standards; agent hydration from all three sources (llm-wiki, memory, Available Agent List repo).
 7. Credential hardening: GitHub App JWT → short-lived installation tokens (`issue-token.sh`), no long-lived secrets in containers.
 8. Four failure-injection cases and the end-to-end run as the M5 gate.
 9. The Version-2 open-items list documenting everything the POC deliberately did not decide.
@@ -75,7 +75,7 @@ Before committing to this pattern at enterprise scale (Version 2), the business 
 ### 5.2 Out of scope (Version 1)
 - Multi-flow concurrency beyond the single-flow proof (concurrency *semantics* are in scope; concurrent-flow load handling is not).
 - Production hardening: HA, multi-tenant isolation, rate limiting, SSO, monitoring dashboards, alerting.
-- LLM-Wiki *content* authoring at scale (curation cadence and ownership are recorded as open items).
+- llm-wiki *content* authoring at scale (curation cadence and ownership are recorded as open items, tracked in the llm-wiki repo's CHANGELOG).
 - Any non-Temporal publisher actually publishing to the topic (that is a Version 2 capability; V1 only reserves the boundary).
 - Auto-reported or self-triggered flows — the human initiates and receives every outcome.
 - Cost accounting / chargeback tooling.
@@ -112,8 +112,8 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 
 **FR-K Knowledge & memory (M4)**
 - **FR-K1 (BO-5):** An ephemeral agent shall read **and write** Hindsight long-term memory per session over the network, with read-back demonstrable across tasks.
-- **FR-K2 (BO-5):** The LLM-Wiki shall serve a relevant design-standard/skill retrieval on a natural-language query.
-- **FR-K3 (BO-5):** Design standards content lives in the wiki; agent personas/skills in the Available Agent List repo; long-term memory in Hindsight (owner store-content model). Each store has exactly one home.
+- **FR-K2 (BO-5):** Reference standards shall be served **wiki-via-git**: an ephemeral agent shall shallow-clone the llm-wiki repo (github.com/arvisdev/llm-wiki) at boot and find the relevant design-standard/skill document in the clone (no retrieval API — D-wiki-git).
+- **FR-K3 (BO-5):** Design standards content lives in the llm-wiki repo; agent personas/skills in the Available Agent List repo; long-term memory in Hindsight (owner store-content model). Each store has exactly one home.
 
 **FR-S Security (M3/M5)**
 - **FR-S1 (BO-6):** Every repo write from an executor shall use a short-lived, branch-limited credential issued per run (GitHub App JWT → installation token); the App key stays on the execution VM at 0600, never in git or containers.
@@ -159,7 +159,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 ## 9. Assumptions, constraints, dependencies
 
 **Assumptions** (stated, not verified — verified by M0 where applicable):
-- Proxmox 9.x hosts KVM VMs running Docker; the four VMs are mutually network-reachable and reach GitHub.
+- Proxmox 9.x hosts KVM VMs running Docker; the three VMs are mutually network-reachable and reach GitHub.
 - Temporal, RabbitMQ, and Postgres/pgvector run as containers on the same substrate.
 - The Manager Agent is a persistent, containerized agent.
 - The engineer's desktop can reach the gateway over the company network.
@@ -184,7 +184,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 | BR-R1 | The pattern proves unbuildable in one or both executor spikes | M | H | Spikes are deliberately early (M3 = point of last cheap exit); fallback designs identified (hydration sidecar; alternative coder runtime) |
 | BR-R2 | Integration glue (adapter, lifecycle) costs more than estimated | M | M | Bounded scope; both are the *named* custom pieces; gates T/V cases make overrun visible early |
 | BR-R3 | Credential misuse by ephemeral agents | L | H | FR-S1..3 + M5 credential scan gate |
-| BR-R4 | Knowledge stores drift (stale standards, uncurated wiki) → agents produce off-standard work | M | M | Curation cadence is an explicit open item; versioning planned (R7) |
+| BR-R4 | Knowledge stores drift (stale standards, uncurated llm-wiki repo) → agents produce off-standard work | M | M | Curation cadence is an explicit open item, tracked in the llm-wiki repo's CHANGELOG; git versioning is built in (R7) |
 | BR-R5 | POC succeeds but the organization defers V2, losing momentum | M | M | BO-7 forces a written decision basis; open-items list keeps V2 cheap to start |
 | BR-R6 | Junior-operator execution stalls on environment drift | L | M | Idempotent scripts, `--check-only`, failure routing to doc sections (NFR-1) |
 
@@ -212,7 +212,7 @@ On acceptance, the feasibility verdict ("technically feasible — no fundamental
 | **Available Agent List** | Git repo holding agent personas, skills, tools, markdown files, and the Behavioral Specification |
 | **Behavioral Specification** | The behavior contract passed into each agent spin-up |
 | **Hindsight** | Long-term memory store (Postgres + pgvector) with a session R/W API |
-| **LLM-Wiki** | Shared RAG store of design standards and dev/business best practices |
+| **llm-wiki** | Shared git repo (github.com/arvisdev/llm-wiki) of design standards and dev/business best practices, consumed by shallow clone (D-wiki-git) |
 | **Topic-bridge adapter** | Go service: RabbitMQ consumer → Temporal workflow start, exactly-once effect |
 | **Lifecycle manager** | Go service owning spawn/hydrate/teardown of executor containers + reaper |
 | **Gate (TP-Mn)** | The milestone test procedure that must PASS and be signed before the next milestone's install begins |

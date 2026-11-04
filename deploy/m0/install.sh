@@ -9,7 +9,7 @@
 #   before the M1 installation may begin)
 #
 # What this script does (idempotent — safe to re-run; re-run = rebuild):
-#   §1  Provision 4 VMs on the PVE host (vm-xa, vm-xb, vm-llm-wiki, vm-hindsight) + base OS
+#   §1  Provision 3 VMs on the PVE host (vm-xa, vm-xb, vm-hindsight) + base OS
 #   §2  Docker on every VM
 #   §3  RabbitMQ (topic) on vm-xb + topic topology + cross-VM publish test
 #   §4  Temporal on vm-xb +  §4b  Go SDK smoke (the language-decision check)
@@ -23,9 +23,9 @@
 #
 # Configuration (env, or deploy/m0/hosts.env in the repo — auto-loaded):
 #   PVE_HOST   ssh alias for the Proxmox host        (required)
-#   VM_XA VM_XB VM_2 VM_3   ssh aliases for the 4 VMs (required)
-#   VMID_XA=900 VMID_XB=901 VMID_2=902 VMID_3=903    (defaults; check qm list first)
-#   NETPLAN_IP_XA=... NETPLAN_IP_XB=... NETPLAN_IP_2=... NETPLAN_IP_3=...
+#   VM_XA VM_XB VM_3   ssh aliases for the 3 VMs (required)
+#   VMID_XA=900 VMID_XB=901 VMID_3=903    (defaults; check qm list first)
+#   NETPLAN_IP_XA=... NETPLAN_IP_XB=... NETPLAN_IP_3=...
 #       if set AND --apply-netplan: writes /etc/netplan/01-netcfg.yaml
 #       (backing up any existing file) and applies; default is record-only.
 #   SMOKE_HOST=local (default: run the Go SDK smoke on the build host)
@@ -73,9 +73,9 @@ done
 if [ -f "$M0/hosts.env" ]; then set -a; . "$M0/hosts.env"; set +a; fi
 
 PVE_HOST="${PVE_HOST:-}"; VM_XA="${VM_XA:-}"; VM_XB="${VM_XB:-}"
-VM_2="${VM_2:-}"; VM_3="${VM_3:-}"
+VM_3="${VM_3:-}"
 VMID_XA="${VMID_XA:-900}"; VMID_XB="${VMID_XB:-901}"
-VMID_2="${VMID_2:-902}"; VMID_3="${VMID_3:-903}"
+VMID_3="${VMID_3:-903}"
 TEMPORAL_ADDR="${TEMPORAL_ADDR:-$VM_XB:7233}"
 
 log()  { printf '[m0 %s] %s\n' "$(date -u +%H:%M:%S)" "$*" | tee -a "$LOG"; }
@@ -83,7 +83,7 @@ ok()   { log "OK   - $*"; }
 warn() { log "WARN - $*"; }
 die()  { log "FAIL: $*"; exit 1; }
 
-PVMXS=("$VM_XA" "$VM_XB" "$VM_2" "$VM_3")
+PVMXS=("$VM_XA" "$VM_XB" "$VM_3")
 
 # ---------------------------------------------------------------- assets
 check_assets() {
@@ -132,7 +132,6 @@ vm_display_name() {
   case "$1" in
     "$VM_XA") echo vm-xa ;;
     "$VM_XB") echo vm-xb ;;
-    "$VM_2")  echo vm-llm-wiki ;;
     "$VM_3")  echo vm-hindsight ;;
     *)        echo "$1" ;;
   esac
@@ -140,10 +139,10 @@ vm_display_name() {
 
 provision_vms() {
   log "§1 — PVE: check VM block $VMID_XA-$VMID_3 (qm list first; pick a free block)"
-  local specs=("vm-xa:$VMID_XA" "vm-xb:$VMID_XB" "vm-llm-wiki:$VMID_2" "vm-hindsight:$VMID_3")
-  local mem=(4096 8192 4096 4096) cores=(2 4 2 2) disk=(20 40 20 20)
+  local specs=("vm-xa:$VMID_XA" "vm-xb:$VMID_XB" "vm-hindsight:$VMID_3")
+  local mem=(4096 8192 4096) cores=(2 4 2) disk=(20 40 20)
   local i name id
-  for i in 0 1 2 3; do
+  for i in 0 1 2; do
     name="${specs[i]%%:*}"; id="${specs[i]##*:}"
     if ssh "$PVE_HOST" "qm status $id 2>/dev/null | grep -Eq '^Status.*(stopped|running|paused)'"; then
       log "§1   $id ($name) exists — ensuring started"
@@ -169,7 +168,6 @@ provision_vms() {
     case "$h" in
       "$VM_XA") ipkey=XA ;;
       "$VM_XB") ipkey=XB ;;
-      "$VM_2")  ipkey=2 ;;
       "$VM_3")  ipkey=3 ;;
       *)        ipkey="$(printf '%s' "$hn" | sed 's/^vm-//; s/-/_/g')" ;;
     esac
@@ -197,7 +195,7 @@ install_docker() {
     ssh "$h" "docker run --rm alpine echo ok >/dev/null && docker compose version >/dev/null" \
       || die "docker not usable on $(vm_display_name "$h")"
   done
-  ok "§2 docker on all 4 VMs"
+  ok "§2 docker on all 3 VMs"
 }
 
 # ---------------------------------------------------------------- §2a firewall
@@ -384,7 +382,7 @@ write_decision_log() {
   {
     echo ""
     echo "## M0 install run — $(date +%F)"
-    echo "- VM naming: D-8 RESOLVED by owner 2026-10-25 (labels are POC discussion devices, not commitments); POC hostnames: vm-xa/vm-xb/vm-llm-wiki/vm-hindsight -> diagram labels VM-Xa/VM-Xb/VM-2/VM-3"
+    echo "- VM naming: D-8 RESOLVED by owner 2026-10-25 (labels are POC discussion devices, not commitments); POC hostnames: vm-xa/vm-xb/vm-hindsight -> diagram labels VM-Xa/VM-Xb/VM-3"
     echo "- Language decision: Go for ALL Temporal code (owner instruction: speed + size)"
     echo "- Name-resolution mechanism used: (PVE DNS or /etc/hosts — record which)"
   } >> "$M0/decision-log.md"
@@ -399,7 +397,7 @@ gate_summary() {
     log "check-only: gate checks skipped"
     return 0
   fi
-  # 1: 4 VMs, docker runs on each
+  # 1: 3 VMs, docker runs on each
   for h in "${PVMXS[@]}"; do
     if ssh "$h" "docker run --rm alpine echo ok" >/dev/null 2>&1; then
       log "gate 1 docker on $(vm_display_name "$h") : PASS"
@@ -433,7 +431,7 @@ gate_summary() {
 main() {
   log "=== M0 chassis install start (check-only=$CHECK_ONLY no-gate=$NO_GATE) ==="
   check_assets
-  confirm "M0: provision/verify 4 VMs + base OS + Docker + RabbitMQ + Temporal (idempotent)"
+  confirm "M0: provision/verify 3 VMs + base OS + Docker + RabbitMQ + Temporal (idempotent)"
   provision_vms
   install_docker
   open_firewall

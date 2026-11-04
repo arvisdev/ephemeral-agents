@@ -1,13 +1,13 @@
-# M4 Installation & Deployment — Memory + Knowledge (Hindsight + LLM-Wiki)
+# M4 Installation & Deployment — Memory + Knowledge (Hindsight + llm-wiki)
 
 **Companion:** `../delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md` · this file: **how to install and deploy it**.
 
 | | |
 |---|---|
-| **Installs on** | vm-hindsight (Hindsight: Postgres+pgvector + API), vm-llm-wiki (LLM-Wiki: content + retrieval API + ingest) |
-| **Prereqs** | M0 (vm-llm-wiki/vm-hindsight exist, Docker up), M2/M3 (an executor that hydrates and writes memory) |
-| **What gets deployed** | `poc/hindsight-api:1.0.0` + `hindsight-pg` (vm-hindsight), `poc/llmwiki-api:1.0.0` + content repo + ingest job (vm-llm-wiki), updated M2/M3 env wiring |
-| **Language (mandatory)** | No new Temporal code in this milestone — all workflow/activity code stays in the M2 Go services (owner instruction: Go for all Temporal code, speed + size). The Hindsight/LLM-Wiki API services follow the POC's Go convention. |
+| **Installs on** | vm-hindsight (Hindsight: Postgres+pgvector + API) — *(D-wiki-git, 2026-11-04: no wiki VM; llm-wiki = the git repo `github.com/arvisdev/llm-wiki`, consumed by shallow clone)* |
+| **Prereqs** | M0 (vm-hindsight exists, Docker up), M2/M3 (an executor that hydrates and writes memory) |
+| **What gets deployed** | `poc/hindsight-api:1.0.0` + `hindsight-pg` (vm-hindsight), updated M2/M3 env wiring (llm-wiki repo URL for the clone) |
+| **Language (mandatory)** | No new Temporal code in this milestone — all workflow/activity code stays in the M2 Go services (owner instruction: Go for all Temporal code, speed + size). The Hindsight API service follows the POC's Go convention. |
 
 ## 1. Hindsight on vm-hindsight
 
@@ -69,68 +69,34 @@ rsync -a deploy/m4/hindsight/ vm-hindsight:/opt/poc/deploy/m4/hindsight/
 ssh vm-hindsight 'cd /opt/poc/deploy/m4/hindsight && docker compose up -d'
 ```
 
-## 2. LLM-Wiki on vm-llm-wiki
+## 2. llm-wiki — the git repo (no deployment)
 
-*Why:* LLM-Wiki is the owner's **curation artifact** (R7) — the whole process is "owner commits markdown, `docker compose run llmwiki-ingest` reindexes", and the curation cadence + owner is recorded in the decision log instead of drifting. Holding design standards and dev/business best practices here (not in the Git repo) follows the owner-confirmed store-content model.
+*Why:* per **D-wiki-git (owner, 2026-11-04)** there is **no wiki VM and no wiki service** — the former LLM-Wiki (vm-llm-wiki, `llmwiki-api`, pgvector serving layer, ingest pipeline) is removed entirely. Reference standards live in a plain, private git repository that consumers shallow-clone; the content repo IS the store (D-wiki-truth, now trivially true).
 
-**2a. Content repo (owner-curated, the curation artifact for R7):** `llmwiki-content/`:
+**2a. The repo:** https://github.com/arvisdev/llm-wiki — already created and scaffolded:
 
 ```
-llmwiki-content/
+llm-wiki/  (github.com/arvisdev/llm-wiki, private)
   design-standards/      *.md   (architecture standards, naming, patterns)
   dev-best-practices/    *.md
   business-best-practices/*.md
   tools-and-skills/      *.md   (tool docs the agents may need)
-  CHANGELOG.md           (curation cadence: "reindex on push" — record the owner + cadence in decision log)
+  CHANGELOG.md           (curation cadence + ownership note — tracked here, not in a decision log service)
+  README.md
 ```
 
-**2b. Stack — `deploy/m4/llmwiki/compose.yaml` (vm-llm-wiki):**
+**2b. Consumption:** hydrate-time `git clone --depth 1` of the repo (read access via the same short-lived-token mechanism as the catalog/`GITHUB_READ_TOKEN` pattern). Nothing to install on any VM for this.
 
-```yaml
-services:
-  llmwiki-pg:
-    image: pgvector/pgvector:pg16        # separate instance (same rule as M0: never share DBs across VMs)
-    environment:
-      POSTGRES_DB: llmwiki
-      POSTGRES_USER: llmwiki
-      POSTGRES_PASSWORD: ${LLMWIKI_DB_PASS}
-    volumes: [llmwiki-pg-data:/var/lib/postgresql/data]
-  llmwiki-api:
-    image: poc/llmwiki-api:1.0.0         # Go service: retrieval + ingest endpoints
-    environment:
-      DB_DSN: postgres://llmwiki:${LLMWIKI_DB_PASS}@llmwiki-pg:5432/llmwiki
-      EMBEDDINGS: ${EMBEDDING_PROVIDER}
-      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}
-      LISTEN: 0.0.0.0:8080
-    ports: ["8080"]
-    depends_on: {llmwiki-pg: {condition: service_healthy}}
-  llmwiki-ingest:
-    image: poc/llmwiki-api:1.0.0
-    command: ["ingest"]                  # one-shot: clone llmwiki-content (depth 1), chunk, embed, upsert
-    environment:
-      DB_DSN: postgres://llmwiki:${LLMWIKI_DB_PASS}@llmwiki-pg:5432/llmwiki
-      CONTENT_REPO: https://x-access-token:${LLMWIKI_READ_TOKEN}@github.com/<owner>/llmwiki-content.git   # token auth over HTTPS — git@ SSH ignores GITHUB_TOKEN
-      GITHUB_TOKEN: ${LLMWIKI_READ_TOKEN}
-      EMBEDDINGS: ${EMBEDDING_PROVIDER}
-    # no data-volume mount: ingest inserts over the network via DB_DSN —
-    # two writers on the same PG data dir is unsafe
-volumes:
-  llmwiki-pg-data: {}
-```
-
-Endpoints:
-
-- `GET /wiki/query?q=<design standards|skill|topic>&k=5` → passages with source file + section
-- `POST /wiki/ingest` (or run `llmwiki-ingest` manually) → reindex from the content repo
-- Curation for POC = **markdown committed to the repo → `docker compose run llmwiki-ingest`** (documented in `CHANGELOG.md`; the "who curates" answer lands in the decision log — R7).
+- **Open item (recorded, not solved):** the hydration/retrieval shape is undecided — the interim default is a **full shallow clone at executor boot**; agents read the markdown directly. A curated index / README-per-topic retrieval aid may be added later (V2).
+- Curation for POC = markdown committed to the repo; every clone made after the push sees it (no reindex step — the ingest pipeline is gone).
 
 ## 3. Wire hydration into the lifecycle + executors (the connective work)
 
-*Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL`/`LLMWIKI_URL` ride into every spawned container as env, and the M2 Go worker hydrates (read) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
+*Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL` and the llm-wiki repo URL ride into every spawned container as env, and the M2 Go worker hydrates (read + clone) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
 
-1. **Names:** ensure `vm-llm-wiki`/`vm-hindsight` resolve on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism).
-2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081`, `LLMWIKI_URL=http://vm-llm-wiki:8080` → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLMWIKI_URL`).
-3. **Hydrate step** (lifecycle worker): before task work, fan out `wiki/query` (topic = task + agent_ref) + `memory/read` → pass results into the agent's task payload; record per-source latency.
+1. **Names:** ensure `vm-hindsight` resolves on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism). No wiki hostname exists (D-wiki-git).
+2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLMWIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + read token) → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLMWIKI_*`).
+3. **Hydrate step** (lifecycle worker): before task work, fan out the llm-wiki **shallow clone** (`git clone --depth 1 $LLMWIKI_REPO_URL`) + `memory/read` → pass results into the agent's task payload; record per-source latency.
 4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the §1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.
 
@@ -142,9 +108,11 @@ Endpoints:
 # G1 network R/W: from a spawned agent container:
 curl -s "$HINDSIGHT_URL/memory/read?task_id=t1&scope=cross-task" ; curl -s -XPOST "$HINDSIGHT_URL/memory/write" -d '{...}'
 # G2 cross-task read-back: task t1 writes {learning:"use X for Y"}; task t2's hydrate fetches it
-# G3 retrieval quality: 3 canned queries (a standard, a skill, a business practice) → top-1 hit is the right doc section (record in evidence)
+# G3 llm-wiki clone + read: from a spawned agent container (D-wiki-git — replaces the former wiki-query check):
+git clone --depth 1 "$LLMWIKI_REPO_URL" /tmp/llm-wiki && ls /tmp/llm-wiki/design-standards/
+# → 3 canned lookups (a standard, a skill, a business practice) each find the right doc file/section in the clone (record in evidence)
 # G4 catalog regression: M3's self-report still correct with the two new sources live
-# G5 latency: hydration per-source + total recorded; total < M2 TTL headroom (measure 3 runs)
+# G5 latency: hydration per-source + total recorded (clone + memory read); total < M2 TTL headroom (measure 3 runs)
 ```
 
 Evidence → `deploy/m4/evidence/` (read-back rows, query results with hits, latency table).
@@ -155,9 +123,9 @@ Evidence → `deploy/m4/evidence/` (read-back rows, query results with hits, lat
 
 ```bash
 # services: down per-VM compose project; data lives in named volumes:
-docker compose down                     # keeps hindsight-pg-data / llmwiki-pg-data
-docker volume rm hindsight-pg-data llmwiki-pg-data   # only on a true re-do
-# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINDSIGHT_URL/LLMWIKI_URL (hydrate skips missing sources)
+docker compose down                     # keeps hindsight-pg-data
+docker volume rm hindsight-pg-data      # only on a true re-do
+# wiring: reverting the M2 env block is a config revert; executors tolerate empty HINDSIGHT_URL/LLMWIKI_* (hydrate skips missing sources)
 ```
 
 ## 6. Troubleshooting
@@ -166,10 +134,11 @@ docker volume rm hindsight-pg-data llmwiki-pg-data   # only on a true re-do
 
 | Symptom | Cause / fix |
 |---|---|
-| Poor retrieval quality (TC-M4-03: wrong top hits) | chunking granularity or embedding-dim mismatch between the ingest and query paths — same embedding model, same dims, same chunk size on both sides of the pgvector store; fix and **re-run the ingest**, not just the query |
+| llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLMWIKI_REPO_URL` + token scope (read-only is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
+| Wrong doc found by an agent (G3 content miss) | with a plain clone there is no retrieval layer — content navigation is the repo's own README/directory layout; if lookups miss, fix the repo's index/README (the V2 curated-index open item), not the executor |
 | `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (§1a image pin) |
 | API 500 on write | embedding provider key missing/rate-limited — check `EMBEDDINGS` env + provider quota (rate-limit note from the owner's standing conventions) |
-| Hydration slow | embedding calls in the hot path — POC-scale: precompute nothing, but check provider latency and `k`; record actuals (§4 G5) |
+| Hydration slow | clone latency in the hot path — POC-scale: the repo is small; check network + token issuance latency; record actuals (§4 G5) |
 | `vm-hindsight:8081` unresolvable from vm-xb | §3.1 name mechanism not applied to every VM that spawns/consumes |
-| Stale standards after content push | ingest not re-run — `docker compose run llmwiki-ingest` (that's the documented cadence, not a bug) |
+| Stale standards after content push | not possible at the service layer (none exists) — stale clones are fixed by re-cloning at the next boot; if a run must see a fresh push, re-clone before work (curation cadence note lives in the repo's CHANGELOG) |
 | Cross-task read-back empty | scope rule mismatch: write used `scope=session` where `cross-task` was intended — check the executor write (§3.4) |

@@ -8,13 +8,12 @@
 # test — recovery never means re-running the chain).
 #
 # Usage: bash deploy/m5/e2e-deploy.sh
-# Env: VM_XA VM_XB VM_2 VM_3 (ssh aliases), ASSUME_YES=1 for non-interactive
+# Env: VM_XA VM_XB VM_3 (ssh aliases), ASSUME_YES=1 for non-interactive
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-VM_XA="${VM_XA:-vm-xa}"; VM_XB="${VM_XB:-vm-xb}"
-VM_2="${VM_2:-vm-llm-wiki}"; VM_3="${VM_3:-vm-hindsight}"
+VM_XA="${VM_XA:-vm-xa}"; VM_XB="${VM_XB:-vm-xb}"; VM_3="${VM_3:-vm-hindsight}"
 FAILED_STAGE=""
 
 stage() { # stage <name> <cmd...> — run; on failure halt with the stage named
@@ -55,15 +54,12 @@ stage "S4 executor images present on vm-xb" \
 stage "S4 token issuance dry-run (issue + verify + revoke)" \
   bash "$REPO_ROOT/deploy/m3/issue-token.sh" --dry-run
 
-# S5 memory/wiki: M4 compose up on vm-hindsight/vm-llm-wiki + /healthz checks
+# S5 memory: M4 hindsight compose up on vm-hindsight + /healthz check
+# (the llm-wiki is a git repo cloned by the executor at boot — no service here)
 stage "S5 hindsight compose up (vm-hindsight)" \
   ssh "$VM_3" "cd /opt/poc/deploy/m4/hindsight && docker compose up -d"
 stage "S5 hindsight /healthz" \
   ssh "$VM_3" "curl -sf http://127.0.0.1:8081/healthz"
-stage "S5 llmwiki compose up (vm-llm-wiki)" \
-  ssh "$VM_2" "cd /opt/poc/deploy/m4/llmwiki && docker compose up -d"
-stage "S5 llmwiki /healthz" \
-  ssh "$VM_2" "curl -sf http://127.0.0.1:8080/healthz"
 
 # S6 front-house: M5 compose up on vm-xa + gateway /healthz
 stage "S6 front-house compose up (vm-xa)" \
