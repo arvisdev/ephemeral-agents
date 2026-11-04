@@ -53,3 +53,18 @@
 - Any image rebuild or service redeploy → re-run TC-M5-02 (+ 03 if a failure path touched).
 - Credential mechanism change → TC-M5-04.
 - Concurrency model change → TC-M5-05 + M3 TC-M3-07.
+
+## Sign-off (D-signoff, 2026-11-04)
+
+The **Human-In-The-Loop (HITL)** — the engineer in the work loop — is the
+sign-off authority for every gate in this POC, including this one. The
+operator who ran the cases records the results table and evidence; the HITL
+reviews the evidence and signs. (In a solo run the HITL and operator are the
+same person — the signature asserts the evidence is complete, not that a
+second person watched.)
+
+| Field | Value |
+|---|---|
+| Signed by (HITL) | ______________________ |
+| Date | ______________________ |
+| Evidence pack | `deploy/m<N>/evidence/` (this TP's evidence list) |

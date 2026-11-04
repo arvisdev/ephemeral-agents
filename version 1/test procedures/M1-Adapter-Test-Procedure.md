@@ -51,3 +51,18 @@
 
 - Any change to `services/topic-bridge/` source, `deploy/m1/compose.yaml`, or the message schema → full re-run.
 - RabbitMQ/Temporal image upgrades → re-run TC-M1-01, 05, 06.
+
+## Sign-off (D-signoff, 2026-11-04)
+
+The **Human-In-The-Loop (HITL)** — the engineer in the work loop — is the
+sign-off authority for every gate in this POC, including this one. The
+operator who ran the cases records the results table and evidence; the HITL
+reviews the evidence and signs. (In a solo run the HITL and operator are the
+same person — the signature asserts the evidence is complete, not that a
+second person watched.)
+
+| Field | Value |
+|---|---|
+| Signed by (HITL) | ______________________ |
+| Date | ______________________ |
+| Evidence pack | `deploy/m<N>/evidence/` (this TP's evidence list) |

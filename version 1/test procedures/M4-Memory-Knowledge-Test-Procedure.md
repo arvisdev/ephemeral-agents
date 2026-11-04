@@ -55,3 +55,18 @@
 - A push to the llm-wiki repo + fresh-clone verification → re-run TC-M4-06 only.
 - Hindsight schema change or provider change → full re-run.
 - M2 worker/lifecycle redeploy → re-run TC-M4-04.
+
+## Sign-off (D-signoff, 2026-11-04)
+
+The **Human-In-The-Loop (HITL)** — the engineer in the work loop — is the
+sign-off authority for every gate in this POC, including this one. The
+operator who ran the cases records the results table and evidence; the HITL
+reviews the evidence and signs. (In a solo run the HITL and operator are the
+same person — the signature asserts the evidence is complete, not that a
+second person watched.)
+
+| Field | Value |
+|---|---|
+| Signed by (HITL) | ______________________ |
+| Date | ______________________ |
+| Evidence pack | `deploy/m<N>/evidence/` (this TP's evidence list) |
