@@ -319,7 +319,7 @@ PINS
   ssh "$VM_XB" "command -v temporal >/dev/null || { VER=\$(curl -s https://api.github.com/repos/temporalio/cli/releases/latest | grep -oP 'tag/v\K[0-9.]+'); curl -sL \"https://github.com/temporalio/cli/releases/download/v\$VER/temporal_cli_\${VER}_linux_amd64.tar.gz\" -o /tmp/tc.tgz && tar -xzf /tmp/tc.tgz -C /tmp && sudo mv /tmp/temporal /usr/local/bin/; }"
   local i
   for i in $(seq 1 40); do
-    if ssh "$VM_XB" "temporal operator cluster health 2>/dev/null" | grep -q "HEALTHY"; then
+    if ssh "$VM_XB" "temporal operator cluster health 2>/dev/null" | grep -Eq "SERVING|HEALTHY"; then
       break
     fi
     sleep 3
@@ -355,7 +355,11 @@ network_matrix() {
     echo "# M0 network matrix — $(date -u)"
     for from in "${PVMXS[@]}"; do
       for to in "${PVMXS[@]}"; do
-        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$from" "ssh -o BatchMode=yes -o ConnectTimeout=5 '$to' true" 2>/dev/null; then
+        # pairwise L3 reachability WITHOUT VM keys: probe the target's ssh
+        # port from the source VM via bash /dev/tcp (docs §5 method — the
+        # workstation relays the probe through ssh to the source VM).
+        if ssh -o BatchMode=yes -o ConnectTimeout=5 "$from" \
+             "timeout 5 bash -c '</dev/tcp/$to/22' 2>/dev/null"; then
           echo "L3 $from -> $to : OK"
         else
           echo "L3 $from -> $to : FAIL"

@@ -18,12 +18,13 @@ import (
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.temporal.io/sdk/worker"
+	"go.temporal.io/sdk/workflow"
 )
 
 const taskQueue = "go-sdk-smoke"
 
 // GreetWorkflow is the trivial workflow the smoke run executes.
-func GreetWorkflow(ctx context.Context, name string) (string, error) {
+func GreetWorkflow(ctx workflow.Context, name string) (string, error) {
 	return "hello from greet (" + name + ")", nil
 }
 

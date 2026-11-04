@@ -264,5 +264,9 @@ deploy/
 | VMs unreachable on the LAN | bridge `vmbr0` membership; firewall on PVE (`/etc/network/interfaces` + `pve-firewall`); test `ping` from PVE host first |
 | Temporal pod not ready | Postgres healthcheck failing → check `${TEMPORAL_DB_PASS}` in `.env`; first start can be slow (schema init) |
 | Rabbit healthcheck flapping | memory alarm — bump `vm-xb` RAM or set a memory limit; check `rabbitmq-diagnostics` |
+| Rabbit crash `Error when reading /var/lib/rabbitmq/.erlang.cookie: eacces` | root-owned `.erlang.cookie` in the named volume (left by a container run outside compose, as root). Fix: `docker run --rm -v rabbitmq_rabbitmq-data:/var/lib/rabbitmq --entrypoint sh rabbitmq:4-management-alpine -c 'chown 100:101 /var/lib/rabbitmq/.erlang.cookie'`, then `docker compose up -d`. Never run the image ad-hoc as root against the compose volume. *(2026-11-04, first real-estate install)* |
+| Topology declare fails with `405` / publish `bad_request` | RabbitMQ mgmt-API verbs: **PUT** creates named resources (exchanges/queues); **POST** creates bindings (with `"properties_key":""`) and publish (body needs top-level `routing_key` + `payload` + `payload_encoding` + `properties`). Older POST-shape code returns 405/bad_request. Fixed in `deploy/m0/install.sh`. *(2026-11-04)* |
+| `temporal` CLI install fails: DNS `cli.temporal.io` unresolved | LAN blocks that host (GitHub reachable). Fallback in `deploy/m0/install.sh` installs from `github.com/temporalio/cli/releases`. *(2026-11-04)* |
+| Temporal container "unhealthy" / CLI `connection refused localhost:7233` | frontend binds the container IP by default. Fix: `BIND_IP: "0.0.0.0"` env + fixed `7233:7233` host port in `deploy/m0/temporal/compose.yaml`. *(2026-11-04)* |
 | Clock skew warnings in logs | `chrony` not enabled on all VMs (see section 1) |
 | Rebuild needed | `docker compose down -v` + wipe VM disks, re-run `deploy/m0/install.sh` — that's the point of the scriptable chassis |
