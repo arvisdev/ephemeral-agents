@@ -67,7 +67,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | R6 | **Hindsight R/W API** not available for agent sessions | L | M | Define the memory contract early; use a thin API wrapper; pgvector is the substrate. |
 | R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. **Update (owner, 2026-11-04, D-wiki-git):** the RAG **serving layer is retired** — the wiki is now a plain git repo (`github.com/arvisdev/llm-wiki`) consumed by shallow clone, so ingest/indexing/retrieval risk is gone; the residual risk is content curation cadence/ownership, still open (tracked in the repo's CHANGELOG). |
 | R8 | **Cross-VM service discovery** (VM-Xb agents must reach VM-2, VM-3, cloud) | L | M | Flat L2/overlay network or DNS/service-catalog; fixed service endpoints per VM. |
-| R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | **Resolved by owner 2026-10-25:** the labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records the decision (M0 §6) and moves on. |
+| R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | **Resolved by owner 2026-10-25:** the labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records the decision (M0 section 6) and moves on. |
 
 *(L = likelihood, I = impact.)*
 
@@ -86,11 +86,11 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 
 **Conditions for the verdict to hold:**
 - The **RabbitMQ→Temporal** bridge and the **container lifecycle manager** are built and de-risked (R1, R2).
-- The two **To-verify** components pass their spikes (§5, items 1–2).
+- The two **To-verify** components pass their spikes (section 5, items 1–2).
 - **Credential scoping** and a **concurrency model** for repo writes are decided (R3, R4).
 - **Hindsight** exposes a usable R/W API for agent sessions (R6).
 
-If §5 spikes pass, the Version 1 POC is buildable with standard tooling.
+If section 5 spikes pass, the Version 1 POC is buildable with standard tooling.
 
 ## 7. De-risking build order (summary)
 

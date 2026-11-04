@@ -42,7 +42,7 @@ Create the repo + one worked example agent; commit.
 # 3) echo the token → injected as GITHUB_TOKEN env by the lifecycle spawn
 ```
 
-**Revocation on reap:** the lifecycle `reap` step calls `DELETE` on the token (GitHub App tokens can be force-expired) — the "unusable after reap" check in §4 relies on this.
+**Revocation on reap:** the lifecycle `reap` step calls `DELETE` on the token (GitHub App tokens can be force-expired) — the "unusable after reap" check in section 4 relies on this.
 
 ## 2. Build the two executor images
 
@@ -64,13 +64,13 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 `entrypoint.sh` (the boot-time hydration contract from Note 2 — "pull the full agent profile markdowns … load those profiles … then run the required tasks"):
 
-1. `git clone --depth 1` the Available Agent List (auth: the read token from §1c) into `/work/agents`; remove the token from env when done.
+1. `git clone --depth 1` the Available Agent List (auth: the read token from section 1c) into `/work/agents`; remove the token from env when done.
 2. Resolve `AGENT_REF` via `index.json` → load `persona.md` + `skill-and-tools.md` + `behavioral-spec.md` for that agent's folder.
 3. **Self-report** (gate before task work): write `/work/self-report.json` `{task_id, role, skills[], spec_received, sources{agent_repo, llm-wiki, hindsight}}` — the harness asserts on this file (key name `llm-wiki` per `deploy/m3/hermes-ephemeral/entrypoint.sh`; the entrypoint shallow-clones the llm-wiki git repo at boot).
 4. Missing repo / malformed persona / index miss → write `self-report.json` with `error` and exit 2 (M2 surfaces + reaps).
 5. Launch the Hermes agent runtime with persona + spec; on completion write a task report, exit 0.
 
-Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLM_WIKI_REPO_URL`, `LLM_WIKI_READ_TOKEN`, `TTL_S`. (`GITHUB_READ_TOKEN` is a **read-only** credential for catalog/repo clones; the coder's separate scoped write token is issued as `GITHUB_TOKEN` per §1c — two different tokens, two different scopes. The llm-wiki is **not an HTTP service** (D-wiki-git): the Hermes entrypoint shallow-clones the git repo at boot via `LLM_WIKI_REPO_URL` (default `https://github.com/arvisdev/llm-wiki`) using the static `LLM_WIKI_READ_TOKEN` (fine-grained PAT, `contents:read` on arvisdev/llm-wiki only); absent token → clone skipped, hydration degrades gracefully.)
+Env (injected per-run by M2 spawn): `TASK_ID`, `AGENT_REPO_URL`, `AGENT_REF`, `REPO_FOLDER`, `BEHAVIORAL_SPEC`, `GITHUB_READ_TOKEN`, `HINDSIGHT_URL`, `LLM_WIKI_REPO_URL`, `LLM_WIKI_READ_TOKEN`, `TTL_S`. (`GITHUB_READ_TOKEN` is a **read-only** credential for catalog/repo clones; the coder's separate scoped write token is issued as `GITHUB_TOKEN` per section 1c — two different tokens, two different scopes. The llm-wiki is **not an HTTP service** (D-wiki-git): the Hermes entrypoint shallow-clones the git repo at boot via `LLM_WIKI_REPO_URL` (default `https://github.com/arvisdev/llm-wiki`) using the static `LLM_WIKI_READ_TOKEN` (fine-grained PAT, `contents:read` on arvisdev/llm-wiki only); absent token → clone skipped, hydration degrades gracefully.)
 
 **2b. Claude Code coder** — `deploy/m3/claude-coder/`:
 
@@ -83,8 +83,8 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 ```
 
 `entrypoint.sh`:
-1. `git clone` Project Repo to `/work/project` (auth: `GITHUB_TOKEN`, the scoped App installation token from §1c).
-2. `git checkout -b task/<TASK_ID>` (per-task branch — the default concurrency model, §3).
+1. `git clone` Project Repo to `/work/project` (auth: `GITHUB_TOKEN`, the scoped App installation token from section 1c).
+2. `git checkout -b task/<TASK_ID>` (per-task branch — the default concurrency model, section 3).
 3. Run the headless agent: `claude -p "<task prompt + behavioral spec + design standards retrieved at hydration>" --max-turns N` with the API key from `ANTHROPIC_API_KEY` env (injected per-run, scoped by the owner's billing/limits; **never baked into the image**). Hermes's own model-provider key(s) ride the same way via the M2 spawn env (`MODEL_API_KEY`) — required at spawn, never in the image.
 4. `git add -A && git commit -m "task/<TASK_ID>: <summary>" && git push origin task/<TASK_ID>`.
 5. Write `/work/report.json` `{task_id, branch, commit_sha, files_changed}`; exit 0 (non-zero on push failure).
@@ -102,7 +102,7 @@ docker save poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0 | ssh vm-xb docker
 # update M2: POC_IMAGE per task type in deploy/m2/compose.yaml + lifecycle config
 ```
 
-Both build-args are mandatory (the Dockerfiles fail the build if unset — see §2's
+Both build-args are mandatory (the Dockerfiles fail the build if unset — see section 2's
 `RUN test -n "$HERMES_INSTALLER_URL"` guard and the `CLAUDE_CODE_VERSION` note);
 export them in the build shell before running the block.
 
@@ -155,12 +155,12 @@ trivy image --exit-code 1 poc/hermes-ephemeral:1.0.0 poc/claude-coder:1.0.0   # 
 
 ## 7. Troubleshooting
 
-*Why:* each row is a pre-diagnosed failure mode with a one-line cause — the classic ones being token scope (§1c), `index.json` ref mismatch, and TTL < task runtime ("measure, don't guess" is the M3 discipline: the TTL comes from B1's measured p50, not from a guess).
+*Why:* each row is a pre-diagnosed failure mode with a one-line cause — the classic ones being token scope (section 1c), `index.json` ref mismatch, and TTL < task runtime ("measure, don't guess" is the M3 discipline: the TTL comes from B1's measured p50, not from a guess).
 
 | Symptom | Cause / fix |
 |---|---|
-| Hermes boot hangs at "loading persona" | repo clone failing (token wrong repo scope — §1c) or index.json ref mismatch (`AGENT_REF` vs `index.json`) |
+| Hermes boot hangs at "loading persona" | repo clone failing (token wrong repo scope — section 1c) or index.json ref mismatch (`AGENT_REF` vs `index.json`) |
 | `claude` CLI exits before doing work | `ANTHROPIC_API_KEY` missing/expired in the run env; CLI version pin too old for the flag set — pin + record |
-| Push rejected on task branch | App install missing `contents:write` on the Project Repo; or branch protection on the POC repo (off in §1b) |
+| Push rejected on task branch | App install missing `contents:write` on the Project Repo; or branch protection on the POC repo (off in section 1b) |
 | Reaper doesn't get the coder container | TTL < task runtime: the coder's `TTL_S` must exceed `max-turns` time budget — measure, don't guess |
-| Token not revocable | GitHub App installation tokens expire at 1 h; for earlier revocation use App token DELETE endpoint (§1c step 3) |
+| Token not revocable | GitHub App installation tokens expire at 1 h; for earlier revocation use App token DELETE endpoint (section 1c step 3) |

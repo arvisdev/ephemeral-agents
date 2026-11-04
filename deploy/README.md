@@ -34,7 +34,7 @@ steps **in order**; each names exactly what to read and what to run.
 2. Collect the owner-inputs below ("Owner must hand you these") — all of
    them, before starting. Missing item ⇒ stop and ask; do not improvise.
 3. Confirm the three VMs exist with the owner baseline (clean Ubuntu 26.04,
-   updated, SSH through UFW — see M0 doc §1a's baseline note).
+   updated, SSH through UFW — see M0 doc section 1a's baseline note).
 4. `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill it (ssh
    aliases + the three static IPs; same IPs in netplan/DNS — the file's own
    comments explain the rule).
@@ -44,7 +44,7 @@ steps **in order**; each names exactly what to read and what to run.
 ### Stage B — M0, the chassis (day 1)
 
 1. Read `version 1/installation-deployment/M0-Chassis-Installation-and-Deployment.md`
-   §0–§8 once. It is the only milestone where you create infrastructure.
+   section 0–section 8 once. It is the only milestone where you create infrastructure.
 2. `bash deploy/m0/install.sh --check-only` → then `bash deploy/m0/install.sh`.
 3. Run TP-M0's 8 cases, sign it. **Nothing else starts until TP-M0 is signed.**
 
@@ -88,14 +88,14 @@ the "When a step fails" section below tells you where the fix lives.**
 | Step | Do | Result you need before the next step |
 |---|---|---|
 | 0 | Read the M0 install doc, `cp deploy/m0/hosts.env.example deploy/m0/hosts.env` and fill it | — |
-| 1 | `bash deploy/m0/install.sh` | M0 gate (5 checks §7) PASS → run **TP-M0** (8 mandatory cases) |
+| 1 | `bash deploy/m0/install.sh` | M0 gate (5 checks section 7) PASS → run **TP-M0** (8 mandatory cases) |
 | 2 | `bash deploy/m1/install.sh` | T1–T5 PASS → run **TP-M1** (6 mandatory cases) |
 | 3 | `bash deploy/m2/install.sh` | V1–V5 PASS → run **TP-M2** (6 mandatory cases) |
 | 4 | `bash deploy/m3/install.sh` | B1–B5(+B6) PASS → run **TP-M3** (7 mandatory cases) |
 | 5 | `bash deploy/m4/install.sh` | G1–G6 PASS → run **TP-M4** (7 mandatory cases) |
 | 6 | `bash deploy/m5/install.sh` | E2E + F1–F4 + hardening → run **TP-M5** |
 
-The script gate labels (§-checks, T/V/B/G, F) are the script's own block
+The script gate labels (section-checks, T/V/B/G, F) are the script's own block
 names; the **TP case counts are the authoritative gate** — sign off against
 the test procedure, not the script output alone.
 
@@ -114,7 +114,7 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
       applied, SSH enabled and allowed through UFW (owner baseline,
       2026-10-30). Everything else on the VMs (hostname/netplan, chrony, the
       `poc` user, Docker) is M0's job; the UFW service-port rules are opened
-      automatically by the install scripts (m0 §2a / m4 / m5).
+      automatically by the install scripts (m0 section 2a / m4 / m5).
 - [ ] **M3: GitHub App + private key** — the App ID + the key file, to be
       placed at `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never
       in git). Needed by `deploy/m3/issue-token.sh`.
@@ -153,7 +153,7 @@ On the **build workstation**:
 - docker (+ buildx), go, the `temporal` CLI, `gh` (logged in), rsync,
   an SSH keypair → authorize the public half for the `poc` user on PVE + the
   3 VMs (the scripts SSH as `poc` everywhere, with BatchMode/key auth only;
-  `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 §2).
+  `poc` needs **passwordless sudo** on the VMs — used by m0's VM provisioning/netplan and m4's `/etc/hosts` automation; the common container path (docker compose, docker CLI) runs sudo-free via the `poc`-in-docker-group setup in M0 section 2).
 - `ssh -o StrictHostKeyChecking=accept-new poc@PVE_HOST` once per host —
   known_hosts gets seeded for you.
 - `mkdir -p /opt/poc/deploy/m1 /opt/poc/deploy/m2 /opt/poc/deploy/m3
@@ -166,9 +166,9 @@ On the **build workstation**:
 Each script prints the owning install-doc section for any failure. The routing
 rule is:
 
-- failure names a **section (n)** → open that milestone's install doc §n,
+- failure names a **section (n)** → open that milestone's install doc sectionn,
   follow its Troubleshooting row.
-- a **gate test** fails → that milestone's install doc §4/§6 has the fix;
+- a **gate test** fails → that milestone's install doc section 4/section 6 has the fix;
   re-run *from the failed test* (the scripts support this — see each
   operator block).
 - M5 E2E fails at stage **Sn** → that stage names its owning milestone;
@@ -195,7 +195,7 @@ one — each script is scoped to its own milestone.
 | Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-xa: front-of-house at M5). The llm-wiki is a git repo (no VM of its own) |
 | GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never in git) — where `issue-token.sh` runs |
 
-## The POC is complete when (from the M5 install doc §9)
+## The POC is complete when (from the M5 install doc section 9)
 
 1. E2E run passed, **zero** surviving POC containers
 2. All four failure injections clean + reported to the human

@@ -173,6 +173,6 @@ The four **[confirm]** items in Sections 3–4 were resolved by the diagram owne
 development arena each project will have its own manager-template VM and its own
 ephemeral-agent VM(s); the concrete names are the team's or company's choice, made
 to meet their own needs. This POC uses the labels as drawn purely so the design
-pattern can be discussed in an orderly way. This resolves §7 open item 1
+pattern can be discussed in an orderly way. This resolves section 7 open item 1
 ("the VM numbering scheme as a whole") — no renumbering will be forced on any
 project adopting the pattern.

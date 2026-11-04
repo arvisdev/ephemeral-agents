@@ -76,7 +76,7 @@ services:
       DLQ_QUEUE: agent.tasks.dlq
     # NOTE: rabbitmq/temporal are M0 compose projects, NOT services in this file —
     # depends_on cannot reach across projects. The bridge reconnects on start
-    # (restart: unless-stopped); §0's prereq checks are the real gate.
+    # (restart: unless-stopped); section 0's prereq checks are the real gate.
     restart: unless-stopped
     logging: {driver: json-file, options: {max-size: "10m", max-file: "3"}}
 ```
@@ -125,11 +125,11 @@ cd deploy/m1 && docker compose down topic-bridge      # stateless: no local data
 
 ## 6. Troubleshooting
 
-*Why:* these are the top failure modes, pre-diagnosed — each row maps a symptom (a log line or a count) to its cause, so a junior operator fixes in minutes instead of hours. The "duplicates starting workflows" row is the most important: it's the correctness contract (§1) observed from the outside.
+*Why:* these are the top failure modes, pre-diagnosed — each row maps a symptom (a log line or a count) to its cause, so a junior operator fixes in minutes instead of hours. The "duplicates starting workflows" row is the most important: it's the correctness contract (section 1) observed from the outside.
 
 | Symptom | Cause / fix |
 |---|---|
-| `connection refused` to `rabbitmq:5672` | adapter and rabbitmq not on the shared compose network (§3 note) |
+| `connection refused` to `rabbitmq:5672` | adapter and rabbitmq not on the shared compose network (section 3 note) |
 | Adapter acks but no workflow | namespace mismatch (`TEMPORAL_NAMESPACE` vs `temporal operator namespace list`) |
 | Duplicates starting workflows | `WorkflowID` not set to `task_id` — that is THE idempotency key; check the start options |
 | Consumer stuck after crash | unacked message redelivered — expected. If a redelivery starts a **second** workflow for the same task_id, the duplicate guard (T2) has regressed: re-run T2 before diagnosing T3. |

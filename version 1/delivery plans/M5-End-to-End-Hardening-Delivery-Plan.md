@@ -57,4 +57,4 @@ All five criteria ⇒ the Version 1 POC is **demonstrated feasible** and the fea
 ## Notes
 
 - M5 adds **no new infrastructure**; it composes M0–M4 and hardens. If M5 discovers a missing piece, that's a finding about the earlier milestone's gate, not a new M5 work package.
-- The Version 2 open items (from the foundation doc §7 + the Architectural Design Document §10: llm-wiki curation ownership — tracked in the llm-wiki repo CHANGELOG, Hindsight→llm-wiki promotion, wiki hydration/retrieval shape (D-wiki-git open item; interim default = full shallow clone at executor boot), long-term queue shape, multi-flow concurrency) are **recorded, not solved**, in this milestone.
+- The Version 2 open items (from the foundation doc section 7 + the Architectural Design Document section 10: llm-wiki curation ownership — tracked in the llm-wiki repo CHANGELOG, Hindsight→llm-wiki promotion, wiki hydration/retrieval shape (D-wiki-git open item; interim default = full shallow clone at executor boot), long-term queue shape, multi-flow concurrency) are **recorded, not solved**, in this milestone.

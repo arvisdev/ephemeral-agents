@@ -11,7 +11,7 @@
 
 ## 1. Hindsight on vm-hindsight
 
-*Why:* Hindsight is the diagram's "R/W memory" made concrete — a small Go API over Postgres+pgvector (one image, so the `vector` extension can't be missing). Its Postgres instance is **separate from Temporal's by rule** (M0 §4), so a memory failure can never take down the workflow engine, and vice versa. That isolation is re-verified at every M4 gate (TC-M4-07).
+*Why:* Hindsight is the diagram's "R/W memory" made concrete — a small Go API over Postgres+pgvector (one image, so the `vector` extension can't be missing). Its Postgres instance is **separate from Temporal's by rule** (M0 section 4), so a memory failure can never take down the workflow engine, and vice versa. That isolation is re-verified at every M4 gate (TC-M4-07).
 
 **1a. Stack — `deploy/m4/hindsight/compose.yaml`:**
 
@@ -28,7 +28,7 @@ services:
       - ./initdb.sql:/docker-entrypoint-initdb.d/01-init.sql:ro   # CREATE EXTENSION vector; tables below
     healthcheck: {test: ["CMD-SHELL", "pg_isready -U hindsight"], interval: 10s}
   hindsight-api:
-    image: poc/hindsight-api:1.0.0       # small Go service (built in §1b)
+    image: poc/hindsight-api:1.0.0       # small Go service (built in section 1b)
     environment:
       DB_DSN: postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight
       LISTEN: 0.0.0.0:8081
@@ -94,10 +94,10 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
 
 *Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL` and the llm-wiki repo URL ride into every spawned container as env, and the M2 Go worker hydrates (read + clone) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
 
-1. **Names:** ensure `vm-hindsight` resolves on vm-xb/vm-xa (§5 of M0 — `/etc/hosts` or PVE DNS; same mechanism). No wiki hostname exists (D-wiki-git).
-2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLM_WIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + `LLM_WIKI_READ_TOKEN`) → these ride into every spawned container as env (the executor entrypoints from M3 §2a/2b already read `HINDSIGHT_URL`/`LLM_WIKI_*`).
+1. **Names:** ensure `vm-hindsight` resolves on vm-xb/vm-xa (section 5 of M0 — `/etc/hosts` or PVE DNS; same mechanism). No wiki hostname exists (D-wiki-git).
+2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLM_WIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + `LLM_WIKI_READ_TOKEN`) → these ride into every spawned container as env (the executor entrypoints from M3 section 2a/2b already read `HINDSIGHT_URL`/`LLM_WIKI_*`).
 3. **Hydrate step** (lifecycle worker): before task work, fan out the llm-wiki **shallow clone** (`git clone --depth 1 $LLM_WIKI_REPO_URL`) + `memory/read` → pass results into the agent's task payload; record per-source latency.
-4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the §1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
+4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the section 1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.
 
 ## 4. Verification (the M4 gate tests)
@@ -130,15 +130,15 @@ docker volume rm hindsight-pg-data      # only on a true re-do
 
 ## 6. Troubleshooting
 
-*Why:* the two rows worth memorizing: "extension vector not installed" (wrong image — the pgvector pin from §1a) and "cross-task read-back empty" (the **scope-rule mismatch**: written with `scope=session` where `cross-task` was intended). Both are config/contract errors that G1–G2 catch in seconds if you run them first.
+*Why:* the two rows worth memorizing: "extension vector not installed" (wrong image — the pgvector pin from section 1a) and "cross-task read-back empty" (the **scope-rule mismatch**: written with `scope=session` where `cross-task` was intended). Both are config/contract errors that G1–G2 catch in seconds if you run them first.
 
 | Symptom | Cause / fix |
 |---|---|
 | llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLM_WIKI_REPO_URL` + `LLM_WIKI_READ_TOKEN` scope (`contents:read` on arvisdev/llm-wiki is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
 | Wrong doc found by an agent (G3 content miss) | with a plain clone there is no retrieval layer — content navigation is the repo's own README/directory layout; if lookups miss, fix the repo's index/README (the V2 curated-index open item), not the executor |
-| `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (§1a image pin) |
+| `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (section 1a image pin) |
 | API 500 on write | embedding provider key missing/rate-limited — check `EMBEDDINGS` env + provider quota (rate-limit note from the owner's standing conventions) |
-| Hydration slow | clone latency in the hot path — POC-scale: the repo is small; check network + token issuance latency; record actuals (§4 G5) |
-| `vm-hindsight:8081` unresolvable from vm-xb | §3.1 name mechanism not applied to every VM that spawns/consumes |
+| Hydration slow | clone latency in the hot path — POC-scale: the repo is small; check network + token issuance latency; record actuals (section 4 G5) |
+| `vm-hindsight:8081` unresolvable from vm-xb | section 3.1 name mechanism not applied to every VM that spawns/consumes |
 | Stale standards after content push | not possible at the service layer (none exists) — stale clones are fixed by re-cloning at the next boot; if a run must see a fresh push, re-clone before work (curation cadence note lives in the repo's CHANGELOG) |
-| Cross-task read-back empty | scope rule mismatch: write used `scope=session` where `cross-task` was intended — check the executor write (§3.4) |
+| Cross-task read-back empty | scope rule mismatch: write used `scope=session` where `cross-task` was intended — check the executor write (section 3.4) |

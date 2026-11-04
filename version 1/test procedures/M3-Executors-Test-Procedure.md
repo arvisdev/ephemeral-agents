@@ -9,7 +9,7 @@
 | **Entry criteria** | TP-M2 gate signed; Available Agent List + Project repos exist; GitHub App installed; `poc/hermes-ephemeral:1.0.0` + `poc/claude-coder:1.0.0` built, loaded, and selected in M2 config |
 | **Exit criteria** | All mandatory cases PASS + evidence filed + concurrency decision logged → **M4 may begin** |
 
-**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M3-Executors-Installation-and-Deployment.md, section "4. Verification (the M3 gate tests)").
+**Reference notation:** "Install sectionn" = section n of the companion installation-deployment document named in the header table above (e.g., "install section 4" in this doc = M3-Executors-Installation-and-Deployment.md, section "4. Verification (the M3 gate tests)").
 
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M3, re-run from the failed case.
@@ -18,14 +18,14 @@
 
 ## Mandatory test cases
 
-| ID | Title | Procedure (install §4) | Expected result | Pass criteria |
+| ID | Title | Procedure (install section 4) | Expected result | Pass criteria |
 |---|---|---|---|---|
 | TC-M3-01 | Hermes boot-time ×3 | `./tests/boot-time.sh hermes 3` (M2 spawn; measure container start → `self-report.json` ready) | 3 successful boots; times recorded | 3/3; p50 recorded **and reproducible** (Δ within 50% on re-run) |
 | TC-M3-02 | Persona correctness | spawn with `AGENT_REF` → `agents/dev-agent`; inspect `self-report.json` | role, skills[], spec match the catalog contents for that folder; sources fields present | exact match to `available-agent-list/agents/dev-agent/*` |
 | TC-M3-03 | Failure paths | (a) `AGENT_REPO_URL` unreachable → run; (b) malformed persona (bad index entry) → run | both: `self-report.json` with `error`, exit 2, container reaped, M2 surfaces the error | 2/2 clean, zero survivors |
 | TC-M3-04 | Coder real work | M3b task: "add a /healthz handler" on the POC project | Claude Code makes the change; commit + push to `task/<id>`; `/work/report.json` `commit_sha` matches `git log` | commit exists on origin with the changed files |
-| TC-M3-05 | Token lifecycle | after reap, query GitHub with the issued installation token | 401 (revoked/expired per M3 §1c) | unusable post-reap; token TTL ≤ 1 h |
-| TC-M3-06 | **Secret hygiene** | install §5: `env` dump of both images; `docker history` grep; `trivy` secrets scan | no baked-in secrets; trivy secrets = 0 across both images | all three clean |
+| TC-M3-05 | Token lifecycle | after reap, query GitHub with the issued installation token | 401 (revoked/expired per M3 section 1c) | unusable post-reap; token TTL ≤ 1 h |
+| TC-M3-06 | **Secret hygiene** | install section 5: `env` dump of both images; `docker history` grep; `trivy` secrets scan | no baked-in secrets; trivy secrets = 0 across both images | all three clean |
 | TC-M3-07 | Concurrency model evidence | default: 3 sequential single-coder tasks (3 branches pushed, no conflict). If N-parallel chosen: 2 concurrent coders via worktrees | all branches land; no lost work | decision **recorded** in the decision log + the matching evidence run attached |
 
 ## Informational (record, do not gate)
@@ -49,7 +49,7 @@
 
 - **PASS:** TC-M3-01…07 (07 = decision logged + matching evidence) → **M4 installation authorized**.
 - **FAIL TC-M3-01/02** → sidecar fallback → still failing → **abort gate, re-baseline** (owner decision).
-- **FAIL TC-M3-04** → repo/branch/token plumbing (M3 §1c, §2b); re-run 04 + 05.
+- **FAIL TC-M3-04** → repo/branch/token plumbing (M3 section 1c, section 2b); re-run 04 + 05.
 - **FAIL TC-M3-06** → secrets in an image layer: find the `RUN` layer that wrote them, rebuild without them; re-run 06 (never ship an image that fails this).
 
 ## Regressions (re-run triggers)

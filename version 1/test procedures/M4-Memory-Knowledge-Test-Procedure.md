@@ -6,10 +6,10 @@
 |---|---|
 | **Milestone** | M4 (Hindsight R/W API + llm-wiki git-repo hydration, wired into the lifecycle) |
 | **Companion docs** | `../delivery plans/M4-Memory-and-Knowledge-Delivery-Plan.md` · `../installation-deployment/M4-Memory-Knowledge-Installation-and-Deployment.md` |
-| **Entry criteria** | TP-M3 gate signed; Hindsight service deployed (install §1); llm-wiki repo clone settings wired into the M2 config (install §2–3); executor env updated (install §3) |
+| **Entry criteria** | TP-M3 gate signed; Hindsight service deployed (install section 1); llm-wiki repo clone settings wired into the M2 config (install section 2–3); executor env updated (install section 3) |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M5 may begin** |
 
-**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §4" in this doc = M4-Memory-Knowledge-Installation-and-Deployment.md, section "4. Verification (the M4 gate tests)").
+**Reference notation:** "Install sectionn" = section n of the companion installation-deployment document named in the header table above (e.g., "install section 4" in this doc = M4-Memory-Knowledge-Installation-and-Deployment.md, section "4. Verification (the M4 gate tests)").
 
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M4, re-run from the failed case.
@@ -18,7 +18,7 @@
 
 ## Mandatory test cases
 
-| ID | Title | Procedure (install §4) | Expected result | Pass criteria |
+| ID | Title | Procedure (install section 4) | Expected result | Pass criteria |
 |---|---|---|---|---|
 | TC-M4-01 | Hindsight network R/W | from inside a spawned agent container: `curl "$HINDSIGHT_URL/memory/read?task_id=t1&scope=cross-task"` then `curl -XPOST .../memory/write -d '{...}'` → re-read | write persists; read returns it | read-back equals the written body (JSON compare) |
 | TC-M4-02 | Cross-task read-back | task t1 (scope `cross-task`) writes `{learning:"use X for Y"}` → reaped; task t2 hydrate runs | t2's hydrate payload contains t1's learning | present in t2's task payload (recorded) |
@@ -46,8 +46,8 @@
 ## Gate decision
 
 - **PASS:** TC-M4-01…07 all PASS (07 is the store-isolation check — a shared Postgres FAILS the gate) → **M5 installation authorized**.
-- **FAIL TC-M4-02** (read-back empty) → scope-rule mismatch: writes used `session` where `cross-task` was intended (install §3.4) — fix the executor write, re-run 01 + 02 + 04.
-- **FAIL TC-M4-03** → clone/read failure: check `LLM_WIKI_REPO_URL` + read token + egress to github.com (install §6 first row); re-run 03 + 06.
+- **FAIL TC-M4-02** (read-back empty) → scope-rule mismatch: writes used `session` where `cross-task` was intended (install section 3.4) — fix the executor write, re-run 01 + 02 + 04.
+- **FAIL TC-M4-03** → clone/read failure: check `LLM_WIKI_REPO_URL` + read token + egress to github.com (install section 6 first row); re-run 03 + 06.
 - **FAIL TC-M4-05** → hydration too slow for TTL: check clone latency / provider latency; resize TTL only via the decision log.
 
 ## Regressions (re-run triggers)

@@ -38,7 +38,7 @@
 
 1. Lifecycle service + worker (POC repo, `services/lifecycle/`).
 2. Pinned placeholder executor images + deploy config (pre-pull check).
-3. Per-run log + reaper reports for the §WP-2.4 runs.
+3. Per-run log + reaper reports for the sectionWP-2.4 runs.
 4. Short design note recording the state machine + service boundary (2–3 paragraphs).
 
 ## Acceptance criteria (done-when)

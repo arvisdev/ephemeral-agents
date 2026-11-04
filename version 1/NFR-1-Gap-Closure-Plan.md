@@ -36,7 +36,7 @@ Only M0's test harness (`declare-topology-test.sh`, `rmq-stub.py`) is committed.
 ## The plan (4 phases, dependency-ordered)
 
 **Phase 1 — Doc patches (junior-doable, ~1 day, no new knowledge needed)**
-1. M0 §1: add the boot step — attach the estate's Ubuntu cloud-init template (`qm set <vmid> --ide2 local:iso/<template>.iso` or `qm importdisk` + `ciuser=poc` + SSH key via cloud-init), matching the existing `poc` user/chrony/netplan steps. Optionally add a `provision` sub-step to `install.sh`'s `provision_vms`.
+1. M0 section 1: add the boot step — attach the estate's Ubuntu cloud-init template (`qm set <vmid> --ide2 local:iso/<template>.iso` or `qm importdisk` + `ciuser=poc` + SSH key via cloud-init), matching the existing `poc` user/chrony/netplan steps. Optionally add a `provision` sub-step to `install.sh`'s `provision_vms`.
 2. `hosts.env.example`: add a commented worked example (4 concrete IPs from a sample pool) and the rule "same IPs in netplan, hosts.env, and DNS/hosts".
 3. `deploy/README.md`: add an "Owner must hand you these" checklist (G5's six items) before the first-time setup section.
 4. Add `deploy/check-workstation.sh` (G6): verifies docker/buildx/go/temporal CLI/gh/rsync, SSH key auth as `poc` to PVE + 4 VMs, passwordless sudo, and `--check-only` per-milestone pass.
@@ -44,11 +44,11 @@ Only M0's test harness (`declare-topology-test.sh`, `rmq-stub.py`) is committed.
 Exit: every doc gap that is fixable by editing text is closed; `bash -n` + M0 harness re-run.
 
 **Phase 2 — Transcribe the authorable assets (junior-doable, 2–3 days, mechanical)**
-Create every G2 file verbatim from its install doc (compose files, Dockerfiles, entrypoints, `initdb.sql`, `issue-token.sh` per its ~20-line spec, test scripts per their doc blocks, `go-sdk-smoke` per M0 §5, `.env.example`). Copy `schemas/message-v1.json` into `services/topic-bridge/schemas/`. Verify after each milestone: `bash deploy/m<n>/install.sh --check-only` must report only the Go directories missing.
+Create every G2 file verbatim from its install doc (compose files, Dockerfiles, entrypoints, `initdb.sql`, `issue-token.sh` per its ~20-line spec, test scripts per their doc blocks, `go-sdk-smoke` per M0 section 5, `.env.example`). Copy `schemas/message-v1.json` into `services/topic-bridge/schemas/`. Verify after each milestone: `bash deploy/m<n>/install.sh --check-only` must report only the Go directories missing.
 Exit: `--check-only` for all six milestones fails on *nothing but* `services/*` paths (and M0 assets fully green).
 
 **Phase 3 — Build the Go services (the real work; developer skill; order = dependency)**
-1. **M1 topic-bridge first** — it unblocks M2–M5. Implement the five-step correctness contract exactly as M1 doc §1 pins it (prefetch=1, manual ack, schema-validate → DLQ+ack, `StartWorkflow{WorkflowID: task_id}`, ack-after-start incl. `ErrWorkflowExecutionAlreadyExists`). `go.mod` with `amqp091-go` + Temporal Go SDK; unit tests; pass T1–T5 locally against the M0 stub, then TP-M1's six cases.
+1. **M1 topic-bridge first** — it unblocks M2–M5. Implement the five-step correctness contract exactly as M1 doc section 1 pins it (prefetch=1, manual ack, schema-validate → DLQ+ack, `StartWorkflow{WorkflowID: task_id}`, ack-after-start incl. `ErrWorkflowExecutionAlreadyExists`). `go.mod` with `amqp091-go` + Temporal Go SDK; unit tests; pass T1–T5 locally against the M0 stub, then TP-M1's six cases.
 2. **M2 lifecycle + worker** — HTTP API + label reaper + Temporal worker + response publisher (default exchange). V4 crash-recovery is load-bearing: if it can't pass, STOP per the script's abort condition.
 3. **M4 hindsight-api + llmwiki-api** — pgvector R/W API, same-embedding-model ingest/query, client package for executor entrypoints.
 4. **M5 gateway + manager** — `/healthz`, agent-index resolve, `schemas/message-v1.json` publish with manager-only `ttl_s = max(3 × B1 p50, estimate)`, response consume filtered by `task_id` → `/reports/<task_id>.json`.

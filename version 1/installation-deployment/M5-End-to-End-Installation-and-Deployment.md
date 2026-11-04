@@ -100,13 +100,13 @@ curl http://vm-xa:8080/gateway/reports/<task_id>                         # repor
 | F2 | agent catalog unreachable | block vm-xb→GitHub 443 for the read token (nftables) | manager/spawn fails fast; no container leak |
 | F3 | agent crash | `docker exec <agent-cid> pkill -9 <agent pid>` | timeout → force-reap; report = failure |
 | F4 | TTL exceeded | task with `TTL_S` smaller than work time | reaper path (M2 V3, now with real agents) |
-| F5 | manager restart mid-task | start a task; ~10s in: `docker compose restart manager` on vm-xa (§1) | restarted manager reloads its pending set from `/opt/poc/reports` and reconnects its consumer → the report is still written; zero survivors |
+| F5 | manager restart mid-task | start a task; ~10s in: `docker compose restart manager` on vm-xa (section 1) | restarted manager reloads its pending set from `/opt/poc/reports` and reconnects its consumer → the report is still written; zero survivors |
 
 After each: `docker ps -a --filter label=poc.owner=lifecycle -q | wc -l` → 0, and the engineer's report shows the error. Record results in `deploy/m5/evidence/failure-injections.txt`.
 
 ## 6. Credential hardening (R4 final)
 
-*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all nine deployed images (the full set the §6a loop iterates), an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
+*Why:* this is R4's final form — the negative claim that **no long-lived owner secret is reachable from any container**, verified three ways: trivy across all nine deployed images (the full set the section 6a loop iterates), an env sweep of every running container, and the M3 token-lifecycle re-check (401 post-reap). It's the security evidence the paper's threat-model section cites.
 
 ```bash
 # 6a. negative scan across ALL deployed images:
@@ -115,18 +115,18 @@ for i in poc/topic-bridge poc/lifecycle poc/worker poc/executor-stub poc/hermes-
 done
 # 6b. env review: no owner long-lived tokens anywhere:
 ssh vm-xb 'for c in $(docker ps -q); do docker inspect --format "{{.Config.Env}}" $c | grep -Ei "owner_?token|github_pat"; done'   # expect empty (filter to .Config.Env, not raw JSON)
-# 6c. token lifecycle evidence: M3 §4 B5 re-run (issued at spawn, revoked at reap, 401 after)
+# 6c. token lifecycle evidence: M3 section 4 B5 re-run (issued at spawn, revoked at reap, 401 after)
 ```
 
 ## 7. Lock the last open items + close the docs
 
-*Why:* the open items (message shapes, concurrency, isolation level, curation owner, wiki hydration shape, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list is pre-written at [`../Version-2-Open-Items.md`](../Version-2-Open-Items.md) (created 2026-11-04 with the four carry-overs: isolation level, knowledge-promotion flows, multi-project scale on shared stores, the RabbitMQ boundary's other side) — §7 confirms or extends it with live-deployment findings rather than drafting from scratch.
+*Why:* the open items (message shapes, concurrency, isolation level, curation owner, wiki hydration shape, VM naming) get **locked or explicitly deferred** here — that's what converts the POC into a Version 2 baseline. VM naming was already settled by the owner 2026-10-25 (POC discussion labels, not commitments). The Version 2 open-items list is pre-written at [`../Version-2-Open-Items.md`](../Version-2-Open-Items.md) (created 2026-11-04 with the four carry-overs: isolation level, knowledge-promotion flows, multi-project scale on shared stores, the RabbitMQ boundary's other side) — section 7 confirms or extends it with live-deployment findings rather than drafting from scratch.
 
-Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items section of `../Initial-Foundation-Design-Document.md` §7):
+Decision-log entries (in `deploy/m5/decision-log.md`, mirrored to the open-items section of `../Initial-Foundation-Design-Document.md` section 7):
 
 - [x] VM naming (D-8) — resolved 2026-10-25: labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records its own hostname mapping in `deploy/m0/decision-log.md`.
 - [x] TTL ownership — hybrid settled 2026-10-29: `ttl_s` optional in `message-v1.json` (manager sole writer, sized from M3 B1 p50); M2 `POC_TTL_DEFAULT=900s` is the fallback; reaper authoritative either way (M1/M2/M5 docs updated)
-- [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (§M3.3)
+- [ ] concurrency model — one-coder-per-task (default) or N-parallel + worktrees (sectionM3.3)
 - [ ] ephemeral isolation level — co-located containers on vm-xb (POC) vs. per-task VMs (defer)
 - [ ] llm-wiki curation owner + cadence — tracked in the llm-wiki repo's CHANGELOG.md (from M4; D-wiki-git removed the ingest pipeline, so curation = commits to the repo)
 - [ ] **llm-wiki hydration/retrieval shape** (D-wiki-git open item) — interim default: full shallow clone of github.com/arvisdev/llm-wiki at executor boot; a curated index/README-per-topic retrieval aid may be added later (V2)
@@ -142,7 +142,7 @@ Then update `../ARCHITECTURE.md` + `../Initial-Foundation-Design-Document.md`: m
 
 *Why:* M5 adds **no new infrastructure**, so its rollback is front-house-only — `compose down` on vm-xa, and everything behind it (M0–M4) stays up. When E2E fails, the failing stage names the owning milestone and you re-run *that* milestone's gate test, never the whole chain.
 
-M5 adds no new infrastructure. If E2E fails, the failing stage in §3 names the owning milestone — re-run **that milestone's** gate test (M1 §4, M2 §3, M3 §4, M4 §4), not the whole chain. Rollback of the front-house only:
+M5 adds no new infrastructure. If E2E fails, the failing stage in section 3 names the owning milestone — re-run **that milestone's** gate test (M1 section 4, M2 section 3, M3 section 4, M4 section 4), not the whole chain. Rollback of the front-house only:
 
 ```bash
 ssh vm-xa 'cd /opt/poc/deploy/m5 && docker compose down'
@@ -153,10 +153,10 @@ ssh vm-xa 'cd /opt/poc/deploy/m5 && docker compose down'
 
 *Why:* five concrete conditions make "the POC is complete" a **verifiable claim** instead of a feeling — and when they hold, the verdict in the feasibility analysis is confirmed *by evidence, not by analysis*. That sentence is the paper's thesis, and these five lines are its proof.
 
-1. §4 E2E run passed, **zero** surviving POC containers.
-2. §5 all four injections clean + reported.
-3. §6 scans pass; no long-lived owner secret reachable from any container.
-4. §7 all open items locked in the decision log; docs updated.
+1. section 4 E2E run passed, **zero** surviving POC containers.
+2. section 5 all four injections clean + reported.
+3. section 6 scans pass; no long-lived owner secret reachable from any container.
+4. section 7 all open items locked in the decision log; docs updated.
 5. Engineer sees the outcome (report JSON with artifact pointer) — the diagram's human-initiated, human-reported scope is closed.
 
 When 1–5 hold, the verdict in `../Technical-Feasibility-Analysis.md` is confirmed **by evidence, not by analysis**.

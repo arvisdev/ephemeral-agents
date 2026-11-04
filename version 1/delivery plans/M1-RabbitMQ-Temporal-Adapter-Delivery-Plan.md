@@ -48,7 +48,7 @@ price of owning that boundary — M1's job is to prove the price is manageable.
 
 1. Adapter source **in Go** (Temporal Go SDK — **mandatory**: owner instruction that all Temporal code be Go, for speed + size) in the POC repo under `services/topic-bridge/`.
 2. Message schema + example (`docs/` or `schemas/`).
-3. Test report: the §WP-1.4 scenarios with actual results.
+3. Test report: the sectionWP-1.4 scenarios with actual results.
 4. Compose/healthcheck entries for VM-Xb.
 
 ## Acceptance criteria (done-when)

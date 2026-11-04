@@ -1,5 +1,5 @@
 # M5 Report Contract — the human-report endpoint (engineer's desktop ↔ gateway)
-<!-- Source: version 1/installation-deployment/M5-End-to-End-Installation-and-Deployment.md §2/§4 -->
+<!-- Source: version 1/installation-deployment/M5-End-to-End-Installation-and-Deployment.md section 2/section 4 -->
 
 The engineer's desktop talks **only to the gateway** (`http://vm-xa:8080`, LAN) —
 the diagram's human-initiated, human-reported scope. This file pins the exact

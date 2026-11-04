@@ -6,10 +6,10 @@
 |---|---|
 | **Milestone** | M2 (lifecycle manager — the POC's load-bearing custom piece) |
 | **Companion docs** | `../delivery plans/M2-Container-Lifecycle-Manager-Delivery-Plan.md` · `../installation-deployment/M2-Lifecycle-Installation-and-Deployment.md` |
-| **Entry criteria** | TP-M1 gate signed; `poc/lifecycle`, `poc/worker`, `poc/executor-stub` built + loaded on vm-xb; lifecycle + worker deployed (install §2); no-pull deploy gate green |
+| **Entry criteria** | TP-M1 gate signed; `poc/lifecycle`, `poc/worker`, `poc/executor-stub` built + loaded on vm-xb; lifecycle + worker deployed (install section 2); no-pull deploy gate green |
 | **Exit criteria** | All mandatory cases PASS + evidence filed → **M3 may begin** |
 
-**Reference notation:** "Install §n" = section n of the companion installation-deployment document named in the header table above (e.g., "install §3" in this doc = M2-Lifecycle-Installation-and-Deployment.md, section "3. Run the verification suite (the M2 gate tests)").
+**Reference notation:** "Install sectionn" = section n of the companion installation-deployment document named in the header table above (e.g., "install section 3" in this doc = M2-Lifecycle-Installation-and-Deployment.md, section "3. Run the verification suite (the M2 gate tests)").
 
 **Rules:**
 - Run in order; a failure stops the procedure — remediate in M2, re-run from the failed case.
@@ -18,7 +18,7 @@
 
 ## Mandatory test cases
 
-| ID | Title | Procedure (install §3) | Expected result | Pass criteria |
+| ID | Title | Procedure (install section 3) | Expected result | Pass criteria |
 |---|---|---|---|---|
 | TC-M2-01 | Clean path | `./tests/run-task.sh '{"task_id":"t001","ttl_s":30}'` | activity completes; container spawned with labels, then reaped | success; zero survivors; log shows spawn→complete→reap with t001 |
 | TC-M2-02 | Failure path | `./tests/run-task.sh '{"task_id":"t002","inject":"exit-1"}'` | workflow surfaces failure (retry policy: 1 retry, then failed); container reaped | workflow = failed with reason; zero survivors |
@@ -44,7 +44,7 @@
 ## Gate decision
 
 - **PASS:** TC-M2-01…06 → **M3 installation authorized**.
-- **FAIL TC-M2-04:** remediate (reaper query filter, TTL labels, `chrony` clock), re-run TC-M2-04 then 05. If still failing after the M2 §6 troubleshooting table → **abort gate**: re-baseline before M3 (owner decision).
+- **FAIL TC-M2-04:** remediate (reaper query filter, TTL labels, `chrony` clock), re-run TC-M2-04 then 05. If still failing after the M2 section 6 troubleshooting table → **abort gate**: re-baseline before M3 (owner decision).
 - **FAIL TC-M2-06:** the no-pull gate is missing its enforcement — add it to the lifecycle entrypoint, re-run TC-M2-01 + 06.
 
 ## Regressions (re-run triggers)

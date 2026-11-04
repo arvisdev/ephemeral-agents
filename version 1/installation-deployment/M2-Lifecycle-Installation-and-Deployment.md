@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Installs on** | vm-xb (lifecycle service + Temporal worker + reaper) |
-| **Prereqs** | M0 (Docker + Temporal on vm-xb), M1 (workflows startable); a stub executor image built (§1) |
+| **Prereqs** | M0 (Docker + Temporal on vm-xb), M1 (workflows startable); a stub executor image built (section 1) |
 | **What gets deployed** | `poc/lifecycle:1.0.0` (API + reaper), `poc/worker:1.0.0` (Temporal worker running the activity), `poc/executor-stub:1.0.0` (placeholder executor) |
 | **Language (mandatory)** | The lifecycle service, worker, and all activities **must be Go** — owner instruction: all Temporal code in Go for speed + size. The executor images run their own runtimes (M3), not Temporal SDK code. |
 
@@ -37,7 +37,7 @@ ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 **1c. Worker (Go — mandatory)** — Temporal worker registered on `default` namespace; activity `executes_activity(taskCfg)`:
 `spawn → poll status until complete/failed/TTL → reap → publish result → return result`.
-- **Response publisher (worker):** on completion (success or failure), publish `{task_id, status, artifact}` to the `agent.tasks.response` queue (declared in M0 §3) — the M5 manager's consume side of the two-way Manager ↔ RabbitMQ path; the response correlates on `task_id`. The queue has **no exchange binding** — publish to the **default exchange** (empty exchange name, queue name as the routing key); M0 §3 deliberately declares it unbound. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
+- **Response publisher (worker):** on completion (success or failure), publish `{task_id, status, artifact}` to the `agent.tasks.response` queue (declared in M0 section 3) — the M5 manager's consume side of the two-way Manager ↔ RabbitMQ path; the response correlates on `task_id`. The queue has **no exchange binding** — publish to the **default exchange** (empty exchange name, queue name as the routing key); M0 section 3 deliberately declares it unbound. Activity retry policy: `MaximumAttempts=2`, start-to-close timeout from task config; workflow-side timeout backstop so a lost activity still reaps (reaper is the real backstop).
 
 ```bash
 docker build -f deploy/m2/Dockerfile.services -t poc/lifecycle:1.0.0 -t poc/worker:1.0.0 services/lifecycle
@@ -63,7 +63,7 @@ services:
       POC_IMAGE: poc/executor-stub:1.0.0     # pinned — no pulls at activity time
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
-      - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)
+      - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (section 4 retention)
     restart: unless-stopped
     # deploy gate (deploy/m2/install.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
     # on boot and refuses to serve until the pinned image exists locally (the no-pull rule, enforced).
@@ -72,7 +72,7 @@ services:
     environment:
       TEMPORAL_ADDR: temporal:7233
       LIFECYCLE_API: http://lifecycle:8090     # same compose project; expose the API to this network
-      RABBITMQ_URL: amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/   # response publisher (M2 §1c) — declare agent.tasks.response (M0 §3)
+      RABBITMQ_URL: amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/   # response publisher (M2 section 1c) — declare agent.tasks.response (M0 section 3)
     depends_on: [lifecycle]
     restart: unless-stopped
 ```

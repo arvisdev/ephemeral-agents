@@ -35,7 +35,7 @@ Before committing to this pattern at enterprise scale (Version 2), the business 
 
 | # | Objective | Success criterion (measurable) |
 |---|---|---|
-| BO-1 | Prove the ephemeral-execution pattern is operationally viable on the company substrate | One real human-initiated request completes end-to-end (request → code committed → agents destroyed) with **zero** surviving containers (M5 §9) |
+| BO-1 | Prove the ephemeral-execution pattern is operationally viable on the company substrate | One real human-initiated request completes end-to-end (request → code committed → agents destroyed) with **zero** surviving containers (M5 section 9) |
 | BO-2 | Establish RabbitMQ as a durable ingestion boundary usable by future non-Temporal publishers | N messages → exactly N workflows; duplicates and consumer restarts cause no loss and no duplicate work (TP-M1) |
 | BO-3 | Prove disposable execution does not leak cost or risk | After repeated runs including hung/crashed containers, no orphan containers remain; teardown is proven idempotent (TP-M2) |
 | BO-4 | De-risk the two uncertain executor components before committing budget | A containerized Hermes agent boots with the correct persona/skills from git at startup, statelessly; a headless Claude Code agent makes a real code commit with a scoped credential (TP-M3) |
@@ -192,7 +192,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 
 ## 11. Acceptance criteria (POC-level)
 
-The POC is accepted when **all** hold (mirrors M5 §9):
+The POC is accepted when **all** hold (mirrors M5 section 9):
 1. One real request ran end-to-end including teardown — zero surviving POC containers.
 2. All four failure injections ended clean and were reported to the human.
 3. Security scans pass; no long-lived owner secret reachable from any container.

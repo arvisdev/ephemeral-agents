@@ -146,7 +146,7 @@ reorganization debate:
    → run `deploy/mN/install.sh` → run the milestone's gate test procedure →
    **only then** start the next milestone.
 
-**The POC is complete when** (M5 install doc §9): the E2E run passed with
+**The POC is complete when** (M5 install doc section 9): the E2E run passed with
 **zero** surviving POC containers; all five failure injections ended clean
 and were reported to the human; credential scans show no long-lived owner
 secret reachable from any container; and the Version 2 open-items list is

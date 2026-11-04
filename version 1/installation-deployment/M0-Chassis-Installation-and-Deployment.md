@@ -35,7 +35,7 @@ for i in 900 901 902 903; do qm start $i; done
 
 ### 1a. Install the OS (the `qm create` disks start EMPTY)
 
-> **Owner-provisioned baseline (2026-10-30):** if the three VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (§2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 §2a, m4, m5), so nothing needs hand-editing.
+> **Owner-provisioned baseline (2026-10-30):** if the three VMs arrive already provisioned — clean Ubuntu 26.04 LTS, all updates applied, SSH enabled and allowed through UFW — **skip Path A/B entirely** and go straight to the post-boot block below. The baseline does *not* include: hostname/netplan, chrony, the `poc` user (create it; the scripts SSH as `poc` with key auth and need passwordless sudo), Docker (section 2), or the UFW service-port rules — the latter the **install scripts open themselves** (m0 section 2a, m4, m5), so nothing needs hand-editing.
 
 *Why:* `qm create --virtio0 local:20` allocates a blank disk — nothing boots from it. A literal follower of the block above gets unbootable VMs, so this step is not optional: attach an OS image, install (or cloud-init) Ubuntu as user `poc`, and only then do the post-boot steps below apply. The estate's existing pattern is an Ubuntu cloud-init image; if you have no template, fall back to the ISO + manual install path (both are given). *(Three VMs only per D-wiki-git — the blocks still show 900–903; skip 902.)*
 
@@ -79,7 +79,7 @@ sudo apt install -y chrony && sudo systemctl enable --now chrony
 # create the deploy user + ssh keys (skip useradd if cloud-init already created poc):
 sudo useradd -m -s /bin/bash poc && sudo usermod -aG sudo poc
 # UFW: SSH is already allowed (owner baseline). **The install scripts open the
-# POC's cross-VM service ports themselves** — m0 §2a opens 5672/7233 on vm-xb,
+# POC's cross-VM service ports themselves** — m0 section 2a opens 5672/7233 on vm-xb,
 # the M4 script opens 8081 on vm-hindsight (no wiki VM since D-wiki-git,
 # 2026-11-04), the M5 script
 # opens 8080 (gateway) on vm-xa — all scoped to the POC LAN derived from
@@ -220,7 +220,7 @@ For name resolution use PVE DNS, or add `/etc/hosts` lines on vm-xa/vm-xb/vm-hin
 
 *Why:* the language decision is the open item that, left open, gets re-litigated at every later milestone — locking it now costs ten minutes; locking it at M5 costs a re-hardening pass. VM naming (D-8) was resolved by the owner 2026-10-25 (labels are POC discussion devices, not commitments); this section just *records* that plus the POC's concrete hostnames. The repo layout is fixed here so the chassis is proven scriptable — `install.sh` exists to make "wipe and re-run" the recovery path.
 
-- Record in `deploy/m0/decision-log.md` (and note the resolutions in the open-items section of `../Initial-Foundation-Design-Document.md` §7): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames, mapped to their labels: `vm-xa`→VM-Xa, `vm-xb`→VM-Xb, `vm-llm-wiki`→VM-2 (LLM-Wiki), `vm-hindsight`→VM-3 (Hindsight); (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
+- Record in `deploy/m0/decision-log.md` (and note the resolutions in the open-items section of `../Initial-Foundation-Design-Document.md` section 7): (a) **VM naming decision (D-8, owner 2026-10-25): the POC adopts the labels as drawn (VM-Xa/Xb/VM-2/VM-3) — these are POC discussion labels, not commitments; per-project naming is a deploy-time choice of the adopting team/company**; (b) the POC's concrete hostnames, mapped to their labels: `vm-xa`→VM-Xa, `vm-xb`→VM-Xb, `vm-llm-wiki`→VM-2 (LLM-Wiki), `vm-hindsight`→VM-3 (Hindsight); (c) **language decision: Go for all Temporal code** (owner instruction: speed + size).
 - Final repo layout for this milestone:
 
 ```
@@ -241,9 +241,9 @@ deploy/
 | # | Check | Command / where |
 |---|---|---|
 | 1 | 4 VMs, Docker runs on each | `docker run --rm alpine echo ok` on all |
-| 2 | Cross-VM topic publish/consume | §3 last block |
-| 3 | Temporal healthy, `default` ns, **Go SDK smoke completes** | §4 + §4b |
-| 4 | Network matrix 100% | §5, recorded |
+| 2 | Cross-VM topic publish/consume | section 3 last block |
+| 3 | Temporal healthy, `default` ns, **Go SDK smoke completes** | section 4 + section 4b |
+| 4 | Network matrix 100% | section 5, recorded |
 | 5 | Naming decision recorded (D-8) + docs updated | decision-log entry exists |
 
 ## 8. Troubleshooting
@@ -255,5 +255,5 @@ deploy/
 | VMs unreachable on the LAN | bridge `vmbr0` membership; firewall on PVE (`/etc/network/interfaces` + `pve-firewall`); test `ping` from PVE host first |
 | Temporal pod not ready | Postgres healthcheck failing → check `${TEMPORAL_DB_PASS}` in `.env`; first start can be slow (schema init) |
 | Rabbit healthcheck flapping | memory alarm — bump `vm-xb` RAM or set a memory limit; check `rabbitmq-diagnostics` |
-| Clock skew warnings in logs | `chrony` not enabled on all VMs (see §1) |
+| Clock skew warnings in logs | `chrony` not enabled on all VMs (see section 1) |
 | Rebuild needed | `docker compose down -v` + wipe VM disks, re-run `deploy/m0/install.sh` — that's the point of the scriptable chassis |
