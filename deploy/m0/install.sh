@@ -144,15 +144,15 @@ provision_vms() {
   local i name id
   for i in 0 1 2; do
     name="${specs[i]%%:*}"; id="${specs[i]##*:}"
-    if ssh "$PVE_HOST" "qm status $id 2>/dev/null | grep -Eq '^Status.*(stopped|running|paused)'"; then
+    if ssh "$PVE_HOST" "qm status $id 2>/dev/null | grep -Eq '^(status|Status).*(stopped|running|paused)'"; then
       log "§1   $id ($name) exists — ensuring started"
-      ssh "$PVE_HOST" "qm status $id | grep -q running || qm start $id"
+      ssh "$PVE_HOST" "qm status $id | grep -Eq '^(status|Status): running' || qm start $id"
     else
-      confirm "create VM $id ($name) on $PVE_HOST (l26, ${mem[i]}MB, ${cores[i]} cores, virtio-local ${disk[i]})"
+      confirm "create VM $id ($name) on $PVE_HOST (l26, ${mem[i]}MB, ${cores[i]} cores, virtio0 local:${disk[i]}G)"
       if [ "$CHECK_ONLY" != "1" ]; then
         ssh "$PVE_HOST" \
           "qm create $id --name $name --ostype l26 --memory ${mem[i]} --cores ${cores[i]} \
-           --virtio-local ${disk[i]} --net0 virtio,bridge=vmbr0 --agent enabled=1"
+           --virtio0 local:${disk[i]} --net0 virtio,bridge=vmbr0 --agent enabled=1"
         log "§1   $name created — install Ubuntu 26.04 LTS (ISO/cloud-init per estate; 24.04 if unavailable), boot"
       fi
     fi
@@ -232,11 +232,11 @@ declare_topology() {
     ssh "$VM_XB" "B=$base bash -s" <<'RABBIT_API'
 set -e
 cfg=$(cat /tmp/rmq-cfg)
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.#"}'
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'
-printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPUT "$B/api/exchanges/%2F/agent.tasks" -d '{"type":"topic","durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPUT "$B/api/queues/%2F/agent.tasks.durable" -d '{"durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPOST "$B/api/bindings/%2F/e/agent.tasks/q/agent.tasks.durable" -d '{"routing_key":"agent.tasks.#","properties_key":""}'
+printf '%s\n' "$cfg" | curl -s -K - -XPUT "$B/api/queues/%2F/agent.tasks.dlq" -d '{"durable":true}'
+printf '%s\n' "$cfg" | curl -s -K - -XPUT "$B/api/queues/%2F/agent.tasks.response" -d '{"durable":true}'
 rm -f /tmp/rmq-cfg
 RABBIT_API
     fi
@@ -249,7 +249,8 @@ cross_vm_publish_test() {
   local n via
   log "§3   cross-VM publish test (mgmt UI is loopback-only on $VM_XB; AMQP 5672 is the cross-VM path)"
   # publish via the mgmt API on vm-xb itself (relay through ssh; password via stdin config)
-  printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -K - -XPOST 'http://127.0.0.1:15672/api/exchanges/%2F/agent.tasks/publish' -H 'content-type: application/json' -d '{\"properties\":{\"routing-keys\":[\"agent.tasks.durable\"],\"delivery-mode\":2},\"payload\":\"m0-cross-test\",\"payload-encoding\":\"string\"}'"
+  printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" 'umask 077; cat > /tmp/rmq-cfg && chmod 600 /tmp/rmq-cfg'
+  ssh "$VM_XB" 'curl -s -K /tmp/rmq-cfg -XPOST "http://127.0.0.1:15672/api/exchanges/%2F/agent.tasks/publish" -H "content-type: application/json" -d "{\"routing_key\":\"agent.tasks.durable\",\"payload\":\"m0-cross-test\",\"payload_encoding\":\"string\",\"properties\":{\"delivery_mode\":2}}"; rm -f /tmp/rmq-cfg'
   via="mgmt API on $VM_XB"
   sleep 2
   n="$(printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$VM_XB" "curl -s -K - 'http://127.0.0.1:15672/api/queues/%2F/agent.tasks.durable' | grep -o '\"messages\":[0-9]*' | cut -d: -f2 || true")"
@@ -271,7 +272,7 @@ deploy_rabbitmq() {
   RABBITMQ_PASS="$(grep '^RABBITMQ_PASS=' "$envf" | cut -d= -f2)"
   [ -n "$RABBITMQ_PASS" ] || die "RABBITMQ_PASS missing (generate: openssl rand -hex 16)"
   if [ "$CHECK_ONLY" != "1" ]; then
-    ssh "$VM_XB" "mkdir -p /opt/poc/deploy/m0/rabbitmq"
+    ssh "$VM_XB" "sudo mkdir -p /opt/poc/deploy/m0/rabbitmq && sudo chown -R \"\$(id -un):\$(id -gn)\" /opt/poc"
     rsync -az "$M0/rabbitmq/compose.yaml" "$envf" "$VM_XB:/opt/poc/deploy/m0/rabbitmq/"
     ssh "$VM_XB" "cd /opt/poc/deploy/m0/rabbitmq && docker compose up -d"
   fi
@@ -310,12 +311,12 @@ PINS
     fi
   fi
   if [ "$CHECK_ONLY" != "1" ]; then
-    ssh "$VM_XB" "mkdir -p /opt/poc/deploy/m0/temporal"
+    ssh "$VM_XB" "sudo mkdir -p /opt/poc/deploy/m0/temporal && sudo chown -R \"\$(id -un):\$(id -gn)\" /opt/poc"
     rsync -az "$M0/temporal/compose.yaml" "$envf" "$VM_XB:/opt/poc/deploy/m0/temporal/"
     ssh "$VM_XB" "cd /opt/poc/deploy/m0/temporal && docker compose up -d"
   fi
   # pinned: override TEMPORAL_CLI_VERSION in hosts.env; fetched to a file, not piped to a shell
-  ssh "$VM_XB" "command -v temporal >/dev/null || { curl -sSL https://cli.temporal.io/install.sh -o /tmp/tc-install.sh && sudo bash /tmp/tc-install.sh; }"
+  ssh "$VM_XB" "command -v temporal >/dev/null || { VER=\$(curl -s https://api.github.com/repos/temporalio/cli/releases/latest | grep -oP 'tag/v\K[0-9.]+'); curl -sL \"https://github.com/temporalio/cli/releases/download/v\$VER/temporal_cli_\${VER}_linux_amd64.tar.gz\" -o /tmp/tc.tgz && tar -xzf /tmp/tc.tgz -C /tmp && sudo mv /tmp/temporal /usr/local/bin/; }"
   local i
   for i in $(seq 1 40); do
     if ssh "$VM_XB" "temporal operator cluster health 2>/dev/null" | grep -q "HEALTHY"; then
