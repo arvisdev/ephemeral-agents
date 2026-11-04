@@ -21,7 +21,7 @@
 
 ## 1. Provision the VMs (PVE shell, on the host)
 
-> **Sizing: minimum vs. recommended.** The `qm create` lines below are the *minimum* POC baseline. Recommended if real executor images (M3/M5) or ≥2 concurrent executors will run:
+> **Sizing: minimum vs. recommended.** The `qm create` lines below are the *minimum* POC baseline. **Single source of truth for the numbers: `deploy/m0/vm-sizing.env`** — source it (`SIZING_PROFILE=recommended|minimum`) and use `${VM_XA_MEM_MB}` / `${VM_XB_CORES}` / `${VM_HINDSIGHT_DISK_GB}` etc. instead of hard-coding. Summary table:
 >
 > | VM | Minimum (below) | Recommended | Reason |
 > |---|---|---|---|
