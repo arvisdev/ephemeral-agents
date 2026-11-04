@@ -141,10 +141,18 @@ deploy_hindsight() {
   local envf="$M4/hindsight/.env"
   if ! grep -q '^HINDSIGHT_DB_PASS=' "$envf" 2>/dev/null; then
     echo "HINDSIGHT_DB_PASS=$(openssl rand -hex 16)" > "$envf"
-    [ -n "$EMBEDDING_PROVIDER" ] && echo "EMBEDDING_PROVIDER=$EMBEDDING_PROVIDER" >> "$envf"
     log "§1   generated $envf (gitignored)"
   fi
-  [ -n "$EMBEDDING_PROVIDER" ] || warn "EMBEDDING_PROVIDER unset — record the provider choice + rate-limit note (owner convention)"
+  # Embedding provider (D-embed, 2026-11-04): OpenAI-compatible HTTP provider,
+  # text-embedding-3-small (dim 1536 = the table's vector width). "none" runs
+  # the degenerate zero-vector fallback (writes succeed, reads are meaningless).
+  if [ -n "${EMBEDDING_API_KEY:-}" ]; then
+    grep -q '^EMBEDDING_PROVIDER=' "$envf" || echo "EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-http}" >> "$envf"
+    grep -q '^EMBEDDING_API_KEY=' "$envf" || printf '%s\n' "EMBEDDING_API_KEY=$EMBEDDING_API_KEY" >> "$envf"
+  elif [ "${EMBEDDING_PROVIDER:-}" != "none" ]; then
+    warn "EMBEDDING_API_KEY unset — hindsight runs the zero-vector fallback (EMBEDDINGS=none): reads are degenerate until a provider key is supplied (D-embed)"
+  fi
+  chmod 600 "$envf" 2>/dev/null || true
   docker save "poc/hindsight-api:$IMAGE_TAG" | ssh "$VM_3" "docker load"
   ssh "$VM_3" "mkdir -p /opt/poc/deploy/m4/hindsight"
   rsync -az "$M4/hindsight/" "$VM_3:/opt/poc/deploy/m4/hindsight/"

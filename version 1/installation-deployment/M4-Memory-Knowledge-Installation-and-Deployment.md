@@ -32,8 +32,8 @@ services:
     environment:
       DB_DSN: postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight
       LISTEN: 0.0.0.0:8081
-      EMBEDDINGS: ${EMBEDDING_PROVIDER}
-      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}   # provider key — without it every write 500s
+      EMBEDDINGS: ${EMBEDDING_PROVIDER:-none}        # D-embed: "http" (OpenAI-compatible) — "none" = zero-vector fallback
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}      # provider key (D-embed) — absent ⇒ zero-vector fallback, reads degenerate
     depends_on: {hindsight-pg: {condition: service_healthy}}
     restart: unless-stopped
 volumes:

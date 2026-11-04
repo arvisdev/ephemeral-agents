@@ -60,7 +60,10 @@ M4 memory/knowledge):
 
 Pacing notes: M2's V4 (crash recovery) is the load-bearing test — if it
 cannot pass, STOP (the script tells you too). M3 needs the owner's GitHub
-App; M4 needs `EMBEDDING_PROVIDER` + `LLM_WIKI_READ_TOKEN` (the llm-wiki
+App; M4 needs `EMBEDDING_PROVIDER` + `EMBEDDING_API_KEY` (D-embed, 2026-11-04:
+OpenAI-compatible HTTP embeddings, `text-embedding-3-small`/1536 — the key is a
+service-scoped secret in the gitignored `deploy/m4/hindsight/.env`) and
+`LLM_WIKI_READ_TOKEN` (the llm-wiki
 git repo, https://github.com/arvisdev/llm-wiki, is owner-curated — executors
 shallow-clone it at boot; there is no llm-wiki service or retrieval API).
 
@@ -123,8 +126,11 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
 - [ ] **M4: the llm-wiki git repo + read token** —
       https://github.com/arvisdev/llm-wiki (owner-curated) and an
       `LLM_WIKI_READ_TOKEN` the executors use to shallow-clone it at boot.
-- [ ] **`EMBEDDING_PROVIDER` + API key** — which embedding backend the POC
-      uses and its key (same model for ingest and query in M4).
+- [ ] **`EMBEDDING_PROVIDER` + API key** — resolved by D-embed (2026-11-04):
+      OpenAI-compatible HTTP embeddings (`EMBEDDINGS=http`), model
+      `text-embedding-3-small`/1536; supply `EMBEDDING_API_KEY` and the M4
+      install writes both into the gitignored `deploy/m4/hindsight/.env`.
+      Omitting the key runs the zero-vector fallback (reads degenerate).
 - [ ] **TTL / cap configuration values** — `POC_TTL_DEFAULT` and the team cap
       (agents per team / concurrent-run limits) the M2 reaper and M5 manager
       enforce.
