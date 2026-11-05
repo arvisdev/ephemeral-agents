@@ -32,8 +32,15 @@ STATE_FILE="${STATE_FILE:-$SCRIPT_DIR/.last-task-ids}"
 api() { # api <method> <path> [json-body]
   local method="$1" path="$2" body="${3:-}"
   if [ -n "$RMQ_SSH_HOST" ]; then
-    printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$RMQ_SSH_HOST" \
-      "curl -s -K - -X$method '${RMQ_API_BASE}${path}' ${body:+-H 'content-type: application/json' -d '$body'}"
+    # relay: stage auth config + body as remote files (0600, removed after);
+    # argv-quoting of JSON through ssh breaks on spaces/quotes
+    printf 'user = "poc:%s"\n' "$RABBITMQ_PASS" | ssh "$RMQ_SSH_HOST" 'umask 077; cat > /tmp/rmq-cfg-relay && chmod 600 /tmp/rmq-cfg-relay'
+    if [ -n "$body" ]; then
+      printf '%s' "$body" | ssh "$RMQ_SSH_HOST" 'umask 077; cat > /tmp/rmq-body-relay && chmod 600 /tmp/rmq-body-relay'
+      ssh "$RMQ_SSH_HOST" "curl -s -K /tmp/rmq-cfg-relay -X$method '${RMQ_API_BASE}${path}' -H 'content-type: application/json' --data-binary @/tmp/rmq-body-relay; rm -f /tmp/rmq-body-relay /tmp/rmq-cfg-relay"
+    else
+      ssh "$RMQ_SSH_HOST" "curl -s -K /tmp/rmq-cfg-relay -X$method '${RMQ_API_BASE}${path}'; rm -f /tmp/rmq-cfg-relay"
+    fi
   else
     curl -s -u "poc:$RABBITMQ_PASS" -X "$method" "${RMQ_API_BASE}${path}" \
       ${body:+-H 'content-type: application/json' -d "$body"}
