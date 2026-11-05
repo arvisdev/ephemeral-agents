@@ -17,3 +17,11 @@ Rationale column.
 | D-hydrate | **llm-wiki hydration shape** (owner, 2026-11-04): executors consume the llm-wiki by a **full shallow clone at boot** (`git clone --depth 1`), navigated via the repo's own README/directory layout — no retrieval aid in V1. **Revisit trigger:** if clone time exceeds 20% of TTL headroom across TC-M4-05's 3 runs, or the repo exceeds 50 MB, move to a curated index (`INDEX.md`) with path-scoped fetch (V2 candidate). | 2026-11-04 |
 | D-curation | **llm-wiki curation ownership** (owner, 2026-11-04): the **Human-In-The-Loop (HITL)** — the engineer(s) in the work loop — curates the llm-wiki repo. The POC's scripts, services, and ephemeral agents never write to it (matches the catalog rule: owner-curated only). Cadence: append-only, need-driven commits/PRs by the HITL; no fixed schedule; promotion rule unchanged (load-bearing standards pin into behavioral-spec.md). Ownership + cadence re-examined at M5 exit. The record lives in the llm-wiki repo's CHANGELOG.md (D-wiki-git). | 2026-11-04 |
 | D-signoff | **TP gate sign-off authority** (owner, 2026-11-04): the **Human-In-The-Loop (HITL)** — the engineer in the work loop — signs every gate (TP-M0..TP-M5). The operator who ran the cases records results + evidence; the HITL reviews and signs. In a solo run the HITL and operator are the same person — the signature asserts the evidence pack is complete, not that a second person watched. Resolves the 'sign-off roles unnamed' gap found in the 2026-11-04 audit. | 2026-11-04 |
+
+## M0 install run — 2026-11-04
+- VM naming: D-8 RESOLVED by owner 2026-10-25 (labels are POC discussion devices, not commitments); POC hostnames: vm-xa/vm-xb/vm-hindsight -> diagram labels VM-Xa/VM-Xb/VM-3
+- Language decision: Go for ALL Temporal code (owner instruction: speed + size)
+- Name-resolution mechanism used: /etc/hosts + ~/.ssh/config on the workstation (IP-based hosts.env per D-8: role labels map to real VMs)
+
+## M0 install run — 2026-11-04
+- VM naming: D-8 RESOLVED by owner 2026-10-25 (labels are POC discussion devices, not commitments); POC hostnames: vm-xa/vm-xb/vm-hindsight -> diagr
