@@ -157,7 +157,7 @@ build_and_load() {
   docker build -f "$M1/Dockerfile" "$REPO_ROOT/services/topic-bridge" -t "poc/topic-bridge:$IMAGE_TAG"
   # language check on the BINARY (Go build metadata embedded in the ELF)
   docker run --rm --entrypoint sh "poc/topic-bridge:$IMAGE_TAG" \
-    -c 'strings /usr/local/bin/adapter | grep -qm1 "Go build information" && echo GO' | grep -q GO \
+    -c 'grep -qa1 "go1\." /usr/local/bin/adapter && echo GO' | grep -q GO \
     || die "adapter binary is not a Go build — language decision violated"
   docker save "poc/topic-bridge:$IMAGE_TAG" | ssh "$VM_XB" "docker load"
   ok "§2 image built (Go) + loaded"
@@ -170,11 +170,14 @@ deploy_adapter() {
   if [ "$CHECK_ONLY" = "1" ]; then return 0; fi
   local envf="$REPO_ROOT/deploy/m0/rabbitmq/.env"
   local pass; pass="$(grep '^RABBITMQ_PASS=' "$envf" | cut -d= -f2)"
-  ssh "$VM_XB" "mkdir -p /opt/poc/deploy/m1"
+  ssh "$VM_XB" "sudo mkdir -p /opt/poc/deploy/m1 && sudo chown -R \"\$(id -un):\$(id -gn)\" /opt/poc"
   rsync -az "$M1/compose.yaml" "$VM_XB:/opt/poc/deploy/m1/compose.yaml"
   printf '%s\n' "RABBITMQ_PASS=$pass" | ssh "$VM_XB" 'umask 077; cat > /opt/poc/deploy/m1/.env && chmod 600 /opt/poc/deploy/m1/.env'  # stdin + 600: secret not in argv/logs
-  # M0 services live in their own compose project on vm-xb -> shared external
-  # network (record the network name in deploy/m1/.env notes / image-tags.env).
+  # shared external network: one network carries M0 + M1 containers; aliases
+  # give M1 compose the service names it expects (rabbitmq / temporal)
+  ssh "$VM_XB" "docker network inspect poc-net >/dev/null 2>&1 || docker network create poc-net"
+  ssh "$VM_XB" "docker network connect --alias rabbitmq poc-net rabbitmq-rabbitmq-1 2>/dev/null || true"
+  ssh "$VM_XB" "docker network connect --alias temporal poc-net temporal-temporal-1 2>/dev/null || true"
   ssh "$VM_XB" "cd /opt/poc/deploy/m1 && docker compose up -d topic-bridge"
   local i st=""
   for i in $(seq 1 30); do
@@ -192,11 +195,15 @@ gate_tests() {
   log "§4 — verification run T1..T5 (the M1 gate tests) -> $EVIDENCE/m1-tests.txt"
   local out="$EVIDENCE/m1-tests.txt"
   if [ "$CHECK_ONLY" = "1" ]; then log "check-only: skip gate tests"; return 0; fi
+  # publish.sh runs on the build host; the mgmt UI is loopback-only on vm-xb
+  # -> every publish must relay through ssh (RMQ_SSH_HOST). Without this the
+  # harness hits the workstation's own 127.0.0.1:15672 and always fails.
+  export RMQ_SSH_HOST="$VM_XB"
   local RMP; RMP="$(grep '^RABBITMQ_PASS=' "$REPO_ROOT/deploy/m0/rabbitmq/.env" | cut -d= -f2)"
   local count expected base delta ppid dlq
   {
     echo "# M1 gate tests — $(date -u)"
-    wf_count() { temporal workflow list --type TaskWorkflow --limit 1000 2>/dev/null | grep -c "TaskWorkflow" || true; }
+    wf_count() { TEMPORAL_ADDRESS="$TEMPORAL_ADDR" temporal workflow list --limit 1000 2>/dev/null | grep -c "TaskWorkflow" || true; }
     # run-scoped: assert on the DELTA of workflows ever started (not absolute "running"
     # counts), so a re-run against leftover state doesn't false-fail.
     # T1: N -> N (N=50)
@@ -215,7 +222,7 @@ gate_tests() {
     base="$(wf_count)"
     bash "$M1/tests/publish.sh" 20 & ppid=$!
     sleep 1
-    ssh "$VM_XB" "docker kill topic-bridge && docker start topic-bridge"
+    ssh "$VM_XB" "docker kill m1-topic-bridge-1 && docker start m1-topic-bridge-1"
     wait "$ppid" || true
     sleep 5
     delta=$(( $(wf_count) - base ))

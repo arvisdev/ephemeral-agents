@@ -43,7 +43,7 @@ api() { # api <method> <path> [json-body]
 publish() { # publish <payload-json> <routing-key>
   local payload="$1" rk="$2"
   api POST "/api/exchanges/%2F/$EXCHANGE/publish" \
-    "{\"properties\":{\"routing_keys\":[\"$rk\"],\"delivery-mode\":2},\"payload\":$(printf '%s' "$payload" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'),\"payload-encoding\":\"string\"}" \
+    "{\"routing_key\":\"$rk\",\"payload\":$(printf '%s' "$payload" | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read()))'),\"payload_encoding\":\"string\",\"properties\":{\"delivery_mode\":2}}" \
     | grep -q '"routed":true' || { echo "publish failed: $payload" >&2; return 1; }
 }
 

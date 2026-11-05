@@ -23,3 +23,10 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+# shared external network — created by install.sh (poc-net); M0 containers are
+# connected to it with aliases rabbitmq / temporal (dns on user networks
+# resolves aliases, not compose service names across projects)
+networks:
+  default:
+    external: true
+    name: poc-net
