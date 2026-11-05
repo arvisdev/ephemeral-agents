@@ -8,3 +8,4 @@ _quarantine/
 # run artifacts — evidence is created at run time, never committed
 deploy/m*/evidence/
 deploy/m0/go-sdk-smoke/go-sdk-smoke
+install-logs/
