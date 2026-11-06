@@ -38,6 +38,10 @@ type TaskConfig struct {
 	// TaskPrompt / MaxTurns: coder task inputs (M3 §2b steps 3–4).
 	TaskPrompt string `json:"task_prompt,omitempty"`
 	MaxTurns   int    `json:"max_turns,omitempty"`
+	// Model: optional routed-model choice for the coder (D-route: claude CLI
+	// honors ANTHROPIC_BASE_URL; omniroute serves DeepSeek/GLM/Kimi pools).
+	// Empty → the router's default model.
+	Model string `json:"model,omitempty"`
 	// AgentRepoURL / RepoFolder: where the agent catalog lives (M3 §1a, §2a).
 	AgentRepoURL string `json:"agent_repo_url,omitempty"`
 	RepoFolder   string `json:"repo_folder,omitempty"`

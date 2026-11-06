@@ -74,3 +74,5 @@ extends it with live-deployment findings.*
   capacity engineering, not architecture; revisit only if demand appears).
 - Wiki curation tooling beyond git (the HITL + git workflow suffices until
   volume says otherwise).
+
+| D-secret-vault (V2) | **Centralized key vault on VM-Xa.** Owner-approved 2026-11-06: defer to V2. The POC keeps file-based `/opt/poc/secrets/*.env` (chmod 600, verified by the M5 hardening scan). V2 deploys a vault (e.g. HashiCorp Vault) that renders the same env-file contract via Vault Agent — zero lifecycle code change. Rationale: the POC's secret surface is small (App tokens, model keys); Vault adds operational surface (unseal, auth, policies) with no additional gate coverage for the POC. |

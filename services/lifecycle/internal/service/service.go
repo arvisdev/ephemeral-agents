@@ -93,6 +93,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"ANTHROPIC_API_KEY":   s.m3Env["ANTHROPIC_API_KEY"],
 		"TASK_PROMPT":         cfg.TaskPrompt,
 		"MAX_TURNS":           cfg.MaxTurnsLabel(),
+		"MODEL":               cfg.Model,
 	}
 	switch cfg.Executor {
 	case "hermes":
