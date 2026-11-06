@@ -29,6 +29,8 @@ type TaskConfig struct {
 	// TTLS is optional: when 0 the lifecycle applies POC_TTL_DEFAULT.
 	// The reaper is authoritative either way (R1 backstop).
 	TTLS int64 `json:"ttl_s,omitempty"`
+	// Inject is test-only (doc §1a "inject via M2 spawn env"); empty in real messages.
+	Inject string `json:"inject,omitempty"`
 }
 
 // Validate enforces the required fields from message-v1.json.

@@ -17,6 +17,10 @@ services:
     # on boot and refuses to serve until the pinned image exists locally (the no-pull rule, enforced).
   worker:
     image: "poc/worker:1.0.0"
+    # Dockerfile.services shares one ENTRYPOINT (lifecycle); the worker image
+    # must run the worker binary — override here (the doc's two-images-one-build
+    # transcription omitted the role split)
+    entrypoint: ["/usr/local/bin/worker"]
     environment:
       TEMPORAL_ADDR: "temporal:7233"
       LIFECYCLE_API: "http://lifecycle:8090"     # same compose project; expose the API to this network
@@ -24,3 +28,10 @@ services:
       RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/"
     depends_on: [lifecycle]
     restart: unless-stopped
+# shared external network (poc-net) — M0 containers carry the rabbitmq/temporal
+# aliases; same wiring as M1 (created/connected by deploy/m1/install.sh and by
+# deploy/m2/install.sh's §3 — idempotent)
+networks:
+  default:
+    external: true
+    name: poc-net

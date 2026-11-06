@@ -33,9 +33,11 @@ TASK_ID="$(t_field task_id)"
 TTL_S="$(t_field ttl_s)"; TTL_S="${TTL_S:-900}"
 INJECT="$(t_field inject)"
 
-[ -n "$TIMEOUT_S" ] || TIMEOUT_S=$(( TTL_S + 60 )); [ "$TIMEOUT_S" -ge 90 ] || TIMEOUT_S=90
+TIMEOUT_S="${TIMEOUT_S:-$(( TTL_S + 60 ))}"; [ "$TIMEOUT_S" -ge 90 ] || TIMEOUT_S=90
 
-run_ssh() { if [ "$VM_XB" = "local" ]; then bash -c "$*"; else ssh "$VM_XB" "$*"; fi; }
+# FIX (run5): non-interactive ssh shells do not source the interactive PATH
+# (~/.local/bin holds the temporal CLI) — prepend it for every remote call.
+run_ssh() { if [ "$VM_XB" = "local" ]; then bash -c "$*"; else ssh "$VM_XB" "PATH=\"\$HOME/.local/bin:\$PATH\"; export PATH; $*"; fi; }
 
 echo "{\"event\":\"start\",\"task_id\":\"$TASK_ID\",\"inject\":\"${INJECT:-none}\",\"ttl_s\":$TTL_S}"
 
@@ -45,24 +47,18 @@ run_ssh "$TEMPORAL workflow start \
   --workflow-id '$TASK_ID' --input '$TASK_JSON'" \
   || { echo "{\"task_id\":\"$TASK_ID\",\"status\":\"fail\",\"reason\":\"workflow start failed\"}"; exit 1; }
 
-# poll until the workflow is no longer running (or timeout -> the reaper path)
-status="running"; i=0
-while [ "$i" -lt "$TIMEOUT_S" ]; do
-  sleep 5; i=$((i+5))
-  status="$(run_ssh "$TEMPORAL workflow list --workflow-id '$TASK_ID' --output json 2>/dev/null" \
-            | python3 -c "import json,sys
-try: rows=json.load(sys.stdin); print(rows[0].get('status','') if rows else '')
-except Exception: print('')")" || status=""
-  case "$status" in
-    COMPLETED) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"success\"}"; rc=0; break ;;
-    FAILED|CANCELED|TIMED_OUT) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"fail\",\"workflow_status\":\"$status\"}"; rc=1; break ;;
-    *) : ;;
-  esac
-  if [ "$i" -ge "$TIMEOUT_S" ]; then
-    echo "{\"task_id\":\"$TASK_ID\",\"status\":\"timeout\",\"note\":\"reaper path (M2 V3)\"}"; rc=1; break
-  fi
-done
-[ -n "${rc:-}" ] || { echo "{\"task_id\":\"$TASK_ID\",\"status\":\"timeout\"}"; rc=1; }
+# poll via `workflow result` — blocking and lag-free (workflow list lags 10-40s)
+# FIX (run5 root cause): the list-based poller timed out on completed workflows
+# because the list view lagged; result waits for the true completion.
+res="$(run_ssh "timeout $TIMEOUT_S $TEMPORAL workflow result --workflow-id '$TASK_ID'" 2>/dev/null)" || res=""
+case "$res" in
+  *'"status":"complete"'*) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"success\"}"; rc=0 ;;
+  *'"status":"failed"'*)    echo "{\"task_id\":\"$TASK_ID\",\"status\":\"fail\"}";      rc=1 ;;
+  *'"status":"timed-out"'*) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"timeout\",\"note\":\"reaper path (M2 V3)\"}"; rc=1 ;;
+  *COMPLETED*) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"success\"}"; rc=0 ;;
+  "") echo "{\"task_id\":\"$TASK_ID\",\"status\":\"timeout\",\"note\":\"no result within TIMEOUT_S (reaper path)\"}"; rc=1 ;;
+  *) echo "{\"task_id\":\"$TASK_ID\",\"status\":\"fail\"}"; rc=1 ;;
+esac
 
 # teardown assertion: the reaper must have removed the task container
 leftover="$(run_ssh "docker ps -a --filter label=poc.task='$TASK_ID' -q" || true)"

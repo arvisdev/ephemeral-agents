@@ -48,11 +48,12 @@ func main() {
 	image := envOr("POC_IMAGE", "poc/executor-stub:1.0.0")
 	defaultTTL := mustDuration("POC_TTL_DEFAULT", "900s")
 	reapInterval := mustDuration("REAPER_INTERVAL", "30s")
+	reapGrace := mustDuration("REAPER_GRACE", "30s")
 	tasksDir := envOr("POC_TASKS_DIR", "/var/poc/tasks")
 	cpu, mem := parseLimits(log)
 	cli := dockercli.New()
 
-	svc := lifecyclesvc.New(cli, log, image, defaultTTL, reapInterval, tasksDir, cpu, mem)
+	svc := lifecyclesvc.New(cli, log, image, defaultTTL, reapInterval, reapGrace, tasksDir, cpu, mem)
 
 	// Deploy gate: refuse to serve until the pinned image exists locally.
 	ctx := context.Background()

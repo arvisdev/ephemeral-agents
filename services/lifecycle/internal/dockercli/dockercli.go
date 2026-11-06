@@ -110,8 +110,8 @@ type State struct {
 func (c *CLI) Inspect(ctx context.Context, taskID string) (State, error) {
 	// List by owner+task labels (exact-match filter, per the troubleshooting table).
 	ids, err := c.run(ctx, "ps", "-aq",
-		"--filter", reap.OwnerLabel+"="+reap.OwnerValue,
-		"--filter", reap.TaskLabel+"="+taskID)
+		"--filter", "label="+reap.OwnerLabel+"="+reap.OwnerValue,
+		"--filter", "label="+reap.TaskLabel+"="+taskID)
 	if err != nil {
 		return State{}, err
 	}
@@ -135,7 +135,7 @@ func (c *CLI) Inspect(ctx context.Context, taskID string) (State, error) {
 // Expired lists POC-owned container IDs whose labels say the reaper must reap.
 // The expiry DECISION is pure logic (internal/reap); this just feeds it.
 func (c *CLI) ExpiredList(ctx context.Context, now time.Time) (ids []string, tasks []string, reasons []string, err error) {
-	out, err := c.run(ctx, "ps", "-aq", "--filter", reap.OwnerLabel+"="+reap.OwnerValue)
+	out, err := c.run(ctx, "ps", "-aq", "--filter", "label="+reap.OwnerLabel+"="+reap.OwnerValue)
 	if err != nil {
 		return nil, nil, nil, err
 	}

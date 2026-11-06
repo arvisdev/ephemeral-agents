@@ -75,7 +75,7 @@ func (a *Activity) pollUntilTerminal(ctx context.Context, taskID string, expires
 	}
 	grace := a.TTLGrace
 	if grace <= 0 {
-		grace = 2 * time.Second
+		grace = 20 * time.Second
 	}
 	t := time.NewTicker(poll)
 	defer t.Stop()

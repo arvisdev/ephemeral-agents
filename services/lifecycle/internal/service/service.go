@@ -27,6 +27,7 @@ type Service struct {
 	defaultTTL   time.Duration // POC_TTL_DEFAULT
 	tasksDir     string        // /var/poc/tasks for per-task logs
 	reapInterval time.Duration // REAPER_INTERVAL
+	reapGrace    time.Duration // REAPER_GRACE — wait past poc.expires before reaping
 	cpuLimit     float64
 	memLimit     int64
 
@@ -36,10 +37,10 @@ type Service struct {
 }
 
 // New builds the service; the CLI runs docker commands against the socket.
-func New(cli *dockercli.CLI, log *slog.Logger, image string, defaultTTL, reapInterval time.Duration, tasksDir string, cpuLimit float64, memLimit int64) *Service {
+func New(cli *dockercli.CLI, log *slog.Logger, image string, defaultTTL, reapInterval, reapGrace time.Duration, tasksDir string, cpuLimit float64, memLimit int64) *Service {
 	return &Service{
 		cli: cli, log: log, image: image, defaultTTL: defaultTTL,
-		tasksDir: tasksDir, reapInterval: reapInterval, cpuLimit: cpuLimit, memLimit: memLimit,
+		tasksDir: tasksDir, reapInterval: reapInterval, reapGrace: reapGrace, cpuLimit: cpuLimit, memLimit: memLimit,
 	}
 }
 
@@ -73,6 +74,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"REPO_TARGET=" + cfg.RepoTarget,
 		"REQUESTER=" + cfg.Requester,
 		"TTL=" + strconv.FormatInt(int64(cfg.EffectiveTTL(s.defaultTTL)/time.Second), 10),
+		"INJECT=" + cfg.Inject,
 	}
 	cid, err := s.cli.Run(ctx, dockercli.RunSpec{
 		TaskID: cfg.TaskID, Image: s.image, Env: env, WorkDir: workDir,
@@ -143,7 +145,11 @@ func (s *Service) RunReaper(ctx context.Context) {
 }
 
 func (s *Service) reapSweep(ctx context.Context) {
-	ids, tasks, reasons, err := s.cli.ExpiredList(ctx, time.Now())
+	// reaper grace: a container is not reaped until it is past poc.expires
+	// by REAPER_GRACE — a live worker's activity polls every 2s and observes
+	// the container's own exit (complete/failed) well before the reaper may
+	// remove it; the grace exists so the poll can never lose that race.
+	ids, tasks, reasons, err := s.cli.ExpiredList(ctx, time.Now().Add(-s.reapGrace))
 	if err != nil {
 		s.log.Warn("reaper list failed", "err", err)
 		return
