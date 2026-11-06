@@ -9,6 +9,14 @@ services:
       REAPER_INTERVAL: "30s"
       POC_TTL_DEFAULT: "900s"                  # TTL default when the message carries no ttl_s (owner-settled hybrid). Units: the lifecycle config takes a Go duration string ("900s"); message ttl_s is integer seconds
       POC_IMAGE: "poc/executor-stub:1.0.0"     # pinned — no pulls at activity time
+      # M3 §2' — POC_IMAGE is a config switch per executor type; the stub pin
+      # stays until the M3 executor tags pass (rollback rule, M3 §6)
+      POC_IMAGE_HERMES: "poc/hermes-ephemeral:1.0.0"
+      POC_IMAGE_CODER: "poc/claude-coder:1.0.0"
+      # M3 §2 — per-run env sourced from the secret file (never in git/images);
+      # file must exist before M3 gate runs (install.sh §1 verifies)
+      env_file:
+        - /opt/poc/secrets/m3.env
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
       - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)

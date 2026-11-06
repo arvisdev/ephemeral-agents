@@ -17,7 +17,8 @@ mkdir -p /work
 
 # 1. clone the Project Repo with the scoped write token
 [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ] || { echo "REPO_URL/GITHUB_TOKEN missing" >&2; exit 2; }
-git clone "https://x-access-token:${GITHUB_TOKEN}@${REPO_URL#https://}" /work/project \
+CLONE_URL="${REPO_URL/https:\/\/ /https:\/\/x-access-token:$GITHUB_TOKEN@}"
+git clone "$CLONE_URL" /work/project \
   2>/dev/null || { echo "clone failed (token scope? §1c)" >&2; exit 2; }
 
 # 2. per-task branch — the default concurrency model (§3: one coder per task)

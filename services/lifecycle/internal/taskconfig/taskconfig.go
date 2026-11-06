@@ -5,6 +5,7 @@
 package taskconfig
 
 import (
+	"strconv"
 	"errors"
 	"fmt"
 	"time"
@@ -31,6 +32,23 @@ type TaskConfig struct {
 	TTLS int64 `json:"ttl_s,omitempty"`
 	// Inject is test-only (doc §1a "inject via M2 spawn env"); empty in real messages.
 	Inject string `json:"inject,omitempty"`
+	// Executor selects the pinned image per task type (M3 §2': POC_IMAGE is a
+	// config switch): "hermes" | "coder"; empty → the M2 stub pin (rollback rule).
+	Executor string `json:"executor,omitempty"`
+	// TaskPrompt / MaxTurns: coder task inputs (M3 §2b steps 3–4).
+	TaskPrompt string `json:"task_prompt,omitempty"`
+	MaxTurns   int    `json:"max_turns,omitempty"`
+	// AgentRepoURL / RepoFolder: where the agent catalog lives (M3 §1a, §2a).
+	AgentRepoURL string `json:"agent_repo_url,omitempty"`
+	RepoFolder   string `json:"repo_folder,omitempty"`
+}
+
+// MaxTurnsLabel renders the max-turns coder knob; empty when unset.
+func (c TaskConfig) MaxTurnsLabel() string {
+	if c.MaxTurns == 0 {
+		return ""
+	}
+	return strconv.Itoa(c.MaxTurns)
 }
 
 // Validate enforces the required fields from message-v1.json.

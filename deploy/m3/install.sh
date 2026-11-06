@@ -235,7 +235,7 @@ gate_tests() {
     # B4 coder real work
     if [ -n "${PROJECT_LOCAL_DIR:-}" ] && [ -d "$PROJECT_LOCAL_DIR" ]; then
       task_id="m3b-$(date +%H%M%S)"
-      if bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"$task_id\",\"agent_ref\":\"coder\",\"brief\":\"add a /healthz handler\"}" >/dev/null 2>&1; then
+      if bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"$task_id\",\"executor\":\"coder\",\"agent_ref\":\"agents/dev-agent\",\"agent_repo_url\":\"https://github.com/$CATALOG_REPO\",\"repo_folder\":\"agents/dev-agent\",\"task_prompt\":\"add a /healthz handler to the poc-demo Go service: respond 200 'ok' on /healthz\",\"behavioral_spec\":\"WP-C01\",\"repo_target\":\"github.com/$PROJECT_REPO\",\"requester\":\"m3-b4\",\"ttl_s\":600}" >/dev/null 2>&1; then
         git -C "$PROJECT_LOCAL_DIR" fetch origin "task/$task_id" 2>/dev/null || true
         if git -C "$PROJECT_LOCAL_DIR" log --oneline "origin/task/$task_id" >/dev/null 2>&1; then
           echo "B4 coder: commit exists on origin/task/$task_id : PASS"

@@ -36,8 +36,8 @@ fail() { # fail <reason>  -> self-report with error, exit 2 (M2 surfaces + reaps
 
 # 1. clone the Available Agent List (read token), then scrub the token from env
 [ -n "$AGENT_REPO_URL" ] || fail "AGENT_REPO_URL missing"
-git clone --depth 1 \
-  "https://x-access-token:${GITHUB_READ_TOKEN}@${AGENT_REPO_URL#https://}" /work/agents \
+CLONE_URL="${AGENT_REPO_URL/https:\/\/ /https:\/\/x-access-token:$GITHUB_READ_TOKEN@}"
+git clone --depth 1 "$CLONE_URL" /work/agents \
   2>/dev/null || fail "agent repo unreachable or token rejected"
 unset GITHUB_READ_TOKEN
 
@@ -61,11 +61,9 @@ done
 # degrades gracefully when the token/repo is absent; never fails the task)
 llm_wiki_source="not-configured"
 if [ -n "$LLM_WIKI_READ_TOKEN" ]; then
-  if git clone --depth 1 \
-      "https://x-access-token:${LLM_WIKI_READ_TOKEN}@${LLM_WIKI_REPO_URL#https://}" \
-      /work/llm-wiki 2>/dev/null; then
-    llm_wiki_source="$LLM_WIKI_REPO_URL"
-  fi
+  LLM_WIKI_URL_INJ="${LLM_WIKI_REPO_URL/https:\/\//https:\/\/x-access-token:$LLM_WIKI_READ_TOKEN@}"
+  git clone --depth 1 "$LLM_WIKI_URL_INJ" /work/llm-wiki 2>/dev/null
+  llm_wiki_source="$LLM_WIKI_REPO_URL"
   unset LLM_WIKI_READ_TOKEN
 fi
 

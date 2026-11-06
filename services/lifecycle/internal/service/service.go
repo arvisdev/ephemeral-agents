@@ -7,11 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,6 +30,7 @@ type Service struct {
 	tasksDir     string        // /var/poc/tasks for per-task logs
 	reapInterval time.Duration // REAPER_INTERVAL
 	reapGrace    time.Duration // REAPER_GRACE — wait past poc.expires before reaping
+	m3Env        map[string]string // M3 §2 per-run env (secrets from compose env_file)
 	cpuLimit     float64
 	memLimit     int64
 
@@ -40,6 +43,7 @@ type Service struct {
 func New(cli *dockercli.CLI, log *slog.Logger, image string, defaultTTL, reapInterval, reapGrace time.Duration, tasksDir string, cpuLimit float64, memLimit int64) *Service {
 	return &Service{
 		cli: cli, log: log, image: image, defaultTTL: defaultTTL,
+		m3Env: m3FromEnv(),
 		tasksDir: tasksDir, reapInterval: reapInterval, reapGrace: reapGrace, cpuLimit: cpuLimit, memLimit: memLimit,
 	}
 }
@@ -76,8 +80,43 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"TTL=" + strconv.FormatInt(int64(cfg.EffectiveTTL(s.defaultTTL)/time.Second), 10),
 		"INJECT=" + cfg.Inject,
 	}
+
+	// M3 (§2/§2b): per-executor env injection — secrets live in the lifecycle
+	// process env (compose env_file from /opt/poc/secrets/*), never in images.
+	passThrough := map[string]string{
+		"AGENT_REPO_URL":      cfg.AgentRepoURL,
+		"REPO_FOLDER":         cfg.RepoFolder,
+		"HINDSIGHT_URL":       s.m3Env["HINDSIGHT_URL"],
+		"LLM_WIKI_REPO_URL":   s.m3Env["LLM_WIKI_REPO_URL"],
+		"LLM_WIKI_READ_TOKEN": s.m3Env["LLM_WIKI_READ_TOKEN"],
+		"MODEL_API_KEY":       s.m3Env["MODEL_API_KEY"],
+		"ANTHROPIC_API_KEY":   s.m3Env["ANTHROPIC_API_KEY"],
+		"TASK_PROMPT":         cfg.TaskPrompt,
+		"MAX_TURNS":           cfg.MaxTurnsLabel(),
+	}
+	switch cfg.Executor {
+	case "hermes":
+		env = append(env, "GITHUB_READ_TOKEN="+s.m3Env["GITHUB_READ_TOKEN"])
+		for k, v := range passThrough {
+			if v != "" {
+				env = append(env, k+"="+v)
+			}
+		}
+	case "coder":
+		// GITHUB_TOKEN: the scoped App installation token, issued at spawn (§1c).
+		tok, err := s.issueToken()
+		if err != nil {
+			return taskconfig.SpawnResponse{}, fmt.Errorf("issue token (§1c): %w", err)
+		}
+		env = append(env, "GITHUB_TOKEN="+tok, "ANTHROPIC_API_KEY="+s.m3Env["ANTHROPIC_API_KEY"])
+		for k, v := range passThrough {
+			if v != "" {
+				env = append(env, k+"="+v)
+			}
+		}
+	}
 	cid, err := s.cli.Run(ctx, dockercli.RunSpec{
-		TaskID: cfg.TaskID, Image: s.image, Env: env, WorkDir: workDir,
+		TaskID: cfg.TaskID, Image: s.imageFor(cfg.Executor), Env: env, WorkDir: workDir,
 		Expires: expires, CPUs: s.cpuLimit, MemBytes: s.memLimit,
 	})
 	if err != nil {
@@ -241,4 +280,51 @@ func (s *Service) handleReport(w http.ResponseWriter, _ *http.Request) {
 		"pinned_image":  s.image,
 		"ttl_default_s": int(s.defaultTTL / time.Second),
 	})
+}
+
+// imageFor resolves the pinned image per executor type (M3 §2': POC_IMAGE is
+// a config switch). Empty type → the M2 stub pin (rollback rule).
+func (s *Service) imageFor(executor string) string {
+	switch executor {
+	case "hermes":
+		if v := s.m3Env["POC_IMAGE_HERMES"]; v != "" {
+			return v
+		}
+	case "coder":
+		if v := s.m3Env["POC_IMAGE_CODER"]; v != "" {
+			return v
+		}
+	}
+	return s.image
+}
+
+// issueToken shells out to the M3 token issuance script (§1c): JWT-signed
+// App token, TTL ≤ 1 h. Skipped (error) when the App is not configured —
+// coder tasks cannot run without it.
+func (s *Service) issueToken() (string, error) {
+	if s.m3Env["GITHUB_APP_ID"] == "" || s.m3Env["INSTALLATION_ID"] == "" {
+		return "", fmt.Errorf("GitHub App not configured (GITHUB_APP_ID/INSTALLATION_ID absent) — §1c required for coder tasks")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "/opt/poc/deploy/m3/issue-token.sh").Output()
+	if err != nil {
+		return "", fmt.Errorf("issue-token.sh: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
+}
+// m3FromEnv collects the M3 §2 per-run env keys the lifecycle process
+// carries (compose env_file from /opt/poc/secrets/*). Missing keys map to
+// "" — coder/hermes features that need them fail at spawn with a clear error.
+func m3FromEnv() map[string]string {
+	keys := []string{
+		"HINDSIGHT_URL", "LLM_WIKI_REPO_URL", "LLM_WIKI_READ_TOKEN",
+		"MODEL_API_KEY", "ANTHROPIC_API_KEY", "GITHUB_READ_TOKEN",
+		"GITHUB_APP_ID", "INSTALLATION_ID", "POC_IMAGE_HERMES", "POC_IMAGE_CODER",
+	}
+	out := map[string]string{}
+	for _, k := range keys {
+		out[k] = os.Getenv(k)
+	}
+	return out
 }
