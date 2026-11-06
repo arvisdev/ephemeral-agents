@@ -91,6 +91,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"LLM_WIKI_READ_TOKEN": s.m3Env["LLM_WIKI_READ_TOKEN"],
 		"MODEL_API_KEY":       s.m3Env["MODEL_API_KEY"],
 		"ANTHROPIC_API_KEY":   s.m3Env["ANTHROPIC_API_KEY"],
+		"ANTHROPIC_BASE_URL":  s.m3Env["ANTHROPIC_BASE_URL"],
 		"TASK_PROMPT":         cfg.TaskPrompt,
 		"MAX_TURNS":           cfg.MaxTurnsLabel(),
 		"MODEL":               cfg.Model,
@@ -320,7 +321,7 @@ func (s *Service) issueToken() (string, error) {
 func m3FromEnv() map[string]string {
 	keys := []string{
 		"HINDSIGHT_URL", "LLM_WIKI_REPO_URL", "LLM_WIKI_READ_TOKEN",
-		"MODEL_API_KEY", "ANTHROPIC_API_KEY", "GITHUB_READ_TOKEN",
+		"MODEL_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GITHUB_READ_TOKEN",
 		"GITHUB_APP_ID", "INSTALLATION_ID", "POC_IMAGE_HERMES", "POC_IMAGE_CODER",
 	}
 	out := map[string]string{}
