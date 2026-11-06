@@ -17,7 +17,7 @@ mkdir -p /work
 
 # 1. clone the Project Repo with the scoped write token
 [ -n "$REPO_URL" ] && [ -n "$GITHUB_TOKEN" ] || { echo "REPO_URL/GITHUB_TOKEN missing" >&2; exit 2; }
-CLONE_URL="${REPO_URL/https:\/\/ /https:\/\/x-access-token:$GITHUB_TOKEN@}"
+CLONE_URL="${REPO_URL/https:\/\//https:\/\/x-access-token:$GITHUB_TOKEN@}"
 git clone "$CLONE_URL" /work/project \
   2>/dev/null || { echo "clone failed (token scope? §1c)" >&2; exit 2; }
 
@@ -26,10 +26,13 @@ git -C /work/project checkout -b "task/${TASK_ID}" || exit 2
 
 # 3. run the headless agent (API key injected per-run, never in the image)
 [ -n "$ANTHROPIC_API_KEY" ] || { echo "ANTHROPIC_API_KEY missing at spawn" >&2; exit 2; }
-summary="$(claude -p "${TASK_PROMPT}
+MODEL="${MODEL:-$MODEL_DEFAULT}"   # owner directive: default z-ai/glm-5.3-flash via openrouter, never anthropic
+cmd=(claude -p "${TASK_PROMPT}
 
 Behavioral spec:
-${BEHAVIORAL_SPEC}" --max-turns "${MAX_TURNS:-20}")" || { echo "claude CLI failed" >&2; exit 2; }
+${BEHAVIORAL_SPEC}" --max-turns "${MAX_TURNS:-20}")
+if [ -n "$MODEL" ]; then cmd+=(--model "$MODEL"); fi
+summary="$("${cmd[@]}")" || { echo "claude CLI failed" >&2; exit 2; }
 
 # 4. commit + push the per-task branch
 git -C /work/project add -A

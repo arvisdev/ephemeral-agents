@@ -95,6 +95,9 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"TASK_PROMPT":         cfg.TaskPrompt,
 		"MAX_TURNS":           cfg.MaxTurnsLabel(),
 		"MODEL":               cfg.Model,
+		"MODEL_DEFAULT":       s.m3Env["MODEL_DEFAULT"],
+		// MODEL_DEFAULT: env fallback (e.g. z-ai/glm-5.3-flash via openrouter) —
+		// owner directive 2026-11-06: do NOT default to anthropic models (cost)
 	}
 	switch cfg.Executor {
 	case "hermes":

@@ -29,13 +29,15 @@ times=()
 for i in $(seq 1 "$RUNS"); do
   id="b1-$(date +%H%M%S)-$i"
   start="$(date +%s)"
-  bash "$RUN_TASK" "{\"task_id\":\"$id\",\"executor\":\"hermes\",\"agent_ref\":\"agents/dev-agent\",\"agent_repo_url\":\"$CATALOG_REPO_URL\",\"repo_folder\":\"agents/dev-agent\",\"behavioral_spec\":\"boot-time probe (M3 B1)\",\"requester\":\"m3-b1\",\"ttl_s\":300}" &
+  bash "$RUN_TASK" "{\"task_id\":\"$id\",\"executor\":\"hermes\",\"agent_ref\":\"agents/dev-agent\",\"agent_repo_url\":\"$CATALOG_REPO_URL\",\"repo_folder\":\"agents/dev-agent\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"behavioral_spec\":\"boot-time probe (M3 B1)\",\"requester\":\"m3-b1\",\"ttl_s\":300}" &
   runpid=$!
   # poll for /work/self-report.json on the spawned container (poc.task label)
   boot=""
-  for _ in $(seq 1 120); do
-    sleep 2
-    if ssh "$VM_XB" "cid=\$(docker ps -aq --filter label=poc.task='$id'); [ -n \"\$cid\" ] && docker exec \"\$cid\" test -f /work/self-report.json 2>/dev/null"; then
+  for _ in $(seq 1 400); do
+    # FIX (B1): the executor's boot is FAST (~2-3s: clone -> self-report -> exit)
+    # — a 2s poll cadence races the whole container lifetime and misses it.
+    sleep 0.3
+    if ssh "$VM_XB" "grep -aq self-report /var/poc/tasks/'$id'.log 2>/dev/null"; then
       boot=$(( $(date +%s) - start ))
       break
     fi

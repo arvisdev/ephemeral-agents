@@ -15,8 +15,8 @@ services:
       POC_IMAGE_CODER: "poc/claude-coder:1.0.0"
       # M3 §2 — per-run env sourced from the secret file (never in git/images);
       # file must exist before M3 gate runs (install.sh §1 verifies)
-      env_file:
-        - /opt/poc/secrets/m3.env
+    env_file:
+      - /opt/poc/secrets/m3.env                       # M3 §2 per-run secrets (never in git/images)
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
       - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)

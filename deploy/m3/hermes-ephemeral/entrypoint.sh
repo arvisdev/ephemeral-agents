@@ -27,6 +27,7 @@ LLM_WIKI_REPO_URL="${LLM_WIKI_REPO_URL:-https://github.com/arvisdev/llm-wiki}"
 LLM_WIKI_READ_TOKEN="${LLM_WIKI_READ_TOKEN:-}"
 TTL_S="${TTL_S:-900}"
 
+START_MS="$(date +%s%3N)"   # container start (B1 boot-time origin)
 mkdir -p /work
 fail() { # fail <reason>  -> self-report with error, exit 2 (M2 surfaces + reaps)
   printf '{"task_id":"%s","role":"","skills":[],"spec_received":false,"error":"%s","sources":{"agent_repo":false,"llm-wiki":"not-configured","hindsight":false}}\n' \
@@ -36,7 +37,7 @@ fail() { # fail <reason>  -> self-report with error, exit 2 (M2 surfaces + reaps
 
 # 1. clone the Available Agent List (read token), then scrub the token from env
 [ -n "$AGENT_REPO_URL" ] || fail "AGENT_REPO_URL missing"
-CLONE_URL="${AGENT_REPO_URL/https:\/\/ /https:\/\/x-access-token:$GITHUB_READ_TOKEN@}"
+CLONE_URL="${AGENT_REPO_URL/https:\/\//https:\/\/x-access-token:$GITHUB_READ_TOKEN@}"
 git clone --depth 1 "$CLONE_URL" /work/agents \
   2>/dev/null || fail "agent repo unreachable or token rejected"
 unset GITHUB_READ_TOKEN
@@ -70,18 +71,24 @@ fi
 # 3. self-report (gate before task work) — the harness asserts on this file
 hindsight_ok=false
 [ -n "$HINDSIGHT_URL" ] && curl -sf "$HINDSIGHT_URL/healthz" >/dev/null 2>&1 && hindsight_ok=true
-python3 - "$folder" "$llm_wiki_source" "$hindsight_ok" <<PY > /work/self-report.json
+HINDSIGHT_OK="$hindsight_ok"
+python3 - "$folder" "$llm_wiki_source" <<PY > /work/self-report.json
 import json
 print(json.dumps({
   "task_id": "$TASK_ID", "role": "$folder", "skills": [],
   "spec_received": True,
-  "sources": {"agent_repo": True, "llm-wiki": "$llm_wiki_source", "hindsight": $hindsight_ok},
+  "sources": {"agent_repo": True, "llm-wiki": "$llm_wiki_source", "hindsight": "$HINDSIGHT_OK"},, "boot_ms": "$BOOT_MS"
 }))
 PY
 
 # 4/5. launch the Hermes agent runtime with persona + spec; write the task report
 # (the real runtime launch is the owner's Hermes packaging — see the Dockerfile's
 # pinned installer; the report is the exit artifact M2/M5 consume)
+# emit the self-report to stdout — the lifecycle persists it in the task
+# artifact log (survives reap; the B1 poller greps this instead of racing
+# docker exec against a 2-second container lifetime)
+cat /work/self-report.json
+
 cat > /work/report.json <<EOF
 {"task_id":"$TASK_ID","status":"success","artifact":"task report","spec":"$REPO_FOLDER/behavioral-spec.md"}
 EOF
