@@ -71,13 +71,21 @@ fi
 # 3. self-report (gate before task work) — the harness asserts on this file
 hindsight_ok=false
 [ -n "$HINDSIGHT_URL" ] && curl -sf "$HINDSIGHT_URL/healthz" >/dev/null 2>&1 && hindsight_ok=true
+# TC-M3-02: assert the persona markdowns were actually loaded from the catalog
+persona_files=""
+for f in persona.md skill-and-tools.md behavioral-spec.md; do
+  [ -f "/work/agents/$folder/$f" ] && persona_files="$persona_files $f"
+done
+[ -n "$persona_files" ] || fail "persona markdowns missing from catalog hydration"
+
 HINDSIGHT_OK="$hindsight_ok"
+BOOT_MS="$(( $(date +%s%3N) - START_MS ))"   # true boot: container start -> self-report ready
 python3 - "$folder" "$llm_wiki_source" <<PY > /work/self-report.json
 import json
 print(json.dumps({
   "task_id": "$TASK_ID", "role": "$folder", "skills": [],
   "spec_received": True,
-  "sources": {"agent_repo": True, "llm-wiki": "$llm_wiki_source", "hindsight": "$HINDSIGHT_OK"},, "boot_ms": "$BOOT_MS"
+  "sources": {"agent_repo": True, "llm-wiki": "$llm_wiki_source", "hindsight": "$HINDSIGHT_OK"}, "persona_files": "$persona_files", "boot_ms": "$BOOT_MS"
 }))
 PY
 
