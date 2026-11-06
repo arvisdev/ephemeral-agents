@@ -9,3 +9,5 @@ _quarantine/
 deploy/m*/evidence/
 deploy/m0/go-sdk-smoke/go-sdk-smoke
 install-logs/
+deploy/m1/tests/.last-task-ids
+services/*/adapter
