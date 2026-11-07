@@ -68,6 +68,19 @@ if [ -n "$LLM_WIKI_READ_TOKEN" ]; then
   unset LLM_WIKI_READ_TOKEN
 fi
 
+# 2c. memory hydration (M4): read cross-task memories relevant to this task and
+# inject them into the task payload; write-on-end stores this task's learning.
+# Failure-tolerant by design (M4 rollback §5: missing source degrades, never fails).
+memory_block=""
+if [ -n "$HINDSIGHT_URL" ] && curl -sf "$HINDSIGHT_URL/healthz" >/dev/null 2>&1; then
+  T0=$(date +%s%3N)
+  mem_json="$(curl -sf --max-time 10 "$HINDSIGHT_URL/memory/read?task_id=$TASK_ID&scope=cross-task&q=$(printf %s "$TASK_PROMPT" | tr -cd 'a-zA-Z0-9 ' | cut -c1-120 | sed 's/ /%20/g')" 2>/dev/null || true)"
+  T1=$(date +%s%3N); HINDSIGHT_READ_MS=$(( T1 - T0 ))
+  if [ -n "$mem_json" ] && printf %s "$mem_json" | grep -q '"entries"'; then
+    memory_block="$mem_json"
+  fi
+fi
+
 # 3. self-report (gate before task work) — the harness asserts on this file
 hindsight_ok=false
 [ -n "$HINDSIGHT_URL" ] && curl -sf "$HINDSIGHT_URL/healthz" >/dev/null 2>&1 && hindsight_ok=true
@@ -96,6 +109,26 @@ PY
 # artifact log (survives reap; the B1 poller greps this instead of racing
 # docker exec against a 2-second container lifetime)
 cat /work/self-report.json
+
+# M4 write-on-end: store this task's learning as a cross-task memory entry.
+# body.summary is what gets embedded (API contract); failure-tolerant.
+if [ -n "$HINDSIGHT_URL" ] && [ "$hindsight_ok" = "true" ]; then
+  python3 - "$TASK_ID" "$folder" "$BEHAVIORAL_SPEC" "$TASK_PROMPT" <<PY > /tmp/m4-write.json 2>/dev/null
+import json, sys
+tid, ref, spec, prompt = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+summary = (spec or prompt or "task completed")[:160]
+print(json.dumps({"task_id": tid, "agent_ref": ref, "scope": "cross-task",
+                  "body": {"summary": summary, "learning": summary,
+                           "task_prompt_excerpt": prompt[:200]}}))
+PY
+  curl -sf --max-time 10 -XPOST "$HINDSIGHT_URL/memory/write" -H 'content-type: application/json' -d @/tmp/m4-write.json >/dev/null 2>&1 || true
+  rm -f /tmp/m4-write.json
+fi
+
+# hydrated cross-task memories (TC-M4-02 evidence): emitted into the task log
+if [ -n "$memory_block" ]; then
+  echo "M4_MEMORY_HYDRATE: $memory_block"
+fi
 
 cat > /work/report.json <<EOF
 {"task_id":"$TASK_ID","status":"success","artifact":"task report","spec":"$REPO_FOLDER/behavioral-spec.md"}
