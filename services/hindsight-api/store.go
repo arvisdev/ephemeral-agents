@@ -78,10 +78,13 @@ func (s *Store) ReadCrossTask(ctx context.Context, vec []float32, limit int) ([]
 		return nil, fmt.Errorf("query vector dim %d != table dim %d", len(vec), s.dim)
 	}
 	rows, err := s.db.QueryContext(ctx,
-		`SELECT task_id, agent_ref, scope, body, created, 1 - (embedding <=> $1::vector) AS score
+		`SELECT task_id, agent_ref, scope, body, created,
+		          CASE WHEN (embedding <=> $1::vector)::text = 'NaN' THEN 0
+		               ELSE 1 - (embedding <=> $1::vector) END AS score
 		   FROM memory_entries
 		  WHERE scope = 'cross-task'
-		  ORDER BY embedding <=> $1::vector
+		  ORDER BY CASE WHEN (embedding <=> $1::vector)::text = 'NaN' THEN 0
+		                ELSE 1 - (embedding <=> $1::vector) END
 		  LIMIT $2`, vectorLiteral(vec), limit)
 	if err != nil {
 		return nil, err

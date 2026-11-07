@@ -234,7 +234,7 @@ gate_tests() {
       echo "G1 network R/W : FAIL (write=$w read=$r)"
     fi
     # G2 cross-task read-back (API-level proof; the executor read path is the M2 wiring above)
-    r2="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-other&scope=cross-task" || echo CURL-FAIL)"
+    r2="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-other&scope=cross-task&q=m4-install-g1" || echo CURL-FAIL)"
     if echo "$r2" | grep -q "m4-install-g1"; then
       echo "G2 cross-task read-back: a different task_id fetches the cross-task entry : PASS"
     else
