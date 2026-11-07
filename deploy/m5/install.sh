@@ -342,6 +342,7 @@ credential_hardening() {
       trivy image --exit-code 1 --scanners vuln,secret --severity HIGH,CRITICAL --ignore-unfixed $EXTRA "$img:$IMAGE_TAG" \
         && log "§6   trivy $img:$IMAGE_TAG : clean" \
         || die "§6   trivy: $img:$IMAGE_TAG has fixable HIGH/CRITICAL findings or secrets — remediate"
+      mkdir -p "$(dirname "$EVIDENCE/trivy-$img.json")"
       trivy image --scanners vuln --format json "$img:$IMAGE_TAG" > "$EVIDENCE/trivy-$img.json" 2>/dev/null || true
     done
   else
@@ -357,7 +358,7 @@ credential_hardening() {
   # token lifecycle evidence (M3 §4 B5 re-run)
   if [ -f "$REPO_ROOT/deploy/m3/issue-token.sh" ]; then
     local tok tcode
-    tok="$(bash "$REPO_ROOT/deploy/m3/issue-token.sh" --dry-run)"
+    tok="$(ssh "$VM_XB" 'set -a; . /opt/poc/secrets/m3.env; set +a; bash /opt/poc/deploy/m3/issue-token.sh --dry-run' 2>/dev/null)"
     [ -n "$tok" ] || warn "§6   token dry-run unavailable (M3 §1c state)"
     tcode="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token $tok" https://api.github.com/user)"
     echo "§6   issued token -> HTTP $tcode (want 200 pre-revoke); revoke + expect 401 (record in evidence)" | tee -a "$LOG"
