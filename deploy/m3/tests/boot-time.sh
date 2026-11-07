@@ -40,6 +40,7 @@ for i in $(seq 1 "$RUNS"); do
     sleep 0.3
     if ssh "$VM_XB" "grep -aq boot_ms /var/poc/tasks/'$id'.log 2>/dev/null"; then
       # metric = spawn -> self-report ready: take the in-container measurement
+      boot_ms=""
       boot_ms=$(ssh "$VM_XB" "grep -o '\"boot_ms\": \"[0-9]*\"' /var/poc/tasks/'$id'.log 2>/dev/null | head -1 | tr -dc 0-9")
       dispatch_s=$(( $(date +%s) - start ))
       if [ -n "$boot_ms" ]; then boot="$boot_ms ms (dispatch ${dispatch_s}s)"; else boot="${dispatch_s}s (dispatch-latency only)"; fi

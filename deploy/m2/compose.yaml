@@ -11,8 +11,8 @@ services:
       POC_IMAGE: "poc/executor-stub:1.0.0"     # pinned — no pulls at activity time
       # M3 §2' — POC_IMAGE is a config switch per executor type; the stub pin
       # stays until the M3 executor tags pass (rollback rule, M3 §6)
-      POC_IMAGE_HERMES: "poc/hermes-ephemeral:1.0.0"
-      POC_IMAGE_CODER: "poc/claude-coder:1.0.0"
+      POC_IMAGE_HERMES: "192.168.0.197:5000/poc/hermes-ephemeral:1.0.0"
+      POC_IMAGE_CODER: "192.168.0.197:5000/poc/claude-coder:1.0.0"
       # M3 §2 — per-run env sourced from the secret file (never in git/images);
       # file must exist before M3 gate runs (install.sh §1 verifies)
     env_file:
