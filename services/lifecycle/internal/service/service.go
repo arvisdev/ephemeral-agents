@@ -30,7 +30,8 @@ type Service struct {
 	tasksDir     string        // /var/poc/tasks for per-task logs
 	reapInterval time.Duration // REAPER_INTERVAL
 	reapGrace    time.Duration // REAPER_GRACE — wait past poc.expires before reaping
-	m3Env        map[string]string // M3 §2 per-run env (secrets from compose env_file)
+	m3Env           map[string]string // M3 §2 per-run env (secrets from compose env_file)
+	defaultExecutor string            // M5 §4: executor when the message omits it ("" = stub pin)
 	cpuLimit     float64
 	memLimit     int64
 
@@ -45,6 +46,7 @@ var networkName = func() string { if v := os.Getenv("POC_NETWORK"); v != "" { re
 func New(cli *dockercli.CLI, log *slog.Logger, image string, defaultTTL, reapInterval, reapGrace time.Duration, tasksDir string, cpuLimit float64, memLimit int64) *Service {
 	return &Service{
 		cli: cli, log: log, image: image, defaultTTL: defaultTTL,
+		defaultExecutor: os.Getenv("POC_EXECUTOR_DEFAULT"),
 		m3Env: m3FromEnv(),
 		tasksDir: tasksDir, reapInterval: reapInterval, reapGrace: reapGrace, cpuLimit: cpuLimit, memLimit: memLimit,
 	}
@@ -73,9 +75,19 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		return taskconfig.SpawnResponse{}, fmt.Errorf("work dir: %w", err)
 	}
 
+	// M5 §4: the manager's message-v1 agent_ref is the Note-1 form
+	// "<catalog repo URL>#<folder>" — split it at this boundary so the
+	// executor gets the folder (AGENT_REF) and the repo URL (AGENT_REPO_URL).
+	execAgentRef := cfg.AgentRef
+	execRepoURL := cfg.AgentRepoURL
+	if i := strings.LastIndex(cfg.AgentRef, "#"); i > 0 {
+		execRepoURL = strings.TrimSuffix(cfg.AgentRef[:i], ".git")
+		execAgentRef = strings.TrimPrefix(cfg.AgentRef[i+1:], "/")
+	}
+
 	env := []string{
 		"TASK_ID=" + cfg.TaskID,
-		"AGENT_REF=" + cfg.AgentRef,
+		"AGENT_REF=" + execAgentRef,
 		"BEHAVIORAL_SPEC=" + cfg.BehavioralSpec,
 		"REPO_TARGET=" + cfg.RepoTarget,
 		"REQUESTER=" + cfg.Requester,
@@ -86,7 +98,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 	// M3 (§2/§2b): per-executor env injection — secrets live in the lifecycle
 	// process env (compose env_file from /opt/poc/secrets/*), never in images.
 	passThrough := map[string]string{
-		"AGENT_REPO_URL":      cfg.AgentRepoURL,
+		"AGENT_REPO_URL":      execRepoURL,
 		"REPO_FOLDER":         cfg.RepoFolder,
 		"HINDSIGHT_URL":       s.m3Env["HINDSIGHT_URL"],
 		"LLM_WIKI_REPO_URL":   s.m3Env["LLM_WIKI_REPO_URL"],
@@ -101,7 +113,15 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		// MODEL_DEFAULT: env fallback (e.g. z-ai/glm-5.3-flash via openrouter) —
 		// owner directive 2026-11-06: do NOT default to anthropic models (cost)
 	}
-	switch cfg.Executor {
+	// M5 §4: when the message omits executor (message-v1 has no executor
+	// field), the lifecycle's POC_EXECUTOR_DEFAULT config decides (stub pin
+	// remains the rollback default per M3 §2').
+	exec := cfg.Executor
+	if exec == "" {
+		exec = s.defaultExecutor
+	}
+
+	switch exec {
 	case "hermes":
 		env = append(env, "GITHUB_READ_TOKEN="+s.m3Env["GITHUB_READ_TOKEN"])
 		for k, v := range passThrough {
@@ -124,7 +144,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		}
 	}
 	cid, err := s.cli.Run(ctx, dockercli.RunSpec{
-		TaskID: cfg.TaskID, Image: s.imageFor(cfg.Executor), Env: env, WorkDir: workDir,
+		TaskID: cfg.TaskID, Image: s.imageFor(exec), Env: env, WorkDir: workDir,
 		Expires: expires, CPUs: s.cpuLimit, MemBytes: s.memLimit, Network: networkName,
 	})
 	if err != nil {

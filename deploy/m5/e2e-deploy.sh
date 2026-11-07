@@ -36,7 +36,7 @@ stage "S1 chassis (owning gate: TP-M0)" \
 stage "S2 adapter (owning gate: M1 §4 / TP-M1)" \
   ssh "$VM_XB" "cd /opt/poc/deploy/m1 && docker compose up -d topic-bridge"
 stage "S2 adapter consumer healthy" \
-  ssh "$VM_XB" "docker logs topic-bridge 2>&1 | grep -qiE 'consumer|consuming'"
+  ssh "$VM_XB" "docker logs m1-topic-bridge-1 2>&1 | grep -qiE 'consumer|consuming'"
 
 # S3 lifecycle: M2 compose up + deploy gate (pinned images present) + worker registered
 stage "S3 lifecycle deploy gate (pinned image exists — no-pull rule)" \
@@ -44,15 +44,15 @@ stage "S3 lifecycle deploy gate (pinned image exists — no-pull rule)" \
 stage "S3 lifecycle compose up" \
   ssh "$VM_XB" "cd /opt/poc/deploy/m2 && docker compose up -d"
 stage "S3 lifecycle healthy" \
-  ssh "$VM_XB" "curl -sf http://127.0.0.1:8090/health"
+  ssh "$VM_XB" "docker exec m2-lifecycle-1 curl -sf http://127.0.0.1:8090/health"
 stage "S3 worker registered (polling temporal)" \
-  ssh "$VM_XB" "docker logs worker 2>&1 | grep -qiE 'register|polling'"
+  ssh "$VM_XB" "docker logs m2-worker-1 2>&1 | grep -qiE 'WorkflowType TaskWorkflow|worker started|registered'"
 
 # S4 executors: M3 images load-verified on vm-xb; token issuance dry-run
 stage "S4 executor images present on vm-xb" \
   ssh "$VM_XB" "docker image inspect poc/hermes-ephemeral:1.0.0 >/dev/null && docker image inspect poc/claude-coder:1.0.0 >/dev/null"
 stage "S4 token issuance dry-run (issue + verify + revoke)" \
-  bash "$REPO_ROOT/deploy/m3/issue-token.sh" --dry-run
+  ssh "$VM_XB" "set -a; . /opt/poc/secrets/m3.env; set +a; bash /opt/poc/deploy/m3/issue-token.sh --dry-run"
 
 # S5 memory: M4 hindsight compose up on vm-hindsight + /healthz check
 # (the llm-wiki is a git repo cloned by the executor at boot — no service here)
@@ -69,6 +69,6 @@ stage "S6 gateway /healthz" \
 
 # S7 smoke: one M2-level task with the stub executor (proves S2–S3 before real agents)
 stage "S7 smoke task (stub executor through the full flow)" \
-  bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"s7-smoke-$(date +%s)\",\"ttl_s\":60}"
+  bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"s7-smoke-$(date +%s)\",\"executor\":\"stub\",\"agent_ref\":\"agents/dev-agent\",\"agent_repo_url\":\"https://github.com/arvisdev/available-agent-list\",\"repo_folder\":\"agents/dev-agent\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"task_prompt\":\"S7 smoke: confirm the flow\",\"max_turns\":3,\"behavioral_spec\":\"S7 end-to-end smoke\",\"requester\":\"m5-s7\",\"ttl_s\":300}"
 
 echo "=== e2e-deploy: all stages S1–S7 PASS ==="

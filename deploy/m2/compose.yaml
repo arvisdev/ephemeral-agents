@@ -13,6 +13,7 @@ services:
       # stays until the M3 executor tags pass (rollback rule, M3 §6)
       POC_IMAGE_HERMES: "192.168.0.198:5000/poc/hermes-ephemeral:1.0.0"
       POC_IMAGE_CODER: "192.168.0.198:5000/poc/claude-coder:1.0.0"
+      POC_EXECUTOR_DEFAULT: "hermes"              # M5 §4: executor when the message omits it (stub = rollback)
       POC_DOCKER_DEBUG: "true"                   # M3 debug: log exact docker run args
       # M3 §2 — per-run env sourced from the secret file (never in git/images);
       # file must exist before M3 gate runs (install.sh §1 verifies)

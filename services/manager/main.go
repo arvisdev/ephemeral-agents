@@ -280,6 +280,12 @@ func (s *server) handleTask(w http.ResponseWriter, r *http.Request) {
 	if req.TTLS > 0 {
 		est = req.TTLS
 	}
+	// The manager composes the work package: located spec content + the
+	// engineer's task_brief (message-v1 has no task_prompt field, so the
+	// brief rides in behavioral_spec — the executor's prompt input).
+	if strings.TrimSpace(req.TaskBrief) != "" {
+		spec = spec + "\n\n## Work package (task brief)\n" + strings.TrimSpace(req.TaskBrief) + "\n"
+	}
 	agent.SpecRef = spec // the behavioral spec the manager passes through (content or spec_ref)
 	msg, err := ComposeTaskMessage(req, agent, s.cfg.catalogRepo, s.cfg.repoTarget, s.cfg.requester, s.cfg.bootP50S, est)
 	if err != nil {

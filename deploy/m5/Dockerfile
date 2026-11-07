@@ -9,6 +9,6 @@ COPY . .
 RUN go build -o /out/svc "${MAIN:-.}"
 
 FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ca-certificates git && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/svc /usr/local/bin/svc
 ENTRYPOINT ["svc"]

@@ -13,6 +13,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"regexp"
 	"time"
 )
@@ -210,14 +211,30 @@ func MatchAgent(index []AgentIndexEntry, capability string) (AgentIndexEntry, er
 			return e, nil
 		}
 	}
+	// POC capability search: substring match on role/ref (M5 §1 step 2 —
+	// "search index.json for the agent matching the request's capability"),
+	// so "dev" finds role "software-developer" / ref "agents/dev-agent".
+	needle := strings.ToLower(capability)
+	for _, e := range index {
+		if strings.Contains(strings.ToLower(e.Role), needle) || strings.Contains(strings.ToLower(e.Ref), needle) {
+			return e, nil
+		}
+	}
 	return AgentIndexEntry{}, fmt.Errorf("no agent in the index matches capability %q", capability)
 }
 
-// ParseAgentIndex decodes the clone's index.json.
+// ParseAgentIndex decodes the clone's index.json. Accepts both shapes:
+// a bare array [{...}] and the catalog's wrapped form {"agents":[{...}]}.
 func ParseAgentIndex(data []byte) ([]AgentIndexEntry, error) {
 	var idx []AgentIndexEntry
 	if err := json.Unmarshal(data, &idx); err != nil {
-		return nil, fmt.Errorf("index.json: %w", err)
+		var wrapped struct {
+			Agents []AgentIndexEntry `json:"agents"`
+		}
+		if err2 := json.Unmarshal(data, &wrapped); err2 != nil || len(wrapped.Agents) == 0 {
+			return nil, fmt.Errorf("index.json: %w", err)
+		}
+		idx = wrapped.Agents
 	}
 	if len(idx) == 0 {
 		return nil, fmt.Errorf("index.json is empty")
