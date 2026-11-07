@@ -37,7 +37,7 @@ cmd=(claude -p "${TASK_PROMPT}
 Behavioral spec:
 ${BEHAVIORAL_SPEC}" --allowedTools "Edit,Write,MultiEdit,Read,Glob,Grep,Bash" --max-turns "${MAX_TURNS:-20}")
 if [ -n "$MODEL_ALIAS" ]; then cmd+=(--model "$MODEL_ALIAS"); fi
-summary="$("${cmd[@]}")" || { echo "claude CLI failed" >&2; exit 2; }
+summary="$("${cmd[@]}" 2>&1)" || { echo "claude CLI failed with output:" >&2; echo "$summary" | tail -5 >&2; exit 2; }
 
 # 4. commit + push the per-task branch
 export GIT_AUTHOR_NAME="ephemeral-coder" GIT_AUTHOR_EMAIL="coder@poc.local" \
