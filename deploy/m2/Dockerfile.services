@@ -2,14 +2,14 @@
 # Source: version 1/installation-deployment/M2-Lifecycle-Installation-and-Deployment.md §1
 # (build command in §1 tags the same image poc/lifecycle:1.0.0 and poc/worker:1.0.0;
 # the doc does not print this Dockerfile inline — transcribed to the M1 Dockerfile pattern)
-FROM golang:1.25 AS build
+FROM golang:1.26 AS build
 WORKDIR /src
 COPY . .
 RUN go build -o /out/lifecycle ./cmd/lifecycle \
  && go build -o /out/worker ./cmd/worker
 
 FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y ca-certificates docker.io curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get -y upgrade && apt-get install -y ca-certificates docker.io curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/lifecycle /usr/local/bin/lifecycle
 COPY --from=build /out/worker /usr/local/bin/worker
 ENTRYPOINT ["/usr/local/bin/lifecycle"]
