@@ -113,7 +113,8 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		if err != nil {
 			return taskconfig.SpawnResponse{}, fmt.Errorf("issue token (§1c): %w", err)
 		}
-		env = append(env, "GITHUB_TOKEN="+tok, "ANTHROPIC_API_KEY="+s.m3Env["ANTHROPIC_API_KEY"])
+		env = append(env, "GITHUB_TOKEN="+tok, "ANTHROPIC_API_KEY="+s.m3Env["ANTHROPIC_API_KEY"],
+			"REPO_URL="+cfg.AgentRepoURL)   // coder entrypoint contract: REPO_URL, not AGENT_REPO_URL
 		for k, v := range passThrough {
 			if v != "" {
 				env = append(env, k+"="+v)

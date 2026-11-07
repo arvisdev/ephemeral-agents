@@ -26,7 +26,7 @@ b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 
 jwt() { # RS256 app JWT, iat/exp 15 min
   local now iat exp header payload sig
-  now="$(date +%s)"; iat=$((now - 60)); exp=$((iat + 900))
+  now="$(date +%s)"; iat=$((now - 60)); exp=$((iat + 540))
   header="$({ printf '{"alg":"RS256","typ":"JWT"}'; } | b64url)"
   payload="$(printf '{"iss":"%s","iat":%d,"exp":%d,"aud":"%s"}' "$GITHUB_APP_ID" "$iat" "$exp" "$API" | b64url)"
   sig="$(printf '%s.%s' "$header" "$payload" \

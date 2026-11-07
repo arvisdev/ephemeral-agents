@@ -18,7 +18,9 @@ services:
     env_file:
       - /opt/poc/secrets/m3.env                       # M3 §2 per-run secrets (never in git/images)
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"   # rw: lifecycle spawns/reaps containers
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "/opt/poc/deploy/m3:/opt/poc/deploy/m3:ro"   # M3 §1c: token-issuance script
+      - "/opt/poc/secrets:/opt/poc/secrets:ro"          # M3 §1c: app-key.pem (read-only)   # rw: lifecycle spawns/reaps containers
       - "/var/poc/tasks:/var/poc/tasks"               # per-task log volume (§4 retention)
     restart: unless-stopped
     # deploy gate (deploy/m2/install.sh): the service entrypoint RUNS `docker image inspect poc/executor-stub:1.0.0`
