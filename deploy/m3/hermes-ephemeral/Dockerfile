@@ -3,7 +3,7 @@
 # or the estate's pinned base; record in image-tags.env
 FROM debian:trixie-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
       ca-certificates git curl gnupg procps python3 && rm -rf /var/lib/apt/lists/*
 # Hermes runtime install (per the owner's Hermes packaging):
 # HERMES_INSTALLER_URL is a mandatory build-arg: the estate's pinned Hermes
