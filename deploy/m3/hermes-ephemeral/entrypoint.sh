@@ -26,6 +26,7 @@ HINDSIGHT_URL="${HINDSIGHT_URL:-}"
 LLM_WIKI_REPO_URL="${LLM_WIKI_REPO_URL:-https://github.com/arvisdev/llm-wiki}"
 LLM_WIKI_READ_TOKEN="${LLM_WIKI_READ_TOKEN:-}"
 TTL_S="${TTL_S:-900}"
+TASK_PROMPT="${TASK_PROMPT:-}"   # lifecycle may omit it (spec-composed work packages); set -u guard
 
 START_MS="$(date +%s%3N)"   # container start (B1 boot-time origin)
 mkdir -p /work

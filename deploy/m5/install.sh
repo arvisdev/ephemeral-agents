@@ -217,8 +217,14 @@ e2e_acceptance_run() {
   else
     warn "§4   PROJECT_LOCAL_DIR unset — operator must verify the commit per M5 §4"
   fi
-  # report JSON
+  # report JSON — the task itself must have SUCCEEDED (not just reaped clean)
   curl -sf "$GATEWAY_URL/gateway/reports/$task_id" | tee "$EVIDENCE/e2e-report-$task_id.json" >/dev/null
+  rstatus="$(python3 -c "import json;print(json.load(open('$EVIDENCE/e2e-report-$task_id.json')).get('status',''))" 2>/dev/null || echo unreadable)"
+  if [ "$rstatus" != "success" ]; then
+    rreason="$(python3 -c "import json;print(json.load(open('$EVIDENCE/e2e-report-$task_id.json')).get('reason',''))" 2>/dev/null)"
+    die "§4   acceptance task FAILED (report status=$rstatus reason=$rreason) — see $EVIDENCE/e2e-report-$task_id.json"
+  fi
+  log "§4   report status: success"
   log "§4   evidence pack -> $EVIDENCE (add: temporal trace export + lifecycle log)"
   ok "§4 E2E run: artifact chain verified (survivors=$survivors)"
 }

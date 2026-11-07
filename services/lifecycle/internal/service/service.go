@@ -106,7 +106,10 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 		"MODEL_API_KEY":       s.m3Env["MODEL_API_KEY"],
 		"ANTHROPIC_API_KEY":   s.m3Env["ANTHROPIC_API_KEY"],
 		"ANTHROPIC_BASE_URL":  s.m3Env["ANTHROPIC_BASE_URL"],
-		"TASK_PROMPT":         cfg.TaskPrompt,
+		// TaskPrompt may be empty (spec-composed work packages put the brief in
+		// BehavioralSpec); the executor's hydration contract needs a non-empty
+		// prompt source, so coalesce instead of dropping the var.
+		"TASK_PROMPT":         coalesce(cfg.TaskPrompt, cfg.BehavioralSpec),
 		"MAX_TURNS":           cfg.MaxTurnsLabel(),
 		"MODEL":               cfg.Model,
 		"MODEL_DEFAULT":       s.m3Env["MODEL_DEFAULT"],
@@ -356,4 +359,11 @@ func m3FromEnv() map[string]string {
 		out[k] = os.Getenv(k)
 	}
 	return out
+}
+// coalesce returns the first non-empty string (empty-var guard for spawn env).
+func coalesce(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }
