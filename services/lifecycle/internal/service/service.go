@@ -40,6 +40,8 @@ type Service struct {
 }
 
 // New builds the service; the CLI runs docker commands against the socket.
+var networkName = func() string { if v := os.Getenv("POC_NETWORK"); v != "" { return v }; return "poc-net" }()
+
 func New(cli *dockercli.CLI, log *slog.Logger, image string, defaultTTL, reapInterval, reapGrace time.Duration, tasksDir string, cpuLimit float64, memLimit int64) *Service {
 	return &Service{
 		cli: cli, log: log, image: image, defaultTTL: defaultTTL,
@@ -114,7 +116,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 			return taskconfig.SpawnResponse{}, fmt.Errorf("issue token (§1c): %w", err)
 		}
 		env = append(env, "GITHUB_TOKEN="+tok, "ANTHROPIC_API_KEY="+s.m3Env["ANTHROPIC_API_KEY"],
-			"REPO_URL="+cfg.AgentRepoURL)   // coder entrypoint contract: REPO_URL, not AGENT_REPO_URL
+			"REPO_URL=https://github.com/arvisdev/"+strings.TrimPrefix(cfg.RepoTarget, "repos/")) // repo_target is repos/<repo> relative to the owner; coder edits the project repo, not the agent catalog
 		for k, v := range passThrough {
 			if v != "" {
 				env = append(env, k+"="+v)
@@ -123,7 +125,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 	}
 	cid, err := s.cli.Run(ctx, dockercli.RunSpec{
 		TaskID: cfg.TaskID, Image: s.imageFor(cfg.Executor), Env: env, WorkDir: workDir,
-		Expires: expires, CPUs: s.cpuLimit, MemBytes: s.memLimit,
+		Expires: expires, CPUs: s.cpuLimit, MemBytes: s.memLimit, Network: networkName,
 	})
 	if err != nil {
 		return taskconfig.SpawnResponse{}, fmt.Errorf("container create: %w", err)
@@ -327,6 +329,7 @@ func m3FromEnv() map[string]string {
 		"HINDSIGHT_URL", "LLM_WIKI_REPO_URL", "LLM_WIKI_READ_TOKEN",
 		"MODEL_API_KEY", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "GITHUB_READ_TOKEN",
 		"GITHUB_APP_ID", "INSTALLATION_ID", "POC_IMAGE_HERMES", "POC_IMAGE_CODER",
+		"MODEL_DEFAULT", // coder model id (z-ai/glm-5.3-flash) — was missing → empty --model at spawn
 	}
 	out := map[string]string{}
 	for _, k := range keys {

@@ -69,6 +69,7 @@ type RunSpec struct {
 	Expires  time.Time
 	CPUs     float64 // 0 = unset
 	MemBytes int64   // 0 = unset
+	Network  string  // attach to this docker network (M3 §1b: poc-net)
 }
 
 // Run creates and starts the ephemeral container; returns its ID.
@@ -89,7 +90,13 @@ func (c *CLI) Run(ctx context.Context, s RunSpec) (string, error) {
 	for _, e := range s.Env {
 		args = append(args, "-e", e)
 	}
+	if s.Network != "" {
+		args = append(args, "--network", s.Network)
+	}
 	args = append(args, s.Image)
+	if os.Getenv("POC_DOCKER_DEBUG") == "true" {
+		fmt.Println("DOCKER_RUN:", strings.Join(args, " "))
+	}
 	out, err := c.run(ctx, args...)
 	if err != nil {
 		return "", err

@@ -26,15 +26,22 @@ git -C /work/project checkout -b "task/${TASK_ID}" || exit 2
 
 # 3. run the headless agent (API key injected per-run, never in the image)
 [ -n "$ANTHROPIC_API_KEY" ] || { echo "ANTHROPIC_API_KEY missing at spawn" >&2; exit 2; }
-MODEL="${MODEL:-$MODEL_DEFAULT}"   # owner directive: default z-ai/glm-5.3-flash via openrouter, never anthropic
+MODEL="${MODEL:-${MODEL_DEFAULT:-}}"   # owner directive: default z-ai/glm-5.3-flash via openrouter, never anthropic
+# gateway/custom model ids must be exposed through a known alias (claude-code docs:
+# model-config#correct-the-window-for-a-gateway-or-custom-model-id); a raw id as --model
+# triggers [claude-code:unrecognized_model] and the SDK exits nonzero.
+export ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL"
+MODEL_ALIAS="sonnet"
 cmd=(claude -p "${TASK_PROMPT}
 
 Behavioral spec:
-${BEHAVIORAL_SPEC}" --max-turns "${MAX_TURNS:-20}")
-if [ -n "$MODEL" ]; then cmd+=(--model "$MODEL"); fi
+${BEHAVIORAL_SPEC}" --allowedTools "Edit,Write,MultiEdit,Read,Glob,Grep,Bash" --max-turns "${MAX_TURNS:-20}")
+if [ -n "$MODEL_ALIAS" ]; then cmd+=(--model "$MODEL_ALIAS"); fi
 summary="$("${cmd[@]}")" || { echo "claude CLI failed" >&2; exit 2; }
 
 # 4. commit + push the per-task branch
+export GIT_AUTHOR_NAME="ephemeral-coder" GIT_AUTHOR_EMAIL="coder@poc.local" \
+       GIT_COMMITTER_NAME="ephemeral-coder" GIT_COMMITTER_EMAIL="coder@poc.local"
 git -C /work/project add -A
 git -C /work/project commit -m "task/${TASK_ID}: ${summary}" || true
 git -C /work/project push origin "task/${TASK_ID}" || { echo "push failed (contents:write? branch protection?)" >&2; exit 2; }
