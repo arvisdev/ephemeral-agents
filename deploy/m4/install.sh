@@ -206,7 +206,7 @@ ENVEOF
   ssh "$VM_XB" "cd /opt/poc/deploy/m2 && docker compose up -d"
   local i
   for i in $(seq 1 40); do
-    if ssh "$VM_XB" "docker compose -f /opt/poc/deploy/m2/compose.yaml exec -T lifecycle test -n \"\$(curl -s http://127.0.0.1:8090/health)\"" >/dev/null 2>&1; then
+    if ssh "$VM_XB" "docker compose -f /opt/poc/deploy/m2/compose.yaml exec -T lifecycle sh -c 'test -n \"\$(curl -s http://127.0.0.1:8090/health)\"'" >/dev/null 2>&1; then
       break
     fi
     sleep 3
@@ -225,7 +225,7 @@ gate_tests() {
   {
     echo "# M4 gate tests — $(date -u)"
     # G1 network R/W
-    body='{"task_id":"t-g1","agent_ref":"dev","scope":"cross-task","body":{"learning":"m4-install-g1"}}'
+    body='{"task_id":"t-g1","agent_ref":"dev","scope":"cross-task","body":{"summary":"m4-install-g1","learning":"m4-install-g1"}}'
     w="$(curl -s -XPOST "$HINDSIGHT_URL/memory/write" -H 'content-type: application/json' -d "$body" || echo CURL-FAIL)"
     r="$(curl -s "$HINDSIGHT_URL/memory/read?task_id=t-g1&scope=cross-task" || echo CURL-FAIL)"
     if echo "$r" | grep -q "m4-install-g1"; then

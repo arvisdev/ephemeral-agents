@@ -16,7 +16,7 @@ services:
   hindsight-api:
     image: "poc/hindsight-api:1.0.0"       # small Go service (built in §1b)
     environment:
-      DB_DSN: "postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight"
+      DB_DSN: "postgres://hindsight:${HINDSIGHT_DB_PASS}@hindsight-pg:5432/hindsight?sslmode=disable"
       LISTEN: "0.0.0.0:8081"
       EMBEDDINGS: ${EMBEDDING_PROVIDER}
       EMBEDDING_API_KEY: ${EMBEDDING_API_KEY}   # provider key — without it every write 500s
@@ -24,5 +24,7 @@ services:
       hindsight-pg:
         condition: service_healthy
     restart: unless-stopped
+    ports:
+      - "8081:8081"   # LAN-reachable API (doc §3: HINDSIGHT_URL=http://vm-hindsight:8081; UFW 8081 open to 192.168.0.0/24)
 volumes:
   hindsight-pg-data: {}
