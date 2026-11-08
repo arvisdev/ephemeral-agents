@@ -37,7 +37,7 @@ Retrieval is semantic (pgvector top-k): suited to "have we seen this before?"
 
 **Exact use:** the *consultable reference library*. Broad knowledge an agent
 consults when relevant. As of D-wiki-git (2026-11-04) this is a plain git
-repository — **https://github.com/arvisdev/llm-wiki** (private) — not a
+repository — **the owner-curated `llm-wiki` git repository (private; access requires authorization) (private) — not a
 serving service: consumers shallow-clone it (`git clone --depth 1`) and read
 the markdown directly. There is no retrieval API and no database.
 

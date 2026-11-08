@@ -20,7 +20,7 @@ Store-content model (owner-confirmed): Hindsight = long-term memory; **llm-wiki 
 - Deliverable: API contract doc + working service + a client helper the executor containers use over the network.
 
 **WP-4.2 — llm-wiki consumption (git repo, D-wiki-git)**
-- Reference standards live in the **llm-wiki** git repo — https://github.com/arvisdev/llm-wiki (private; scaffolded with `design-standards/`, `dev-best-practices/`, `business-best-practices/`, `tools-and-skills/`, `CHANGELOG.md`, README). **No wiki service, no retrieval API, no ingest pipeline** (the LLM-Wiki VM/RAG service was removed 2026-11-04).
+- Reference standards live in the **llm-wiki** git repo — the owner-curated `llm-wiki` git repository (private; access requires authorization) (private; scaffolded with `design-standards/`, `dev-best-practices/`, `business-best-practices/`, `tools-and-skills/`, `CHANGELOG.md`, README). **No wiki service, no retrieval API, no ingest pipeline** (the LLM-Wiki VM/RAG service was removed 2026-11-04).
 - Hydration = a full **shallow clone** (`git clone --depth 1`) of llm-wiki at executor boot; agents read the markdown directly.
 - Open item (recorded, not solved): the hydration/retrieval shape is undecided — the interim default is the full shallow clone above; a curated index/README-per-topic retrieval aid may be added later (V2). Curation cadence/ownership is tracked in the repo's CHANGELOG.
 
