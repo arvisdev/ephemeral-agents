@@ -130,6 +130,13 @@ personal credential file.
 
 ## Versioning conventions (V1 → V2 readiness)
 
+> **V2 kickoff (2026-11-08).** Version 2 has started in its own
+> **private** repository: [`ephemeral-agents-v2`](https://github.com/arvisdev/ephemeral-agents-v2).
+> This repository is the **frozen public V1 record** — no new content is
+> added here. V2 cites this record by commit hash
+> (`14bf62dc81729ed0ece355c30b5b6888d4fbf058`); see the V2 repo's
+> `decision-log.md` for the kickoff decision.
+
 The repo is structured so a Version 2 iteration can start without a
 reorganization debate:
 
