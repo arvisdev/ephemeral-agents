@@ -46,9 +46,10 @@ component in Part II, and fully traced in Part III.
 
 - **Labels with permanent meaning:** Walls 1–7 (Chapter 1) and Principles
   P1–P6 (Chapter 2) are cited by number throughout.
-- **De-identification:** the book uses neutral placeholders
-  (`<organization>`, `<worker-host>`) — no usernames, credentials, network
-  addresses, or personal information appear anywhere in its text.
+- **Sensitive data:** the book contains no credentials, tokens, keys, or
+  personal data. The owner's public account name
+  (`github.com/arvisdev/...`) and internal `192.168.0.x` LAN addresses are
+  approved for inclusion by the owner and appear as-is.
 - **Evidence:** every measured claim in Part III traces to the project's
   filed evidence pack; the re-runnable material is committed in this
   repository.
