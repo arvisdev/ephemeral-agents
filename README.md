@@ -97,6 +97,18 @@ practitioner's lessons are in
 the full thesis → design → proof treatment is the
 [book](book/README.md) (14 chapters).
 
+**What is deliberately NOT in Version 1: no agent in the request path.**
+The front-of-house VM runs deterministic Go code only — the gateway and the
+manager (capability keyword matching over the roster catalog). There is **no
+Hermes agent, and no Chief-of-Staff agent, running on or behind the gateway
+in V1**. The agent-judgment layer — a persistent Chief-of-Staff Hermes agent
+that receives natural-language requests, decomposes them into work packages,
+and proposes roster selections for the manager to validate — is **designed
+(book, Chapter 10) and scheduled as the first Version 2 milestone** in the
+companion repository [`ephemeral-agents-v2`](https://github.com/<organization>/ephemeral-agents-v2).
+This repository is the frozen record of the proof: it documents exactly what
+was built, gated, and signed — and equally clearly, what was deferred.
+
 Original feasibility verdict (pre-build):
 **Technically feasible — no fundamental blocker**
 ([Technical-Feasibility-Analysis.md](version%201/Technical-Feasibility-Analysis.md)).
