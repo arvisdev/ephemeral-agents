@@ -6,6 +6,27 @@ concept, designs, and specifications are the author's original work
 (conceived May 13, 2026); AI served as directed research assistant, document
 creator, and rules-bound implementer.
 
+## Where to start
+
+**Read the [book](book/README.md) first.** It is the primary resource for
+understanding this project: Part I (Chapters 1–3) explains the problem, the
+thesis, and the organization in plain language — no technical background
+needed; Part II (Chapters 4–10) walks through every component and why it was
+designed the way it was; Part III (Chapters 11–13) is the proof — how it was
+built, what failed, and what was learned; Chapter 14 tells an operator how to
+deploy the whole system from scratch.
+
+After the book:
+
+1. [Initial-POC-Findings-Report.md](Initial-POC-Findings-Report.md) — the
+   signed evidence record of the proof-of-concept (M0–M5).
+2. [POC-Retrospective-and-Insights.md](POC-Retrospective-and-Insights.md) —
+   the practitioner's lessons digest.
+3. [`version 1/`](version%201/) — the V1 design and specification set
+   (the original documents, kept as baselined records).
+4. [`deploy/`](deploy/README.md) — the executable layer: install scripts and
+   gate tests, for actually running the system.
+
 **A standalone proof-of-concept of an ephemeral AI Dev Agent system** — a
 human-initiated, human-reported flow in which a durable orchestrator (Temporal)
 drives short-lived, git-provisioned executor containers that hydrate from
