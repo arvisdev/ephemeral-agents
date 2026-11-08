@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Installs on** | vm-hindsight (Hindsight: Postgres+pgvector + API) — *(D-wiki-git, 2026-11-04: no wiki VM; llm-wiki = the git repo `github.com/arvisdev/llm-wiki`, consumed by shallow clone)* |
+| **Installs on** | vm-hindsight (Hindsight: Postgres+pgvector + API) — *(D-wiki-git, 2026-11-04: no wiki VM; llm-wiki = the git repo `github.com/<organization>/llm-wiki`, consumed by shallow clone)* |
 | **Prereqs** | M0 (vm-hindsight exists, Docker up), M2/M3 (an executor that hydrates and writes memory) |
 | **What gets deployed** | `poc/hindsight-api:1.0.0` + `hindsight-pg` (vm-hindsight), updated M2/M3 env wiring (llm-wiki repo URL for the clone) |
 | **Language (mandatory)** | No new Temporal code in this milestone — all workflow/activity code stays in the M2 Go services (owner instruction: Go for all Temporal code, speed + size). The Hindsight API service follows the POC's Go convention. |
@@ -75,10 +75,10 @@ ssh vm-hindsight 'cd /opt/poc/deploy/m4/hindsight && docker compose up -d'
 
 *Why:* per **D-wiki-git (owner, 2026-11-04)** there is **no wiki VM and no wiki service** — the former LLM-Wiki (vm-llm-wiki, `llmwiki-api`, pgvector serving layer, ingest pipeline) is removed entirely. Reference standards live in a plain, private git repository that consumers shallow-clone; the content repo IS the store (D-wiki-truth, now trivially true).
 
-**2a. The repo:** https://github.com/arvisdev/llm-wiki — already created and scaffolded:
+**2a. The repo:** github.com/<organization>/llm-wiki — already created and scaffolded:
 
 ```
-llm-wiki/  (github.com/arvisdev/llm-wiki, private)
+llm-wiki/  (github.com/<organization>/llm-wiki, private)
   design-standards/      *.md   (architecture standards, naming, patterns)
   dev-best-practices/    *.md
   business-best-practices/*.md
@@ -87,7 +87,7 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
   README.md
 ```
 
-**2b. Consumption:** hydrate-time `git clone --depth 1` of the repo. Read access uses a **distinct static `LLM_WIKI_READ_TOKEN`** — a fine-grained personal access token granting `contents:read` on `arvisdev/llm-wiki` only (not a GitHub App installation token, and not the catalog's `GITHUB_READ_TOKEN`). Nothing to install on any VM for this.
+**2b. Consumption:** hydrate-time `git clone --depth 1` of the repo. Read access uses a **distinct static `LLM_WIKI_READ_TOKEN`** — a fine-grained personal access token granting `contents:read` on `<organization>/llm-wiki` only (not a GitHub App installation token, and not the catalog's `GITHUB_READ_TOKEN`). Nothing to install on any VM for this.
 
 - **Open item (recorded, not solved):** the hydration/retrieval shape is undecided — the interim default is a **full shallow clone at executor boot**; agents read the markdown directly. A curated index / README-per-topic retrieval aid may be added later (V2).
 - Curation for POC = markdown committed to the repo; every clone made after the push sees it (no reindex step — the ingest pipeline is gone).
@@ -97,7 +97,7 @@ llm-wiki/  (github.com/arvisdev/llm-wiki, private)
 *Why:* this is the connective tissue, and it's deliberately **config, not new Temporal code** — `HINDSIGHT_URL` and the llm-wiki repo URL ride into every spawned container as env, and the M2 Go worker hydrates (read + clone) and writes-on-end without a code change. That's the Go mandate paying off: adding memory + knowledge to the flow touched zero Temporal code.
 
 1. **Names:** ensure `vm-hindsight` resolves on vm-xb/vm-xa (section 5 of M0 — `/etc/hosts` or PVE DNS; same mechanism). No wiki hostname exists (D-wiki-git).
-2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLM_WIKI_REPO_URL=https://github.com/arvisdev/llm-wiki` + `LLM_WIKI_READ_TOKEN`) → these ride into every spawned container as env (the executor entrypoints from M3 section 2a/2b already read `HINDSIGHT_URL`/`LLM_WIKI_*`).
+2. **M2 config** (`deploy/m2/compose.yaml` env + lifecycle config): add `HINDSIGHT_URL=http://vm-hindsight:8081` and the llm-wiki clone settings (`LLM_WIKI_REPO_URL=github.com/<organization>/llm-wiki` + `LLM_WIKI_READ_TOKEN`) → these ride into every spawned container as env (the executor entrypoints from M3 section 2a/2b already read `HINDSIGHT_URL`/`LLM_WIKI_*`).
 3. **Hydrate step** (lifecycle worker): before task work, fan out the llm-wiki **shallow clone** (`git clone --depth 1 $LLM_WIKI_REPO_URL`) + `memory/read` → pass results into the agent's task payload; record per-source latency.
 4. **Write-on-end:** at task completion, `memory/write` the agent's report (scope per the section 1 contract: artifacts/learnings = `cross-task`, run scratch = `session`).
 5. Redeploy lifecycle + worker with the new env; verify pre-pull/gate still passes.

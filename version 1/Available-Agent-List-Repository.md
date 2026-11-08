@@ -67,7 +67,7 @@ M5 E2E run can resolve and dispatch against it.
 - The catalog is **owner-curated** (R7). The POC's scripts and services never
   write to it; only the owner (or a future curation flow) does.
 - **Agent specs live only here** (D-spec-source): they are never copied into
-  the llm-wiki repo (github.com/arvisdev/llm-wiki, D-wiki-git). The llm-wiki's
+  the llm-wiki repo (github.com/<organization>/llm-wiki, D-wiki-git). The llm-wiki's
   shared enterprise area holds the *agent-design standards* this catalog's
   curation follows — one source of truth per
   artifact: specs → this repo; how-to-design-an-agent → the llm-wiki.

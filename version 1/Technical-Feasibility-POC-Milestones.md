@@ -13,7 +13,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 ---
 
 ## M0 – Infrastructure Foundation
-**Goal:** Proxmox 9.x + VMs (VM-Xa, VM-Xb, VM-3; VM-2 dropped per D-wiki-git) with Docker; RabbitMQ (Topic) and Temporal (Server + Worker) standing up and reachable. *(D-wiki-git, 2026-11-04: 3-VM topology — VM-2/vm-llm-wiki is dropped; the wiki is the git repo github.com/arvisdev/llm-wiki, shallow-cloned at executor boot.)*
+**Goal:** Proxmox 9.x + VMs (VM-Xa, VM-Xb, VM-3; VM-2 dropped per D-wiki-git) with Docker; RabbitMQ (Topic) and Temporal (Server + Worker) standing up and reachable. *(D-wiki-git, 2026-11-04: 3-VM topology — VM-2/vm-llm-wiki is dropped; the wiki is the git repo github.com/<organization>/llm-wiki, shallow-cloned at executor boot.)*
 **Done-when:**
 - VMs provisioned; Docker pulls/runs a hello-container on each.
 - RabbitMQ topic reachable from VM-Xa (publish) and VM-Xb (consume).
@@ -51,7 +51,7 @@ Principle: **prove the risky parts first, in dependency order.** The two To-veri
 **Goal:** Wire the three hydration sources: Hindsight R/W API, **llm-wiki git repo** (shallow clone, D-wiki-git — the LLM-Wiki RAG service is removed), Available Agent List (git).
 **Done-when:**
 - An ephemeral agent **reads and writes** Hindsight per session over the network (R6).
-- An agent shallow-clones **llm-wiki** (github.com/arvisdev/llm-wiki) and reads the relevant design-standard/skill document from the clone (R7).
+- An agent shallow-clones **llm-wiki** (github.com/<organization>/llm-wiki) and reads the relevant design-standard/skill document from the clone (R7).
 - Agent loads its full persona + skills markdown from the Available Agent List repo.
 **Retires:** R6, R7.
 

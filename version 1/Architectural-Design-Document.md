@@ -35,7 +35,7 @@ A human Software Engineer (human-in-the-loop, Hermes Desktop, outside the compan
                     │  └───────────────────────────────────────────┘   │
                     │  vm-hindsight (pgvector memory)                  │
                     └───────────────────────────────────────────────────┘
-                    Cloud: GitHub — Available Agent List repo · llm-wiki repo (github.com/arvisdev/llm-wiki) · Project Repo
+                    Cloud: GitHub — Available Agent List repo · llm-wiki repo (github.com/<organization>/llm-wiki) · Project Repo
 ```
 
 - **Persistent:** Gateway + Manager (vm-xa); queue + Temporal (vm-xb); memory VM.
@@ -138,7 +138,7 @@ Invariants: teardown is safe to re-run; after M runs, zero leaked containers (TP
 3. Ephemeral isolation level — co-located containers on vm-xb vs. per-task VMs (M3/M5).
 4. N+1 execution model (branch vs. worktree) and the concrete cap value (M3).
 5. llm-wiki ↔ Hindsight ↔ GitHub unlabeled flows from the source diagram (whether learnings promote into repos/llm-wiki) — resolve at M4.
-6. **Wiki hydration/retrieval shape (D-wiki-git → resolved by D-hydrate, 2026-11-04)** — RESOLVED: full shallow clone (`git clone --depth 1`) of `github.com/arvisdev/llm-wiki` at executor boot is the standing decision; revisit trigger recorded in D-hydrate (clone time > 20% of TTL headroom across 3 runs, or repo > 50 MB) — then move to a curated index / path-scoped fetch (V2 candidate).
+6. **Wiki hydration/retrieval shape (D-wiki-git → resolved by D-hydrate, 2026-11-04)** — RESOLVED: full shallow clone (`git clone --depth 1`) of `github.com/<organization>/llm-wiki` at executor boot is the standing decision; revisit trigger recorded in D-hydrate (clone time > 20% of TTL headroom across 3 runs, or repo > 50 MB) — then move to a curated index / path-scoped fetch (V2 candidate).
 
 These resolutions (or explicit deferrals) form the **Version 2 open-items list** required at M5 exit.
 

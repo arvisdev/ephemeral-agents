@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Installs on** | PVE host + 3 KVM VMs (vm-xa, vm-xb, vm-hindsight) — *(D-wiki-git, 2026-11-04: vm-llm-wiki / VMID 902 is dropped; the POC is a 3-VM topology, reference standards live in the git repo `github.com/arvisdev/llm-wiki`)* |
+| **Installs on** | PVE host + 3 KVM VMs (vm-xa, vm-xb, vm-hindsight) — *(D-wiki-git, 2026-11-04: vm-llm-wiki / VMID 902 is dropped; the POC is a 3-VM topology, reference standards live in the git repo `github.com/<organization>/llm-wiki`)* |
 | **Prereqs** | Proxmox 9.x host with PVE shell access; a DHCP/static IP pool; outbound Internet on the Proxmox LAN |
 | **Hosts touched** | PVE host (VM creation), all 3 VMs (OS + Docker + services) |
 | **Language (mandatory)** | All Temporal SDK code — workflows, workers, activities, adapters, CLI samples — **must be Go** (owner instruction: speed + size). No other language for Temporal code in this POC. |

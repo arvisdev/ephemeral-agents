@@ -5,7 +5,7 @@ Hindsight · must be found → the llm-wiki git repo.** The sections below spell
 out each store's exact use, what goes in, what never goes in, and why. These
 rules consolidate D-stores, D-proj-id, D-wiki-truth, D-repo-truth, D-repo-ops,
 D-catalog, D-spec-source, and D-wiki-git (2026-11-04: the LLM-Wiki RAG service
-was removed; the wiki is now the plain git repo `github.com/arvisdev/llm-wiki`,
+was removed; the wiki is now the plain git repo `github.com/<organization>/llm-wiki`,
 consumed by clone — D-wiki-truth is now trivially true: the content repo IS the
 whole store, no serving layer).
 
@@ -78,7 +78,7 @@ them verbatim.
 |---|---|---|---|
 | **Agent catalog** ("Available Agent List") | one, company-wide | agent specs only: index.json + per-agent folder (persona, skills, tools, behavioral-spec, constraints) — hydrated byte-exact at executor boot; manager resolves via index.json | reference docs (→ llm-wiki), code, memory, anything not consumed at runtime |
 | **Project repo** (GitHub/ADO) | one **per project** | source code + the project's versionable documentation (design docs, specs of record, deliverables); task branches `task/<task_id>` | reference material (→ llm-wiki per the D-repo-truth boundary: deliverables → repo, reference → llm-wiki), agent specs, memory |
-| **llm-wiki** (github.com/arvisdev/llm-wiki) | one, company-wide, private | the reference documents agents consult (enterprise + per-project reference): `design-standards/`, `dev-best-practices/`, `business-best-practices/`, `tools-and-skills/`, `CHANGELOG.md` | anything not destined for reference lookup; agent operational specs |
+| **llm-wiki** (github.com/<organization>/llm-wiki) | one, company-wide, private | the reference documents agents consult (enterprise + per-project reference): `design-standards/`, `dev-best-practices/`, `business-best-practices/`, `tools-and-skills/`, `CHANGELOG.md` | anything not destined for reference lookup; agent operational specs |
 
 All three ride the same hosting platform; per project only the project repo
 is added.

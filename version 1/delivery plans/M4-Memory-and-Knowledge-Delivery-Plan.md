@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Milestone** | M4 (from `../Technical-Feasibility-POC-Milestones.md`) |
-| **Goal** | Wire the three hydration sources into the running lifecycle: **Hindsight** long-term memory (VM-3, R/W API), **llm-wiki** (the git repo `github.com/arvisdev/llm-wiki`, design standards + dev/business best practices — D-wiki-git, 2026-11-04: the LLM-Wiki VM/RAG service is removed), and the **Available Agent List** repo (agent skills/personas). |
+| **Goal** | Wire the three hydration sources into the running lifecycle: **Hindsight** long-term memory (VM-3, R/W API), **llm-wiki** (the git repo `github.com/<organization>/llm-wiki`, design standards + dev/business best practices — D-wiki-git, 2026-11-04: the LLM-Wiki VM/RAG service is removed), and the **Available Agent List** repo (agent skills/personas). |
 | **Depends on** | M2 (lifecycle), M3a (an agent that actually hydrates) |
 | **Retires risk** | R6 (Hindsight R/W API), R7 (llm-wiki curation — serving-layer risk retired by the git replacement; cadence/ownership still open) |
 
@@ -43,7 +43,7 @@ Store-content model (owner-confirmed): Hindsight = long-term memory; **llm-wiki 
 
 1. **R/W over the network:** an ephemeral agent reads and writes Hindsight per session (WP-4.4, both directions).
 2. **Cross-task:** task 2 sees task 1's memory write, per the scoping rules.
-3. **llm-wiki clone + read:** an executor shallow-clones github.com/arvisdev/llm-wiki and finds the right standard/skill document for 3 test lookups (all correct; D-wiki-git — no retrieval API).
+3. **llm-wiki clone + read:** an executor shallow-clones github.com/<organization>/llm-wiki and finds the right standard/skill document for 3 test lookups (all correct; D-wiki-git — no retrieval API).
 4. **Catalog load:** agent boot still loads its full persona/skills from the repo with the other sources live (regression).
 5. **Bounded:** total hydration time recorded and within M2 TTL headroom.
 

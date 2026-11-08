@@ -9,7 +9,7 @@
 
 **Rating scale**
 
-> **2026-11-04 D-wiki-git addendum:** the LLM-Wiki serving layer (R7's To-verify pipeline) was removed after this assessment — the wiki is now the git repo `github.com/arvisdev/llm-wiki` consumed by shallow clone; `vm-llm-wiki` is dropped (3-VM topology: vm-xa, vm-xb, vm-hindsight). RAG/VM-2 references below are historical.
+> **2026-11-04 D-wiki-git addendum:** the LLM-Wiki serving layer (R7's To-verify pipeline) was removed after this assessment — the wiki is now the git repo `github.com/<organization>/llm-wiki` consumed by shallow clone; `vm-llm-wiki` is dropped (3-VM topology: vm-xa, vm-xb, vm-hindsight). RAG/VM-2 references below are historical.
 
 - **Proven** — off-the-shelf, widely used, low risk.
 - **Feasible** — clearly doable with known technology; effort, not uncertainty.
@@ -20,7 +20,7 @@
 
 ## 1. System under analysis (Version 1, one flow)
 
-A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up **ephemeral Docker containers as needed** (a Hermes Agent for agent-type work, a Claude Code Agent when coding occurs — the "(N+1)" label means variable count, not a fixed two; concurrent requests run concurrent containers, team-config capped, POC rule of thumb ≤5 per VM sizing) → they hydrate from **LLM-Wiki (VM-2)** *[D-wiki-git, 2026-11-04: superseded — the wiki is now the git repo `github.com/arvisdev/llm-wiki`, shallow-cloned; vm-llm-wiki dropped]*, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
+A human **Software Engineer** (Hermes Desktop, outside the boundary) requests work → **Hermes Agent Gateway + Manager Agent** (VM-Xa, persistent, in Proxmox) → **RabbitMQ (Topic)** (VM-Xb) → **Temporal** enqueues/polls → **"Executes Activity"** spins up **ephemeral Docker containers as needed** (a Hermes Agent for agent-type work, a Claude Code Agent when coding occurs — the "(N+1)" label means variable count, not a fixed two; concurrent requests run concurrent containers, team-config capped, POC rule of thumb ≤5 per VM sizing) → they hydrate from **LLM-Wiki (VM-2)** *[D-wiki-git, 2026-11-04: superseded — the wiki is now the git repo `github.com/<organization>/llm-wiki`, shallow-cloned; vm-llm-wiki dropped]*, the **Available Agent List** repo, and **Hindsight long-term memory (VM-3)** → the Claude Code agent **writes source code to the Project Repo** → the agents and containers are **destroyed**.
 
 The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemeral, git-provisioned executor containers**, with knowledge split across a shared RAG wiki, a vector memory, and a git-hosted agent-catalog.
 
@@ -37,7 +37,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | **Hermes Agent (Ephemeral)** | **To-verify** | Containerized Hermes is plausible. **Spike required:** confirm a container can boot Hermes and load persona + skills (markdown) from a git repo **at startup**, quickly, statelessly. |
 | **Claude Code Agent (N+1)** | **To-verify** | Headless Claude Code in a container is plausible. **Spike required:** repo checkout + toolchain, scoped git/API credentials, and reliable "write source code to Project Repo." **Risk:** N parallel coders writing the same repo → conflicts. |
 | **Hindsight — Long-Term Memory (VM-3)** | **Feasible** | Postgres + pgvector memory is proven. **To-verify:** expose an **API** that ephemeral agents can **R/W** at session time. |
-| **LLM-Wiki (VM-2)** | **Feasible** | Shared RAG / standards store is proven. **To-verify:** curation/indexing pipeline that keeps design standards + best practices current. *[D-wiki-git, 2026-11-04: superseded — serving layer removed; the wiki is the git repo `github.com/arvisdev/llm-wiki`, shallow-cloned by executors.]* |
+| **LLM-Wiki (VM-2)** | **Feasible** | Shared RAG / standards store is proven. **To-verify:** curation/indexing pipeline that keeps design standards + best practices current. *[D-wiki-git, 2026-11-04: superseded — serving layer removed; the wiki is the git repo `github.com/<organization>/llm-wiki`, shallow-cloned by executors.]* |
 | **GitHub repos (Available Agent List, Project Repo)** | **Proven** | Git + GHA/API. **Security:** ephemeral agents need **scoped/ephemeral** credentials (short-lived PAT / GITHUB_TOKEN, branch-limited) — not the owner's long-lived token. |
 | **Ephemeral teardown (destroy agent + container)** | **Feasible / Needs-build** | Docker lifecycle + Temporal on-complete/cleanup; needs **reliable teardown + error handling** so failed runs don't leak containers. |
 | **Software Engineer / Hermes Desktop (external)** | **Proven** | The user's desktop is the initiator/report sink. |
@@ -65,7 +65,7 @@ The single load-bearing idea: **a durable orchestrator (Temporal) drives ephemer
 | R4 | **Credential exposure** to ephemeral agents | M | H | Short-lived / scoped tokens (branch-limited, least-privilege), secrets injected per-run, no long-lived owner token in containers. |
 | R5 | **Hermes persona/skill load at boot** is slow or not supported | L | M | Spike first; fall back to sidecar that hydrates the container before the agent starts. |
 | R6 | **Hindsight R/W API** not available for agent sessions | L | M | Define the memory contract early; use a thin API wrapper; pgvector is the substrate. |
-| R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. **Update (owner, 2026-11-04, D-wiki-git):** the RAG **serving layer is retired** — the wiki is now a plain git repo (`github.com/arvisdev/llm-wiki`) consumed by shallow clone, so ingest/indexing/retrieval risk is gone; the residual risk is content curation cadence/ownership, still open (tracked in the repo's CHANGELOG). |
+| R7 | **LLM-Wiki curation** (standards go stale) | M | M | Index pipeline + owner curation cadence; version the standards. **Update (owner, 2026-11-04, D-wiki-git):** the RAG **serving layer is retired** — the wiki is now a plain git repo (`github.com/<organization>/llm-wiki`) consumed by shallow clone, so ingest/indexing/retrieval risk is gone; the residual risk is content curation cadence/ownership, still open (tracked in the repo's CHANGELOG). |
 | R8 | **Cross-VM service discovery** (VM-Xb agents must reach VM-2, VM-3, cloud) | L | M | Flat L2/overlay network or DNS/service-catalog; fixed service endpoints per VM. |
 | R9 | **Proxmox/VM naming** (VM-2/3 vs VM-Xa/Xb) unsettled | L | L | **Resolved by owner 2026-10-25:** the labels are POC discussion devices, not commitments; per-project naming is a deploy-time choice. POC records the decision (M0 section 6) and moves on. |
 

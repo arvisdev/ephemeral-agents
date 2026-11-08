@@ -67,7 +67,7 @@ Before committing to this pattern at enterprise scale (Version 2), the business 
 3. The RabbitMQ → Temporal adapter (Go), with idempotency and no-loss guarantees.
 4. The container lifecycle manager (Go): spawn / hydrate / teardown, crash-safe reaper, TTL backstop (default 900 s).
 5. Executor spikes: containerized Hermes (persona/skills load at boot) and headless Claude Code (real commit, scoped token).
-6. Knowledge layer: Hindsight R/W API (Postgres + pgvector) and the **llm-wiki** git repo (github.com/arvisdev/llm-wiki, consumed by shallow clone) over design standards; agent hydration from all three sources (llm-wiki, memory, Available Agent List repo).
+6. Knowledge layer: Hindsight R/W API (Postgres + pgvector) and the **llm-wiki** git repo (github.com/<organization>/llm-wiki, consumed by shallow clone) over design standards; agent hydration from all three sources (llm-wiki, memory, Available Agent List repo).
 7. Credential hardening: GitHub App JWT → short-lived installation tokens (`issue-token.sh`), no long-lived secrets in containers.
 8. Four failure-injection cases and the end-to-end run as the M5 gate.
 9. The Version-2 open-items list documenting everything the POC deliberately did not decide.
@@ -112,7 +112,7 @@ Requirement IDs are grouped by the milestone that proves them; each FR traces to
 
 **FR-K Knowledge & memory (M4)**
 - **FR-K1 (BO-5):** An ephemeral agent shall read **and write** Hindsight long-term memory per session over the network, with read-back demonstrable across tasks.
-- **FR-K2 (BO-5):** Reference standards shall be served **wiki-via-git**: an ephemeral agent shall shallow-clone the llm-wiki repo (github.com/arvisdev/llm-wiki) at boot and find the relevant design-standard/skill document in the clone (no retrieval API — D-wiki-git).
+- **FR-K2 (BO-5):** Reference standards shall be served **wiki-via-git**: an ephemeral agent shall shallow-clone the llm-wiki repo (github.com/<organization>/llm-wiki) at boot and find the relevant design-standard/skill document in the clone (no retrieval API — D-wiki-git).
 - **FR-K3 (BO-5):** Design standards content lives in the llm-wiki repo; agent personas/skills in the Available Agent List repo; long-term memory in Hindsight (owner store-content model). Each store has exactly one home.
 
 **FR-S Security (M3/M5)**
@@ -212,7 +212,7 @@ On acceptance, the feasibility verdict ("technically feasible — no fundamental
 | **Available Agent List** | Git repo holding agent personas, skills, tools, markdown files, and the Behavioral Specification |
 | **Behavioral Specification** | The behavior contract passed into each agent spin-up |
 | **Hindsight** | Long-term memory store (Postgres + pgvector) with a session R/W API |
-| **llm-wiki** | Shared git repo (github.com/arvisdev/llm-wiki) of design standards and dev/business best practices, consumed by shallow clone (D-wiki-git) |
+| **llm-wiki** | Shared git repo (github.com/<organization>/llm-wiki) of design standards and dev/business best practices, consumed by shallow clone (D-wiki-git) |
 | **Topic-bridge adapter** | Go service: RabbitMQ consumer → Temporal workflow start, exactly-once effect |
 | **Lifecycle manager** | Go service owning spawn/hydrate/teardown of executor containers + reaper |
 | **Gate (TP-Mn)** | The milestone test procedure that must PASS and be signed before the next milestone's install begins |
