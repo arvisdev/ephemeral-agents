@@ -15,13 +15,14 @@ The following are the original work and intellectual contribution of the author,
 
 ## 2. The role of AI
 
-AI (Hermes Agent) served this project as a **directed assistant** — a research assistant, document creator, and implementation tool — in exactly five functions, none of which included originating the idea, the design, or the specifications:
+AI (Hermes Agent) served this project as a **directed assistant** — a research assistant, document creator, and implementation tool — in exactly six functions, none of which included originating the idea, the design, or the specifications:
 
 1. **Validation.** The AI tested and verified the author's designs and specifications by executing the proof-of-concept build on real infrastructure. The AI validated; it did not originate.
 2. **Document production.** The AI produced the formatted documents in this repository — the design-doc set, this project's reports, and the companion book — from the author's designs, specifications, and directed research.
 3. **Code production, under the author's rules.** The AI wrote and tested the Go source code, strictly within the specific architectural constraints, rules, and business rules stated by the author (the Go-for-orchestration decision, the message contract, the durable-core pattern, the ephemeral worker model, the credential rules). The code is an implementation of the author's design and rules, not an independent creative act.
 4. **Installation and deployment tooling, per the architectural specifications.** The AI wrote and tested the bash/shell installation scripts and the docker-compose deployment files — as the executable expression of the author's architectural specifications, not as original architectural work.
-5. **Build-exercise logs.** The AI generated the operational logs and run records produced while executing the build exercises, under the author's direction.
+5. **Project files — per the producer documentation and the author's rules.** The AI wrote the component schemas (e.g. the message contract), configuration files, and similar project files in accordance with the producer documentation and the rules defined by the author and designer of the ephemeral-agents project.
+6. **Build-exercise logs.** The AI generated the operational logs and run records produced while executing the build exercises, under the author's direction.
 
 ## 3. Authority and sign-off
 
