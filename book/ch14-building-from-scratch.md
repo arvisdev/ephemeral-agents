@@ -148,7 +148,46 @@ minutes, which is exactly why the idempotency rule exists.
    control before the deployment is called done — otherwise the next
    rebuild silently loses it (Chapter 12, Lesson L3).
 
-## 14.8 Closing the loop
+## 14.8 After a reboot (the restart procedure)
+
+A first build is a sequence; a *restart* is a different sequence, and a
+deployment that documents only the first is incomplete. A host reboot does
+not restore the stack in dependency order — each deployment project comes
+back independently, and the pieces that look up other pieces by name will
+crash-loop until the named piece exists. The proven bring-up order, after
+any reboot of the execution host:
+
+```
+1. Workflow engine + store   (deploy/m0/temporal)   — first: everything
+                                                        else resolves
+                                                        "temporal" by name,
+                                                        and the name exists
+                                                        only while its
+                                                        containers run
+2. Broker + message bridge   (deploy/m1)            — bridge dials the
+                                                        engine by name
+3. Worker + lifecycle        (deploy/m2)            — worker dials the
+                                                        engine by name
+4. Dashboards + proxy        (the UI stack; the request-translation
+                              proxy)                — last: consumers,
+                                                        not dependencies
+```
+
+Then verify in one pass: every container `Up`, the broker's health check
+passing, the bridge consuming the durable queue, the worker registered on
+the task queue, and both dashboards answering. The whole procedure is a
+few minutes — the same idempotency that makes first builds re-runnable
+makes restarts a checklist rather than an investigation.
+
+One trap from the ledger (L11, and L3 before it): a container that mounts
+an artifact from a host *temporary* directory will fail to start after a
+reboot, because temporary directories are emptied at boot — and a failed
+mount can even leave a directory where the file should be, blocking the
+restart outright. The repair is to restore the artifact from its
+canonical repository copy and start the container. The permanent rule:
+nothing a container mounts may live outside source control.
+
+## 14.9 Closing the loop
 
 With the estate standing, the system described in Parts I and II is
 *running*: the roster is live, workers can be spawned, credentials mint and

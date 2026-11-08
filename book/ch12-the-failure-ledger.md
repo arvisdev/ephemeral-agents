@@ -188,6 +188,37 @@ cleaned up* — and early gates conflated them in various pairs.
 own gate. A task report that does not distinguish them is not a report; it
 is a rumor.
 
+### L11 · "A reboot is not a redeploy" *(learned after the build closed)*
+
+**The story.** After the system was signed and idle, the execution host
+rebooted under its owner. The containers came back unevenly: the broker
+recovered on its own, but the workflow-engine stack did not, and two
+components — the worker and the message bridge — spent the following
+minutes crash-looping on a name that no longer resolved, because the DNS
+alias for the workflow engine exists only while its containers run. The
+request-translation proxy failed separately and more strangely: it mounted
+its code from a host temporary directory, which a reboot had emptied — and
+the container runtime, finding a file expected at a mount path absent, had
+created a *directory* there, blocking the container from starting at all.
+The defect L3 warned about (an artifact living outside source control)
+reappeared in a second form: the source *was* in the repository, but the
+running deployment still consumed the temporary copy.
+
+**The repair.** The stack was brought back in dependency order — workflow
+engine and store first, then broker and bridge, then worker and lifecycle,
+then the dashboards and the proxy — and the proxy's file was restored from
+its canonical repository copy. Ten minutes, start to finish, because every
+component's compose project is idempotent and restartable.
+
+**The rule.** A deployment that has no *restart procedure* is incomplete:
+first-build sequences do not compose into a reboot story. Two rules
+followed: the bring-up order is documented and followed after every host
+reboot (the engine before its dependents, Chapter 14 §14.8); and the L3
+rule extends from *source* to *deployment* — if a running container mounts
+an artifact, the mount must come from source control, not a machine-local
+copy, because a reboot is the machine's way of forgetting. (Class C5 —
+the estate's latest move was simply *time*.)
+
 ## 12.3 The process lessons (the meta-level)
 
 Above the defect rules sit four process rules the build ran on and would
@@ -234,6 +265,7 @@ wrote: *gates assert outcomes, not cleanliness* · *the envelope is
 self-sufficient and every optional field has a stated default* · *nothing
 load-bearing lives only on a machine* · *test the production path, not a
 simulator* · *boot, artifact, verdict, and cleanup are four events with
-four pieces of evidence.* A system designed by these rules was then
+four pieces of evidence* — and, after the build closed, *a deployment
+without a documented restart procedure is incomplete.* A system designed by these rules was then
 completed, gated, and signed — which is Chapter 11's story told in one
 line, and Chapter 13's subject told in the next.

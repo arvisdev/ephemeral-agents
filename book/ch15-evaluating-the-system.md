@@ -41,7 +41,13 @@ stop and isolate it first.**
    VM (`<gateway-host>`) and the execution VM (`<execution-host>`), as `<user>`.
 2. The agent catalog repository reachable, with at least one agent entry in its
    `index.json` (the manager resolves every request against this catalog).
-3. The request-format fields (from `schemas/message-v1.json`), restated for convenience:
+3. The request-format fields (from `schemas/message-v1.json`), restated for
+   convenience below.
+
+> **If the estate was recently rebooted,** bring the stack back in
+> dependency order first (Chapter 14 §14.8) — a reboot does not restore the
+> deployment in the right order, and components that resolve the workflow
+> engine by name will crash-loop until it exists.
 
 | Field | Meaning |
 |---|---|
