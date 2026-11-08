@@ -64,7 +64,7 @@ App; M4 needs `EMBEDDING_PROVIDER` + `EMBEDDING_API_KEY` (D-embed, 2026-11-04:
 OpenAI-compatible HTTP embeddings, `text-embedding-3-small`/1536 — the key is a
 service-scoped secret in the gitignored `deploy/m4/hindsight/.env`) and
 `LLM_WIKI_READ_TOKEN` (the llm-wiki
-git repo, https://github.com/arvisdev/llm-wiki, is owner-curated — executors
+git repo, https://github.com/<organization>/llm-wiki, is owner-curated — executors
 shallow-clone it at boot; there is no llm-wiki service or retrieval API).
 
 ### Stage D — M5, end-to-end (the finale)
@@ -124,7 +124,7 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
       exist yet, create it from the working example
       `deploy/m5/agent-list-example/`.
 - [ ] **M4: the llm-wiki git repo + read token** —
-      https://github.com/arvisdev/llm-wiki (owner-curated) and an
+      https://github.com/<organization>/llm-wiki (owner-curated) and an
       `LLM_WIKI_READ_TOKEN` the executors use to shallow-clone it at boot.
 - [ ] **`EMBEDDING_PROVIDER` + API key** — resolved by D-embed (2026-11-04):
       OpenAI-compatible HTTP embeddings (`EMBEDDINGS=http`), model
@@ -191,7 +191,7 @@ one — each script is scoped to its own milestone.
 | Artifact | Location |
 |---|---|
 | Per-milestone gate results | `deploy/m<n>/evidence/` (created at run) |
-| Temporal history for the POC | `temporal workflow list/show` via the CLI on vm-xb, namespace `default` (no Web UI is deployed; no `poc` namespace is created) |
+| Temporal history for the POC | the Temporal web UI (see *Operational notes* below) or `temporal workflow list/show` via the CLI on the execution host, namespace `default` |
 | Docker state (images, containers) | on the VMs (vm-xb: rabbitmq + temporal + their postgres; vm-hindsight: hindsight; vm-xa: front-of-house at M5). The llm-wiki is a git repo (no VM of its own) |
 | GitHub App key (M3) | `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never in git) — where `issue-token.sh` runs |
 
@@ -206,3 +206,59 @@ one — each script is scoped to its own milestone.
 When those hold, the feasibility-analysis verdict is confirmed **by evidence,
 not by analysis** — that sentence is the POC's closing line, and these
 scripts are how you get to it.
+
+## Operational notes (post-deployment)
+
+### After a reboot — the restart procedure
+
+A host reboot does **not** bring the stack back in dependency order: each
+compose project restarts independently, and components that resolve others
+by name (the worker and bridge resolve the workflow engine; the bridge
+resolves the broker) crash-loop until the named service exists. Bring the
+stack back with the order-preserving script:
+
+```bash
+bash deploy/restart-stack.sh <execution-host>
+```
+
+It starts, in order: workflow engine + store (`deploy/m0/temporal`) →
+broker + bridge (`deploy/m1`) → worker + lifecycle (`deploy/m2`) →
+dashboards + the request-translation proxy — then verifies in one pass
+(every container `Up`, broker health check passing, bridge consuming the
+durable queue, worker registered on the task queue). Full rationale:
+`book/ch14` §14.8 and ledger lesson L11.
+
+Two reboot traps the script encodes:
+
+- **Nothing a container mounts may live outside source control.** The
+  request-translation proxy mounts its source from the repository copy
+  (`deploy/m3/llm-proxy/proxy.js` staged to the host) — a reboot empties
+  host temporary directories, and a stale mount blocks the container from
+  starting. If the proxy fails to start after a reboot, re-stage the file
+  from the repository copy and start it again.
+- **Compose-declared networks only.** Containers that reach each other by
+  name must have that network declared *in the compose file* — an
+  attachment added by hand (`docker network connect`) is lost the next time
+  the container is recreated. The broker's compose, for example, declares
+  the shared execution network with its service alias.
+
+### Dashboards (where to look, how to reach them)
+
+| Dashboard | What it shows | How to reach it |
+|---|---|---|
+| **Temporal web UI** | Workflows: one `TaskWorkflow` per accepted request, event timelines, retry chains, input/result payloads | `http://<execution-host>:8080` — reachable from the evaluation network. **Unauthenticated**: like the gateway, a deliberate POC-boundary; do not expose beyond the evaluation network |
+| **Message-broker management** | Queues (`agent.tasks.durable` depth and rates), exchange routing, consumer count, the DLQ | `http://<execution-host>:15672` — **management plane; operator-gated** (opened to the deployment network by owner decision, 2026-11-08; the M0 default was loopback-only with SSH-tunnel access). If your deployment keeps the M0 default: `ssh -N -L 15672:127.0.0.1:15672 <user>@<execution-host>`, then `http://localhost:15672` |
+
+**First-time login (message-broker management):** user `poc`; the password
+is the install-generated secret in the deployment's gitignored env file —
+
+```bash
+ssh <user>@<execution-host> 'grep RABBITMQ_PASS /opt/poc/deploy/m0/rabbitmq/.env'
+```
+
+It is never committed, never printed in documentation, and regenerated if
+the broker's data volume is re-created.
+
+**First-time use of the Temporal UI:** no login (see the boundary note
+above). Open the workflow list and filter by the `task_id` a gateway
+request returns.

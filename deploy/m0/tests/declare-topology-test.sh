@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 INSTALL="$REPO_ROOT/deploy/m0/install.sh"
 PORT="${T1_PORT:-18081}"
-PASS="${T1_PASS:-tier1-testpass}"
+PASS="${T1_PASS:?set T1_PASS in the test env - no default password is shipped}"
 WORK="$(mktemp -d)"
 STUB_PID=""
 trap '[ -n "$STUB_PID" ] && kill "$STUB_PID" 2>/dev/null || true; rm -rf "$WORK"' EXIT

@@ -127,7 +127,7 @@ expiry dates.**
 - The residual risk register is small but real: base-image OS CVEs (unfixable
   upstream), bundled CLI deps, and the plain-HTTP registry (insecure-registries)
   — acceptable on a LAN POC, **not** acceptable in any multi-tenant V2.
-- The estate-wide **sudoers grant** (`99-arvisdev`, passwordless) and the
+- The estate-wide **estate-wide **sudoers grant** (passwordless, revocable post-evidence) and the
   workstation-held `gh` keyring token are the two credentials that would hurt most
   if the workstation were compromised. V2: scope both, rotate, and expire.
 

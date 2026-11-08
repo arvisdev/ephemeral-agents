@@ -69,6 +69,6 @@ stage "S6 gateway /healthz" \
 
 # S7 smoke: one M2-level task with the stub executor (proves S2–S3 before real agents)
 stage "S7 smoke task (stub executor through the full flow)" \
-  bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"s7-smoke-$(date +%s)\",\"executor\":\"stub\",\"agent_ref\":\"ephemeral-org/eph-backend-engineer\",\"agent_repo_url\":\"https://github.com/arvisdev/agent-roster\",\"repo_folder\":\"ephemeral-org/eph-backend-engineer\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"task_prompt\":\"S7 smoke: confirm the flow\",\"max_turns\":3,\"behavioral_spec\":\"S7 end-to-end smoke\",\"requester\":\"m5-s7\",\"ttl_s\":300}"
+  bash "$REPO_ROOT/deploy/m2/tests/run-task.sh" "{\"task_id\":\"s7-smoke-$(date +%s)\",\"executor\":\"stub\",\"agent_ref\":\"ephemeral-org/eph-backend-engineer\",\"agent_repo_url\":\"https://github.com/<organization>/agent-roster\",\"repo_folder\":\"ephemeral-org/eph-backend-engineer\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"task_prompt\":\"S7 smoke: confirm the flow\",\"max_turns\":3,\"behavioral_spec\":\"S7 end-to-end smoke\",\"requester\":\"m5-s7\",\"ttl_s\":300}"
 
 echo "=== e2e-deploy: all stages S1–S7 PASS ==="

@@ -68,7 +68,7 @@ One flow, read from the source diagram (full connection map in
    catalog since 2026-11-08; superseding the planned Available Agent List)**,
    design standards & best practices from the **llm-wiki
    git repo** (per D-wiki-git, 2026-11-04: no wiki VM/service — the wiki is
-   the private git repo `github.com/arvisdev/llm-wiki`, shallow-cloned at
+   the private git repo `github.com/<organization>/llm-wiki`, shallow-cloned at
    executor boot; no retrieval API), and long-term memory from **Hindsight**
    (`vm-hindsight`, Postgres + pgvector).
 5. The coder agent **writes source code to the Project Repo** with a scoped,
@@ -158,7 +158,7 @@ personal credential file.
 ## Versioning conventions (V1 → V2 readiness)
 
 > **V2 kickoff (2026-11-08).** Version 2 has started in its own
-> **private** repository: [`ephemeral-agents-v2`](https://github.com/arvisdev/ephemeral-agents-v2).
+> **private** repository: [`ephemeral-agents-v2`](https://github.com/<organization>/ephemeral-agents-v2).
 > This repository is the **frozen public V1 record** — no new content is
 > added here. V2 cites this record by commit hash
 > (`14bf62dc81729ed0ece355c30b5b6888d4fbf058`); see the V2 repo's

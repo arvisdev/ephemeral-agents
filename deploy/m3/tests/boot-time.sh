@@ -19,7 +19,7 @@ RUN_TASK="${RUN_TASK:-$REPO_ROOT/deploy/m2/tests/run-task.sh}"
 EXEC="${1:-hermes}"; RUNS="${2:-3}"
 [ "$RUNS" -ge 1 ] 2>/dev/null || { echo "usage: boot-time.sh <executor> <runs>" >&2; exit 64; }
 VM_XB="${VM_XB:-vm-xb}"
-CATALOG_REPO_URL="${CATALOG_REPO_URL:-https://github.com/arvisdev/agent-roster}"
+CATALOG_REPO_URL="${CATALOG_REPO_URL:-https://github.com/<organization>/agent-roster}"
 
 echo "# B1 boot-time — executor=$EXEC runs=$RUNS — $(date -u)"
 echo "| run | task_id | boot_s (spawn -> self-report.json) |"

@@ -7,13 +7,19 @@ services:
     hostname: rabbitmq
     ports:
       - "5672:5672"                        # AMQP must be reachable cross-VM (M5 manager on vm-xa publishes here)
-      - "127.0.0.1:15672:15672"            # mgmt UI loopback-only — no management plane on the LAN
+      - "15672:15672"  # mgmt UI LAN-open per owner request 2026-11-08 (was loopback-only M0 design)
     environment:
       RABBITMQ_DEFAULT_USER: poc
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}   # from .env (gitignored, generated: openssl rand -hex 16)
     volumes: ["rabbitmq-data:/var/lib/rabbitmq"]
+    networks:
+      poc-net:
+        aliases: [rabbitmq]   # bridge/worker/lifecycle resolve "rabbitmq" on poc-net
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 15s
 volumes:
   rabbitmq-data: {}
+networks:
+  poc-net:
+    external: true

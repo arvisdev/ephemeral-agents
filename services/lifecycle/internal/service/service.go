@@ -153,7 +153,7 @@ func (s *Service) Spawn(ctx context.Context, cfg taskconfig.TaskConfig) (taskcon
 			return taskconfig.SpawnResponse{}, fmt.Errorf("issue token (§1c): %w", err)
 		}
 		env = append(env, "GITHUB_TOKEN="+tok, "ANTHROPIC_API_KEY="+s.m3Env["ANTHROPIC_API_KEY"],
-			"REPO_URL=https://github.com/arvisdev/"+strings.TrimPrefix(cfg.RepoTarget, "repos/")) // repo_target is repos/<repo> relative to the owner; coder edits the project repo, not the agent catalog
+			"REPO_URL="+s.repoURLPrefix()+strings.TrimPrefix(cfg.RepoTarget, "repos/")) // repo_target is repos/<repo> relative to the org; coder edits the project repo, not the agent catalog
 		for k, v := range passThrough {
 			if v != "" {
 				env = append(env, k+"="+v)
@@ -346,6 +346,16 @@ func (s *Service) imageFor(executor string) string {
 // issueToken shells out to the M3 token issuance script (§1c): JWT-signed
 // App token, TTL ≤ 1 h. Skipped (error) when the App is not configured —
 // coder tasks cannot run without it.
+// repoURLPrefix returns the GitHub URL prefix for REPO_URL. Sourced from
+// POC_GITHUB_URL_PREFIX (set in the deployment's gitignored env); no org name
+// is shipped in source.
+func (s *Service) repoURLPrefix() string {
+	if p := s.m3Env["POC_GITHUB_URL_PREFIX"]; p != "" {
+		return p
+	}
+	return "https://github.com/"
+}
+
 func (s *Service) issueToken() (string, error) {
 	if s.m3Env["GITHUB_APP_ID"] == "" || s.m3Env["INSTALLATION_ID"] == "" {
 		return "", fmt.Errorf("GitHub App not configured (GITHUB_APP_ID/INSTALLATION_ID absent) — §1c required for coder tasks")

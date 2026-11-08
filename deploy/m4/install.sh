@@ -14,7 +14,7 @@
 #   §3  Verification G1..G6 -> deploy/m4/evidence/
 #
 # The LLM-Wiki is NOT a service: it is a git repository
-# (https://github.com/arvisdev/llm-wiki) that executors shallow-clone at boot.
+# (https://github.com/<organization>/llm-wiki) that executors shallow-clone at boot.
 # There is no retrieval API and no LLMWIKI_URL anywhere.
 #
 # Usage:  bash deploy/m4/install.sh [--check-only] [--no-gate]
@@ -241,9 +241,9 @@ gate_tests() {
       echo "G2 cross-task read-back : FAIL (record which step: M2 wiring vs. scope rule, M4 §6)"
     fi
     # G3 llm-wiki clone: shallow-clone the git repo from a VM and assert README readable
-    wikiurl="${LLM_WIKI_REPO_URL:-https://github.com/arvisdev/llm-wiki}"
+    wikiurl="${LLM_WIKI_REPO_URL:-https://github.com/<organization>/llm-wiki}"
     if [ -n "${LLM_WIKI_READ_TOKEN:-}" ]; then
-      if ssh "$VM_XB" "git clone --depth 1 https://x-access-token:${LLM_WIKI_READ_TOKEN}@github.com/arvisdev/llm-wiki /tmp/llm-wiki-g3 2>/dev/null && test -s /tmp/llm-wiki-g3/README.md && rm -rf /tmp/llm-wiki-g3"; then
+      if ssh "$VM_XB" "git clone --depth 1 https://x-access-token:${LLM_WIKI_READ_TOKEN}@github.com/<organization>/llm-wiki /tmp/llm-wiki-g3 2>/dev/null && test -s /tmp/llm-wiki-g3/README.md && rm -rf /tmp/llm-wiki-g3"; then
         echo "G3 llm-wiki shallow clone from $VM_XB + README readable : PASS ($wikiurl)"
       else
         echo "G3 llm-wiki shallow clone : FAIL (check LLM_WIKI_READ_TOKEN / repo access from $VM_XB)"

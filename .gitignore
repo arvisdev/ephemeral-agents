@@ -19,3 +19,6 @@ services/topic-bridge/adapter
 services/**/gateway
 services/**/manager
 services/**/adapter
+
+# estate IP inventory - operator-local only, never distributed
+POC-IP-Addresses.txt

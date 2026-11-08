@@ -177,7 +177,7 @@ provision_vms() {
       confirm "write static netplan on $hn (IP $nip; existing file backed up)"
       if [ "$CHECK_ONLY" != "1" ]; then
         ssh "$h" "sudo cp /etc/netplan/01-netcfg.yaml /etc/netplan/01-netcfg.yaml.bak 2>/dev/null || true; \
-          printf 'version: 2\nethernets:\n  ${NETPLAN_IF:-eno1}:\n    addresses:\n      - %s/24\n    routes:\n      - to: default\n        via: ${NETPLAN_GW:-10.0.90.1}\n' '$nip' | sudo tee /etc/netplan/01-netcfg.yaml >/dev/null; sudo netplan apply"
+          printf 'version: 2\nethernets:\n  ${NETPLAN_IF:-eno1}:\n    addresses:\n      - %s/24\n    routes:\n      - to: default\n        via: ${NETPLAN_GW:?set NETPLAN_GW in hosts.env - no default gateway address is shipped in the script}\n' '$nip' | sudo tee /etc/netplan/01-netcfg.yaml >/dev/null; sudo netplan apply"
       fi
     else
       cur="$(ssh "$h" "hostname -I | awk '{print \$1}'" || echo unknown)"

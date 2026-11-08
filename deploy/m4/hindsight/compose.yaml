@@ -25,6 +25,6 @@ services:
         condition: service_healthy
     restart: unless-stopped
     ports:
-      - "8081:8081"   # LAN-reachable API (doc §3: HINDSIGHT_URL=http://vm-hindsight:8081; UFW 8081 open to 192.168.0.0/24)
+      - "8081:8081"   # LAN-reachable API (doc §3: HINDSIGHT_URL=http://<memory-host>:8081; UFW 8081 open to the deployment network)
 volumes:
   hindsight-pg-data: {}

@@ -4,7 +4,7 @@
 services:
   temporal:
     image: "temporalio/auto-setup:1.27.0"    # pin; auto-setup runs the schema init the bare server image lacks
-    ports: ["7233:7233"]                     # fixed host port — VM-local CLI + Go SDK smoke target 192.168.0.224:7233
+    ports: ["7233:7233"]                     # fixed host port — VM-local CLI + Go SDK smoke target <execution-host>:7233
     environment:
       BIND_ON_IP: "0.0.0.0"                  # bind all interfaces; the auto-setup template's bind var is BIND_ON_IP (default 127.0.0.1)
       DB: postgres12

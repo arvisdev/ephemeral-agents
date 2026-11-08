@@ -2,8 +2,8 @@
 
 **Project:** Ephemeral Agents — Enterprise Multi-Agent Orchestration POC
 **Date:** 2026-11-07 · **Status:** ALL MILESTONES M0–M5 COMPLETE — POC BASELINE CLOSED
-**Author:** Hermes Agent (operator), signed off by HITL (owner arvisdev)
-**Repository:** github.com/arvisdev/ephemeral-agents (this report included; evidence dirs are gitignored by design)
+**Author:** Hermes Agent (operator), signed off by HITL (the project owner)
+**Repository:** github.com/<organization>/ephemeral-agents (this report included; evidence dirs are gitignored by design)
 
 ---
 
@@ -53,7 +53,7 @@ with zero surviving containers and no long-lived credentials anywhere.
   zero survivors and a human-visible error or a completed report; **F5 (manager
   restart mid-task) still wrote the report after restart**.
 - **Registry-only operation:** every spawn sources images from the private registry
-  (192.168.0.198:5000) — the rmi-first proof (TC-M2-06 pattern) removed all local
+  (<registry-host>:5000) — the rmi-first proof (TC-M2-06 pattern) removed all local
   copies from vm-xb.
 
 ## 4. Performance figures
@@ -74,7 +74,7 @@ with zero surviving containers and no long-lived credentials anywhere.
 1. **Env-load timing** — lifecycle env was read before the secrets mount settled →
    order the mount before env load.
 2. **JWT exp 900 s → 540 s** — GitHub caps App JWTs at 600 s; minting silently failed.
-3. **`REPO_URL` contract** — `https://github.com/arvisdev/` + `TrimPrefix(RepoTarget,"repos/")`.
+3. **`REPO_URL` contract** — `https://github.com/<organization>/` + `TrimPrefix(RepoTarget,"repos/")`.
 4. **Model aliasing** — `--model sonnet` + `ANTHROPIC_DEFAULT_SONNET_MODEL` mapping to
    `z-ai/glm-5.3-flash`; `MODEL_DEFAULT` must never default to Anthropic (owner directive).
 5. **Headless permissions** — Claude Code refuses edits headless without
@@ -139,13 +139,13 @@ CLI refreshes to clear bundled-dep residuals; topology diagram re-draw (owner).
 
 ## 9. Estate state at close
 
-- **vm-ephemeral-agents (192.168.0.224, VMID 1000):** RabbitMQ, Temporal + Postgres,
+- **vm-ephemeral-agents (<execution-address>, VMID 1000):** RabbitMQ, Temporal + Postgres,
   m2-lifecycle, m2-worker, topic-bridge, llm-proxy; registry-backed images only.
-- **vm-hermes-agent (192.168.0.233, VMID 2000):** m5-gateway (:8080, LAN-published)
+- **vm-hermes-agent (<front-address>, VMID 2000):** m5-gateway (:8080, LAN-published)
   + m5-manager; no GitHub credentials held.
-- **vm-hindsight (192.168.0.223, VMID 2001):** hindsight-pg (pgvector/pg16) +
+- **vm-hindsight (<memory-address>, VMID 2001):** hindsight-pg (pgvector/pg16) +
   hindsight-api (:8081 LAN-published).
-- **vm-docker-registry (192.168.0.198, VMID 1001):** private registry with all nine
+- **vm-docker-registry (<registry-address>, VMID 1001):** private registry with all nine
   `poc/*:1.0.0` images.
 - GitHub App `ephemeral-agents-poc` (App ID 5650740, installation 179437771) issues
   per-task tokens; key held 0600 on vm-xb only.
