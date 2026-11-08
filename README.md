@@ -1,11 +1,9 @@
 # ephemeral-agents
 
-**Author:** the Human-In-The-Loop project owner, working through the
-**arvisdev** account · **Company / Contributor:** A&R Visual Development Inc
-("arvisdev") · **Built with:** Hermes Agent as the hands-on operator, under
-the author's direction and sign-off (every gate result carries that
-sign-off; see the [book](book/README.md) and the
-[findings report](Initial-POC-Findings-Report.md)).
+**Authorship & provenance:** see [AUTHORSHIP.md](AUTHORSHIP.md) — the
+concept, designs, and specifications are the author's original work
+(conceived May 13, 2026); AI served as directed research assistant, document
+creator, and rules-bound implementer.
 
 **A standalone proof-of-concept of an ephemeral AI Dev Agent system** — a
 human-initiated, human-reported flow in which a durable orchestrator (Temporal)
