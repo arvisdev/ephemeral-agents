@@ -42,15 +42,18 @@ component in Part II, and fully traced in Part III.
 | 12 | [The Failure Ledger](ch12-the-failure-ledger.md) | ~35 defects in five classes; ten stories that earned design rules; process lessons |
 | 13 | [What Remains](ch13-what-remains.md) | What was demonstrated vs deferred; the next version in priority order; the verdict |
 | 14 | [Building from Scratch](ch14-building-from-scratch.md) | The operator's chapter: intake list, estate inventory, VM provisioning, the idempotent deployment sequence, secrets staging, timeline |
+| 15 | [Evaluating the System](ch15-evaluating-the-system.md) | The evaluator's chapter: the POC boundary statement, the step-by-step evaluation flow, the dashboards (Temporal UI, message-broker management), the live checklist, claim-by-claim verification |
 
 ## Conventions
 
 - **Labels with permanent meaning:** Walls 1–7 (Chapter 1) and Principles
   P1–P6 (Chapter 2) are cited by number throughout.
-- **Sensitive data:** the book contains no credentials, tokens, keys, or
-  personal data. The owner's public account name
-  (`github.com/arvisdev/...`) and internal `192.168.0.x` LAN addresses are
-  approved for inclusion by the owner and appear as-is.
+- **Sensitive data:** the book contains no credentials, tokens, keys,
+  personal data, hostnames, account names, or IP addresses of any kind.
+  Machine-specific values are written as neutral placeholders —
+  `<organization>`, `<gateway-host>`, `<execution-host>`, `<worker-host>`,
+  `<registry-host>`, `<user>` — and their concrete values live with the
+  operator in the deployment environment files.
 - **Evidence:** every measured claim in Part III traces to the project's
   filed evidence pack; the re-runnable material is committed in this
   repository.
