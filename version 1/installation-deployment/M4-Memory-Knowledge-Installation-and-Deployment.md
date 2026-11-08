@@ -136,7 +136,7 @@ docker volume rm hindsight-pg-data      # only on a true re-do
 
 | Symptom | Cause / fix |
 |---|---|
-| llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLM_WIKI_REPO_URL` + `LLM_WIKI_READ_TOKEN` scope (`contents:read` on arvisdev/llm-wiki is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
+| llm-wiki clone fails or times out in hydrate (G3) | repo URL/read token wrong, or egress to github.com blocked from the container — check `LLM_WIKI_REPO_URL` + `LLM_WIKI_READ_TOKEN` scope (`contents:read` on <organization>/llm-wiki is enough); a clean clone failure must surface as a hydrate error (see M5 F1), never silently skipped |
 | Wrong doc found by an agent (G3 content miss) | with a plain clone there is no retrieval layer — content navigation is the repo's own README/directory layout; if lookups miss, fix the repo's index/README (the V2 curated-index open item), not the executor |
 | `extension "vector" is not installed` | used `postgres:16` instead of `pgvector/pgvector:pg16` (section 1a image pin) |
 | API 500 on write | embedding provider key missing/rate-limited — check `EMBEDDINGS` env + provider quota (rate-limit note from the owner's standing conventions) |
