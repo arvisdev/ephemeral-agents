@@ -1,5 +1,6 @@
 # ephemeral-agents
 
+**Author:** Ronald A Steinhauer — A&R Visual Development Inc (arvisdev) ·
 **Authorship & provenance:** see [AUTHORSHIP.md](AUTHORSHIP.md) — the
 concept, designs, and specifications are the author's original work
 (conceived May 13, 2026); AI served as directed research assistant, document

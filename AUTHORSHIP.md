@@ -1,7 +1,7 @@
 # Authorship & Provenance
 
 **Project:** ephemeral-agents — an organization of AI agents
-**Author & originator:** the Human-In-The-Loop project owner (HITL), working through the **arvisdev** account of **A&R Visual Development Inc**
+**Author & originator:** **Ronald A Steinhauer** — A&R Visual Development Inc (arvisdev) · Human-In-The-Loop project owner (HITL)
 **Original conception date:** **May 13, 2026**
 
 ## 1. Original work of the author
