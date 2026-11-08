@@ -11,3 +11,11 @@ deploy/m0/go-sdk-smoke/go-sdk-smoke
 install-logs/
 deploy/m1/tests/.last-task-ids
 services/*/adapter
+
+# compiled Go service binaries (build artifacts - never commit)
+services/gateway/gateway
+services/manager/manager
+services/topic-bridge/adapter
+services/**/gateway
+services/**/manager
+services/**/adapter
