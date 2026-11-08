@@ -17,7 +17,7 @@ services:
     # persistent Hermes Agent (Docker Container) hosting the Manager Agent — survives across tasks
     environment:
       RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@192.168.0.224:5672"
-      AGENT_LIST_REPO: "https://github.com/arvisdev/available-agent-list.git"  # owner catalog repo (manager embeds GITHUB_READ_TOKEN as x-access-token)
+      AGENT_LIST_REPO: "https://github.com/arvisdev/agent-roster.git"  # owner catalog repo (manager embeds GITHUB_READ_TOKEN as x-access-token)
       GITHUB_READ_TOKEN: ${AGENT_LIST_READ_TOKEN}
       TASKS_EXCHANGE: "agent.tasks"
       RESPONSE_QUEUE: "agent.tasks.response"

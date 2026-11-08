@@ -19,7 +19,7 @@ RUN_TASK="${RUN_TASK:-$REPO_ROOT/deploy/m2/tests/run-task.sh}"
 EXEC="${1:-hermes}"; RUNS="${2:-3}"
 [ "$RUNS" -ge 1 ] 2>/dev/null || { echo "usage: boot-time.sh <executor> <runs>" >&2; exit 64; }
 VM_XB="${VM_XB:-vm-xb}"
-CATALOG_REPO_URL="${CATALOG_REPO_URL:-https://github.com/arvisdev/available-agent-list}"
+CATALOG_REPO_URL="${CATALOG_REPO_URL:-https://github.com/arvisdev/agent-roster}"
 
 echo "# B1 boot-time — executor=$EXEC runs=$RUNS — $(date -u)"
 echo "| run | task_id | boot_s (spawn -> self-report.json) |"
@@ -30,7 +30,7 @@ boot_ms_arr=()
 for i in $(seq 1 "$RUNS"); do
   id="b1-$(date +%H%M%S)-$i"
   start="$(date +%s)"
-  bash "$RUN_TASK" "{\"task_id\":\"$id\",\"executor\":\"hermes\",\"agent_ref\":\"agents/dev-agent\",\"agent_repo_url\":\"$CATALOG_REPO_URL\",\"repo_folder\":\"agents/dev-agent\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"behavioral_spec\":\"boot-time probe (M3 B1)\",\"requester\":\"m3-b1\",\"ttl_s\":300}" &
+  bash "$RUN_TASK" "{\"task_id\":\"$id\",\"executor\":\"hermes\",\"agent_ref\":\"ephemeral-org/eph-backend-engineer\",\"agent_repo_url\":\"$CATALOG_REPO_URL\",\"repo_folder\":\"ephemeral-org/eph-backend-engineer\",\"repo_target\":\"repos/ephemeral-poc-demo\",\"behavioral_spec\":\"boot-time probe (M3 B1)\",\"requester\":\"m3-b1\",\"ttl_s\":300}" &
   runpid=$!
   # poll for /work/self-report.json on the spawned container (poc.task label)
   boot=""

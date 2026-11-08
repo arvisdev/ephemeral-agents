@@ -1,0 +1,14 @@
+AGENT ROSTER (ephemeral-org)
+------------------------------
+
+Backend Engineer
+	Agent: https://github.com/arvisdev/agent-roster/tree/main/ephemeral-org/eph-backend-engineer)
+	Description: Software Engineer that codes both backend and frontend applications
+	Model: z-ai/glm-5.3-flash
+	Image: claude-code
+
+Business Requirements Specialist
+	Agent: https://github.com/arvisdev/agent-roster/tree/main/ephemeral-org/eph-business-requirements-specialist
+	Description: Business Analyst that specializes in building and gather business requirements
+	Model: z-ai/glm-5.3-flash
+	Image: hermes-agent

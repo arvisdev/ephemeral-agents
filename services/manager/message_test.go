@@ -44,7 +44,7 @@ func TestComputeTTLS(t *testing.T) {
 
 func TestComposeTaskMessageSchemaConformance(t *testing.T) {
 	msg, err := ComposeTaskMessage(testReq(), testAgent(),
-		"https://github.com/owner/available-agent-list.git",
+		"https://github.com/owner/agent-roster.git",
 		"https://github.com/owner/project.git", "desktop-engineer", 60, 100)
 	if err != nil {
 		t.Fatalf("ComposeTaskMessage: %v", err)
@@ -60,7 +60,7 @@ func TestComposeTaskMessageSchemaConformance(t *testing.T) {
 		t.Errorf("a required field is empty: %+v", msg)
 	}
 	// agent_ref = repo location + repo folder (Note 1)
-	if !strings.HasPrefix(msg.AgentRef, "https://github.com/owner/available-agent-list.git#") ||
+	if !strings.HasPrefix(msg.AgentRef, "https://github.com/owner/agent-roster.git#") ||
 		!strings.HasSuffix(msg.AgentRef, "agents/dev-agent") {
 		t.Errorf("agent_ref = %q, want repo#folder", msg.AgentRef)
 	}

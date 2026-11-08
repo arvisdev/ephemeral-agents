@@ -30,7 +30,7 @@
 #   E2E_BRIEF — the task_brief for the acceptance request (default: "add a health endpoint to the POC project")
 #   E2E_TIMEOUT_S — default 600
 #   M0..M4_DONE=1 — skip the all-gates prereq probe
-#   AGENT_LIST_READ_TOKEN — read token for the available-agent-list repo (manager env)
+#   AGENT_LIST_READ_TOKEN — read token for the agent-roster repo (manager env)
 #   PROJECT_LOCAL_DIR — local clone of the project repo (for the commit check)
 #
 # Assets required in the repo (produced by the M5 delivery plan; checked first):
