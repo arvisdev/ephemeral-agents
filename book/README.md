@@ -41,6 +41,7 @@ component in Part II, and fully traced in Part III.
 | 11 | [The Build](ch11-the-build.md) | Six stages over four days, the gate rules, what was measured |
 | 12 | [The Failure Ledger](ch12-the-failure-ledger.md) | ~35 defects in five classes; ten stories that earned design rules; process lessons |
 | 13 | [What Remains](ch13-what-remains.md) | What was demonstrated vs deferred; the next version in priority order; the verdict |
+| 14 | [Building from Scratch](ch14-building-from-scratch.md) | The operator's chapter: intake list, estate inventory, VM provisioning, the idempotent deployment sequence, secrets staging, timeline |
 
 ## Conventions
 
