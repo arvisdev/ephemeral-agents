@@ -2,7 +2,7 @@
 // human-facing front-of-house component (M5 install doc §1).
 //
 // Per request from the gateway:
-//  1. git clone --depth 1 the Available Agent List (read token).
+//  1. git clone --depth 1 the agent roster (agent-roster; read token).
 //  2. Search index.json for the agent matching the request's capability.
 //  3. Locate the folder: persona + skill-and-tools + behavioral spec.
 //  4. Compose the M1 task message (schemas/message-v1.json) — the manager is
@@ -199,7 +199,7 @@ func (c config) catalogCloneURL() string {
 		strings.TrimPrefix(repo, "https://github.com/") + ".git"
 }
 
-// cloneCatalog runs step 1: git clone --depth 1 of the Available Agent List
+// cloneCatalog runs step 1: git clone --depth 1 of the agent roster
 // into a temp dir; returns the path (caller cleans up).
 func (s *server) cloneCatalog() (string, error) {
 	dir, err := os.MkdirTemp("", "agent-list-")

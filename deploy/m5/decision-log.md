@@ -26,3 +26,26 @@
 6. llm-wiki curation automation beyond the HITL append-only cadence.
 7. Upstream dependency refreshes: Claude Code CLI >2.1.318 and Hermes Agent >v0.23.0 to clear the bundled-dep residuals.
 8. ARCHITECTURE.md / Initial-Foundation-Design-Document.md topology diagrams to be re-drawn by the owner after design validation (intentionally untouched by automation).
+
+## Post-close decision (2026-11-08): catalog switched to agent-roster
+
+- **D-catalog-realization (2026-11-08):** the machine-readable catalog the
+  manager matches against and the executors hydrate from is now
+  **`agent-roster`** (AGENT ROSTER (ephemeral-org)) — replacing the planned
+  Available Agent List. The roster repository carries: a root `index.json`
+  (22 eph-* entries in the wrapped `{"agents":[…]}` shape, fields
+  ref/name/role/folder/skills/spec_ref) and, per eph-* folder, the three
+  hydration files the executor contract requires (`persona.md`,
+  `skill-and-tools.md`, `behavioral-spec.md`). Rationale: one source of
+  truth serves both the human staff directory (the roster documents) and
+  the machine catalog — no "documentation copy" that can drift.
+- The version-1 contract doc (`version 1/Available-Agent-List-Repository.md`)
+  remains the baselined design record; this entry is the realizing decision
+  per the version-closure rule (nothing is edited inside a baselined doc set).
+- **Estate applied:** m5-manager `AGENT_LIST_REPO` switched to
+  `agent-roster.git` and the container recreated; live smoke verified —
+  capability "risk assessment" routed to
+  `ephemeral-org/eph-risk-assessment-analyst`, the executor hydrated all
+  three persona files (boot 1457 ms), report `status: success`.
+- Repo commits: agent-roster `f9ec562` (catalog files), ephemeral-agents
+  `a1e7dea` (references), README/comment sync this pass.

@@ -36,8 +36,10 @@ One flow, read from the source diagram (full connection map in
    not a fixed two), and multiple containers in parallel when requests are
    concurrent. The team sets a hard limit in configuration; the POC rule of
    thumb is **max 5**, tuned to the VM's configuration (not an absolute).
-4. The agents hydrate: agent personas/skills from the **Available Agent List
-   (GitHub repo)**, design standards & best practices from the **llm-wiki
+4. The agents hydrate: agent personas/skills from the **agent roster
+   (`agent-roster` — AGENT ROSTER (ephemeral-org), the machine-readable
+   catalog since 2026-11-08; superseding the planned Available Agent List)**,
+   design standards & best practices from the **llm-wiki
    git repo** (per D-wiki-git, 2026-11-04: no wiki VM/service — the wiki is
    the private git repo `github.com/arvisdev/llm-wiki`, shallow-cloned at
    executor boot; no retrieval API), and long-term memory from **Hindsight**
@@ -51,7 +53,7 @@ One flow, read from the source diagram (full connection map in
 
 | Decision | Content |
 |---|---|
-| **Store-content model** | Hindsight = long-term memory (R/W). llm-wiki git repo = design standards + dev/business best practices (D-wiki-git, 2026-11-04: RAG service removed; plain git repo, shallow-cloned). Git repo (Available Agent List) = everything the agents load (skills / personas). |
+| **Store-content model** | Hindsight = long-term memory (R/W). llm-wiki git repo = design standards + dev/business best practices (D-wiki-git, 2026-11-04: RAG service removed; plain git repo, shallow-cloned). Git repo (`agent-roster`) = everything the agents load (skills / personas). |
 | **Manager ↔ RabbitMQ** | Two-way (double-headed): responses return to the manager when needed. |
 | **RabbitMQ stays (owner decision 2026-10-29)** | The broker is kept **deliberately**, not by default: it is the V2 ingestion boundary — other (non-Temporal) systems will publish tasks into the topic alongside the manager, which a direct SDK start cannot serve. The M1 adapter's idempotency/loss machinery (TC-M1-03..06) is the cost of owning that boundary, and M1 is the milestone that proves it is manageable. |
 | **Language mandate** | **All Temporal SDK code is Golang** — workflows, workers, activities, adapters, CLI samples (owner instruction: speed + size). Every install doc carries this. |
@@ -60,6 +62,15 @@ One flow, read from the source diagram (full connection map in
 
 ## Feasibility status
 
+**PROVEN — all six milestones (M0–M5) completed and signed 2026-11-07.**
+The gate results and evidence are recorded in
+[Initial-POC-Findings-Report.md](Initial-POC-Findings-Report.md); the
+practitioner's lessons are in
+[POC-Retrospective-and-Insights.md](POC-Retrospective-and-Insights.md); and
+the full thesis → design → proof treatment is the
+[book](book/README.md) (14 chapters).
+
+Original feasibility verdict (pre-build):
 **Technically feasible — no fundamental blocker**
 ([Technical-Feasibility-Analysis.md](version%201/Technical-Feasibility-Analysis.md)).
 The effort concentrates in integration glue (RabbitMQ→Temporal adapter, the
@@ -103,6 +114,9 @@ cross-link is in [Technical-Feasibility-POC-Milestones.md](version%201/Technical
 │   └── test procedures/              One gate test procedure per milestone (TP-M0 … TP-M5)
 ├── schemas/                          Versioned inter-zone contracts
 │   └── message-v1.json               The task message envelope (authoritative per D-msg-v1; owned by the M1 delivery plan)
+├── book/                             The book: Part I thesis (ch1–3), Part II design (ch4–10), Part III proof (ch11–13), ch14 build-from-scratch; README = table of contents
+├── Initial-POC-Findings-Report.md    The signed evidence record of the POC (M0–M5)
+├── POC-Retrospective-and-Insights.md The practitioner's lessons digest (effort, failure taxonomy, V2 priorities)
 ├── deploy/                           The executable layer
 │   ├── README.md                     Operator entry point: step sequence, gate rule, first-time setup, failure routing
 │   ├── m0/install.sh … m5/install.sh Six complete install scripts (idempotent; --check-only; gate tests; evidence to deploy/mN/evidence/)

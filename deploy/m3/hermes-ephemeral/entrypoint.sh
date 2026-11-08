@@ -36,7 +36,7 @@ fail() { # fail <reason>  -> self-report with error, exit 2 (M2 surfaces + reaps
   exit 2
 }
 
-# 1. clone the Available Agent List (read token), then scrub the token from env
+# 1. clone the agent roster (agent-roster; read token), then scrub the token from env
 [ -n "$AGENT_REPO_URL" ] || fail "AGENT_REPO_URL missing"
 CLONE_URL="${AGENT_REPO_URL/https:\/\//https:\/\/x-access-token:$GITHUB_READ_TOKEN@}"
 git clone --depth 1 "$CLONE_URL" /work/agents \

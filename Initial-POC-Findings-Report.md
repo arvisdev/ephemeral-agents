@@ -160,3 +160,28 @@ cleanup and credential hygiene. The Version 2 open-items list is the starting
 backlog for the next iteration.
 
 *— End of report —*
+
+---
+
+## Addendum — post-close changes (2026-11-08)
+
+Recorded after the POC closed, so the report above remains the accurate
+2026-11-07 snapshot:
+
+1. **Agent catalog realized as `agent-roster`.** The machine-readable
+   catalog (index.json, 22 eph-* entries) and the executor hydration files
+   were committed to the `agent-roster` repository (AGENT ROSTER
+   (ephemeral-org)); all pipeline references switched from the planned
+   Available Agent List to `agent-roster` (ephemeral-agents commit
+   `a1e7dea`; agent-roster commit `f9ec562`). Live smoke verified: a
+   capability-only-in-the-new-catalog request routed to
+   `ephemeral-org/eph-risk-assessment-analyst`, hydrated fully, and
+   returned `status: success`.
+2. **The book.** The full thesis → design → proof treatment (14 chapters,
+   including a build-from-scratch operator chapter) was written and
+   committed under `book/`.
+3. **The retrospective.** `POC-Retrospective-and-Insights.md` (effort
+   distribution, failure taxonomy, V2 priorities) was committed.
+
+Nothing in this addendum changes any gate result, evidence item, or
+performance figure reported above.

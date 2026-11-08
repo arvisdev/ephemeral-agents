@@ -52,7 +52,7 @@ type TaskMessage struct {
 	TTLS           *int64 `json:"ttl_s,omitempty"`
 }
 
-// AgentIndexEntry is one row of the Available Agent List's index.json
+// AgentIndexEntry is one row of the agent roster's index.json
 // (M3 doc §1a: [{ref, name, role, folder, skills[], spec_ref}]).
 type AgentIndexEntry struct {
 	Ref     string   `json:"ref"`

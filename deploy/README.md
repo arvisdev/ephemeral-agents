@@ -118,7 +118,7 @@ junior run stalls.* If any item is missing, stop and ask before starting M0.
 - [ ] **M3: GitHub App + private key** — the App ID + the key file, to be
       placed at `/opt/poc/secrets/app-key.pem` on **vm-xb** (chmod 600, never
       in git). Needed by `deploy/m3/issue-token.sh`.
-- [ ] **Available Agent List repo + read token** — the repo the agent index is
+- [ ] **Agent roster repo (`agent-roster`) + read token** — the repo the agent index is
       read from, plus a read-only token the gateway can use. Layout contract:
       `version 1/Available-Agent-List-Repository.md`; if the repo doesn't
       exist yet, create it from the working example
