@@ -17,7 +17,7 @@ and readable by both machines and people:
 {
   "task_id":        "024450cf-d265-4d25-92b1-aa99f56dda52",
   "executor":       "hermes",
-  "agent_ref":      "https://github.com/arvisdev/agent-roster.git#ephemeral-org/eph-risk-assessment-analyst",
+  "agent_ref":      "https://github.com/<organization>/agent-roster.git#ephemeral-org/eph-risk-assessment-analyst",
   "repo_folder":    "ephemeral-org/eph-risk-assessment-analyst",
   "repo_target":    "repos/ephemeral-poc-demo",
   "task_prompt":    "Assess risks of the proposed analysis approach…",
