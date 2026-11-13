@@ -23,7 +23,7 @@
 //
 //	TEMPORAL_ADDR=temporal:7233
 //	LIFECYCLE_API=http://lifecycle:8090
-//	RABBITMQ_URL=amqp://poc:***@rabbitmq:5672/
+//	RABBITMQ_URL=amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/
 //	POC_TTL_DEFAULT=900s      (worker-side fallback; the lifecycle TTL is authoritative)
 //	POC_POLL_INTERVAL=2s
 //

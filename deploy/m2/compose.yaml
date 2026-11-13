@@ -38,7 +38,7 @@ services:
       LIFECYCLE_API: "http://lifecycle:8090"     # same compose project; expose the API to this network
       POC_DOCKER_DEBUG: "true"                    # M3 debug: log exact docker run args
       # response publisher (M2 §1c) — declare agent.tasks.response (M0 §3)
-      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/"
+      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS:?set RABBITMQ_PASS in .env}@rabbitmq:5672/"
     depends_on: [lifecycle]
     restart: unless-stopped
 # shared external network (poc-net) — M0 containers carry the rabbitmq/temporal

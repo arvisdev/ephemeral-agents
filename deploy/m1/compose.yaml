@@ -8,7 +8,7 @@ services:
       # copied from deploy/m0/rabbitmq/.env — same password everywhere) —
       # same compose network as M0's rabbitmq, so the short service name resolves;
       # M5's manager runs on vm-xa and uses the routable host name vm-xb:5672 instead
-      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/"
+      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS:?set RABBITMQ_PASS in .env}@rabbitmq:5672/"
       TEMPORAL_ADDR: "temporal:7233"
       TEMPORAL_NAMESPACE: default
       TASKS_EXCHANGE: agent.tasks

@@ -44,7 +44,7 @@ import (
 
 // Env var names per the M1 compose block.
 const (
-	envRabbitMQURL   = "RABBITMQ_URL"   // e.g. amqp://poc:***@rabbitmq:5672/
+	envRabbitMQURL   = "RABBITMQ_URL"   // e.g. amqp://poc:${RABBITMQ_PASS}@rabbitmq:5672/
 	envTemporalAddr  = "TEMPORAL_ADDR"  // e.g. temporal:7233
 	envTemporalNS    = "TEMPORAL_NAMESPACE" // optional, default "default"
 	envTasksExchange = "TASKS_EXCHANGE" // agent.tasks

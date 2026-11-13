@@ -16,7 +16,7 @@ services:
     image: "poc/manager:1.0.0"
     # persistent Hermes Agent (Docker Container) hosting the Manager Agent — survives across tasks
     environment:
-      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS}@${BROKER_HOST:?set BROKER_HOST in .env}:5672"
+      RABBITMQ_URL: "amqp://poc:${RABBITMQ_PASS:?set RABBITMQ_PASS in .env}@${BROKER_HOST:?set BROKER_HOST in .env}:5672"
       AGENT_LIST_REPO: "${AGENT_LIST_REPO:?set AGENT_LIST_REPO=https://github.com/<organization>/agent-roster.git in .env}"  # owner catalog repo (manager embeds GITHUB_READ_TOKEN as x-access-token)
       GITHUB_READ_TOKEN: ${AGENT_LIST_READ_TOKEN}
       TASKS_EXCHANGE: "agent.tasks"
